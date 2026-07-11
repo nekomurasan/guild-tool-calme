@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elite Gear Database | BrownDust Ⅱ Calme Guild Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="titleBlock">
+    <a href="../index.html" class="backLink">← BrownDust Ⅱ Calme Guild Tool</a>
+    <h1>Elite Gear Database</h1>
+  </div>
+  <div class="sub">専用装備・汎用装備について、高等級の所持者と装備内容をまとめます。</div>
+
+  <div id="loginScreen" class="card">
+    <h2>ログイン</h2>
+    <div class="note">運営者から発行されたIDとパスワードでログインしてください。</div>
+    <label>ID</label>
+    <input type="text" id="loginEmail" style="max-width:320px;" placeholder="例: taro">
+    <label>パスワード</label>
+    <input type="text" id="loginPassword" style="max-width:320px;" placeholder="パスワード">
+    <button class="primary" id="loginBtn" style="margin-top:12px;">ログイン</button>
+    <div id="loginStatus" class="status"></div>
+  </div>
+
+  <div id="mainApp" style="display:none;">
+  <div class="note" id="connNote">Firebaseに接続中...</div>
+
+  <div class="operatorBar">
+    <span class="opLabel">操作者:</span>
+    <select id="operatorSelect"><option value="">選択してください</option></select>
+    <span class="opLabel" id="operatorFixedName" style="display:none;"></span>
+    <span class="opWarn" id="opWarn">※ 名前を選択するまで各機能はロックされます</span>
+    <button class="small" id="logoutBtn" style="margin-left:auto;">ログアウト</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="register">登録する</div>
+    <div class="tab" data-tab="list">一覧を見る</div>
+    <div class="tab" data-tab="roster">名簿管理</div>
+    <div class="tab" data-tab="log">編集ログ</div>
+  </div>
+
+  <!-- 登録する -->
+  <div id="register" class="card">
+    <div class="subsection">
+      <h3>■ 専用装備を追加</h3>
+      <div class="row5">
+        <div><label>属性</label><select id="exAttr"></select></div>
+        <div><label>キャラクター</label><select id="exChar"></select></div>
+        <div><label>基本能力2</label><select id="exAbility2"></select></div>
+        <div><label>専用等級</label><select id="exGrade"><option value="24">24等級</option><option value="23">23等級</option><option value="22">22等級</option><option value="21">21等級</option><option value="20">20等級</option><option value="19">19等級</option><option value="18">18等級</option></select></div>
+        <div><label>キャラ等級(任意/例:72等級)</label><select id="exCharGrade"></select></div>
+      </div>
+      <div class="row4">
+        <div><label>サブオプション1</label><select id="exSub1"></select></div>
+        <div><label>サブオプション2</label><select id="exSub2"></select></div>
+        <div><label>サブオプション3</label><select id="exSub3"></select></div>
+        <div><button id="addExBtn" disabled>+ 追加</button></div>
+      </div>
+      <div class="table-wrap"><table id="exTable"></table></div>
+    </div>
+
+    <div class="subsection">
+      <h3>■ 汎用装備を追加</h3>
+      <div class="row3">
+        <div><label>部位</label><select id="genSlot"></select></div>
+        <div><label>装備名</label><select id="genItem"></select></div>
+        <div><label>汎用等級</label><select id="genGrade"></select></div>
+      </div>
+      <div class="row4">
+        <div><label>サブオプション1</label><select id="genSub1"></select></div>
+        <div><label>サブオプション2</label><select id="genSub2"></select></div>
+        <div><label>サブオプション3</label><select id="genSub3"></select></div>
+        <div><button id="addGenBtn" disabled>+ 追加</button></div>
+      </div>
+      <div class="table-wrap"><table id="genTable"></table></div>
+    </div>
+
+    <button class="primary" id="saveBtn" style="margin-top:4px;" disabled>この内容で保存する</button>
+    <div id="saveStatus" class="status"></div>
+  </div>
+
+  <!-- 一覧を見る -->
+  <div id="list" class="card" style="display:none;">
+    <h2>一覧</h2>
+    <input type="text" id="searchBox" style="margin-bottom:12px;" placeholder="キャラ名・装備名で検索...">
+    <div class="filterBar">
+      <div><label>メンバーで絞り込み</label><select id="filterMember"><option value="">すべて</option></select></div>
+      <div><label>属性で絞り込み(専用装備のみ)</label><select id="filterAttr"><option value="">すべて</option></select></div>
+      <div><label>攻撃タイプで絞り込み(専用装備のみ)</label><select id="filterAtkType"><option value="">すべて</option><option value="物理">物理</option><option value="魔法">魔法</option></select></div>
+      <div><label>キャラ等級で絞り込み(専用装備のみ)</label><select id="filterCharGrade"></select></div>
+    </div>
+    <div class="filterBar" style="margin-top:-4px;">
+      <div><label class="checkLabel"><input type="checkbox" id="filterG24Only"> 24等級のみ表示</label></div>
+    </div>
+    <h3>専用装備:キャラごとの所持者</h3>
+    <div id="exListArea"><div class="empty">読み込み中...</div></div>
+    <h3 class="section-gap">汎用装備:装備ごとの所持者</h3>
+    <div id="genListArea"><div class="empty">読み込み中...</div></div>
+  </div>
+
+  <!-- 名簿管理 -->
+  <div id="roster" class="card" style="display:none;">
+    <h2>名簿管理</h2>
+    <div class="note">⚠ 個人情報を入力しないでください。</div>
+
+    <h3>メンバー名簿</h3>
+    <div class="addGrid roster">
+      <div><input type="text" id="newMemberName" placeholder="例: ゲーム内ニックネーム"></div>
+      <div><button id="addMemberBtn">+ 追加</button></div>
+    </div>
+    <div id="memberRosterArea" style="margin-top:10px;"></div>
+
+    <h3 class="section-gap">キャラ名簿(属性・攻撃タイプ別)</h3>
+    <div class="addGrid rosterChar">
+      <div><label>属性</label><select id="newCharAttr"></select></div>
+      <div><label>キャラ名</label><input type="text" id="newCharName" placeholder="例: シェラザード"></div>
+      <div><label>攻撃タイプ</label><select id="newCharAtkType"><option value="">未設定</option><option value="物理">物理</option><option value="魔法">魔法</option></select></div>
+      <div><button id="addCharBtn">+ 追加</button></div>
+    </div>
+    <div id="charRosterArea" style="margin-top:10px;"></div>
+
+    <div id="adminOnlyArea" style="display:none;">
+    <h3 class="section-gap">ログインアカウントの紐付け</h3>
+    <div class="detail" style="margin-bottom:8px;">ログインに使うIDと、ギルド名簿の名前を紐付けます。紐付けたメンバーは、ログインすると自動でその名前が操作者にセットされ、他の名前は選べなくなります。</div>
+    <div class="addGrid rosterChar">
+      <div><label>ID(ログインID)</label><input type="text" id="newLinkEmail" placeholder="例: taro"></div>
+      <div><label>紐付けるメンバー</label><select id="newLinkMember"></select></div>
+      <div></div>
+      <div><button id="addLinkBtn">+ 紐付ける</button></div>
+    </div>
+    <div id="userLinksArea" style="margin-top:10px;"></div>
+
+    <h3 class="section-gap">管理者アカウント</h3>
+    <div class="detail" style="margin-bottom:8px;">ここに登録されたIDのログインアカウントのみ、上記の「ログインアカウントの紐付け」を編集できます(Firestoreのルールでも制限されています)。</div>
+    <div class="addGrid roster">
+      <div><input type="text" id="newAdminEmail" placeholder="例: admin"></div>
+      <div><button id="addAdminBtn">+ 管理者に追加</button></div>
+    </div>
+    <div id="adminsArea" style="margin-top:10px;"></div>
+    </div>
+
+    <h3 class="section-gap">キャラクター一括インポート</h3>
+    <div class="detail" style="margin-bottom:8px;">「キャラクター 属性 物理or魔法」の3列(タブ区切り)のデータを貼り付けて登録できます。すでに登録済みのキャラは自動でスキップされます。</div>
+    <textarea id="bulkCharInput" style="width:100%;min-height:160px;box-sizing:border-box;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--input-bg);color:var(--input-text);font-family:monospace;"></textarea>
+    <button class="primary" id="bulkImportBtn" style="margin-top:10px;">この内容を一括登録する</button>
+    <div id="bulkImportStatus" class="status"></div>
+
+    <h3 class="section-gap">データバックアップ</h3>
+    <div class="detail" style="margin-bottom:8px;">現在のすべてのデータ(装備・名簿・ログなど)をJSONファイルとしてダウンロードします。誤操作の際の保険として、定期的に取っておくことをおすすめします。</div>
+    <button id="exportDataBtn">全データをJSONでダウンロード</button>
+    <div id="exportStatus" class="status"></div>
+  </div>
+
+  <!-- 編集ログ -->
+  <div id="log" class="card" style="display:none;">
+    <h2>編集ログ</h2>
+    <div id="logArea"><div class="empty">読み込み中...</div></div>
+  </div>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
