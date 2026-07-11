@@ -78,6 +78,9 @@
   .tab.locked { opacity: 0.5; cursor: not-allowed; }
 
   label { display: block; font-size: 13px; color: var(--text-dim); margin: 8px 0 4px; }
+  .formField { max-width: 320px; margin-bottom: 10px; }
+  .formField label { margin: 0 0 4px; }
+  .formField input { margin: 0; }
   input[type=text], select {
     box-sizing: border-box; padding: 8px; border: 1px solid var(--border);
     border-radius: 6px; font-size: 14px; width: 100%;

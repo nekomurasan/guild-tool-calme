@@ -6,6 +6,7 @@
 
 ```
 /index.html              … ポータル(トップページ)。ツール一覧を表示
+/style.css               … ポータルページの見た目
 /equipment/index.html    … 装備管理ツール「Elite Gear Database」の画面構造
 /equipment/style.css     … 装備管理ツールの見た目
 /equipment/app.js        … 装備管理ツールの動作(Firebase連携など)

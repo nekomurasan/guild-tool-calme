@@ -20,11 +20,15 @@
   <div id="loginScreen" class="card">
     <h2>ログイン</h2>
     <div class="note">運営者から発行されたIDとパスワードでログインしてください。</div>
-    <label>ID</label>
-    <input type="text" id="loginEmail" style="max-width:320px;" placeholder="例: taro">
-    <label>パスワード</label>
-    <input type="text" id="loginPassword" style="max-width:320px;" placeholder="パスワード">
-    <button class="primary" id="loginBtn" style="margin-top:12px;">ログイン</button>
+    <div class="formField">
+      <label>ID</label>
+      <input type="text" id="loginEmail" placeholder="例: taro">
+    </div>
+    <div class="formField">
+      <label>パスワード</label>
+      <input type="password" id="loginPassword" placeholder="パスワード">
+    </div>
+    <button class="primary" id="loginBtn" style="margin-top:4px;">ログイン</button>
     <div id="loginStatus" class="status"></div>
   </div>
 
@@ -110,14 +114,7 @@
     <h2>名簿管理</h2>
     <div class="note">⚠ 個人情報を入力しないでください。</div>
 
-    <h3>メンバー名簿</h3>
-    <div class="addGrid roster">
-      <div><input type="text" id="newMemberName" placeholder="例: ゲーム内ニックネーム"></div>
-      <div><button id="addMemberBtn">+ 追加</button></div>
-    </div>
-    <div id="memberRosterArea" style="margin-top:10px;"></div>
-
-    <h3 class="section-gap">キャラ名簿(属性・攻撃タイプ別)</h3>
+    <h3>キャラ名簿(属性・攻撃タイプ別)</h3>
     <div class="addGrid rosterChar">
       <div><label>属性</label><select id="newCharAttr"></select></div>
       <div><label>キャラ名</label><input type="text" id="newCharName" placeholder="例: シェラザード"></div>
@@ -125,6 +122,13 @@
       <div><button id="addCharBtn">+ 追加</button></div>
     </div>
     <div id="charRosterArea" style="margin-top:10px;"></div>
+
+    <h3 class="section-gap">メンバー名簿</h3>
+    <div class="addGrid roster">
+      <div><input type="text" id="newMemberName" placeholder="例: ゲーム内ニックネーム"></div>
+      <div><button id="addMemberBtn">+ 追加</button></div>
+    </div>
+    <div id="memberRosterArea" style="margin-top:10px;"></div>
 
     <div id="adminOnlyArea" style="display:none;">
     <h3 class="section-gap">ログインアカウントの紐付け</h3>
@@ -144,6 +148,11 @@
       <div><button id="addAdminBtn">+ 管理者に追加</button></div>
     </div>
     <div id="adminsArea" style="margin-top:10px;"></div>
+
+    <h3 class="section-gap">データバックアップ</h3>
+    <div class="detail" style="margin-bottom:8px;">現在のすべてのデータ(装備・名簿・ログなど)をJSONファイルとしてダウンロードします。誤操作の際の保険として、定期的に取っておくことをおすすめします。</div>
+    <button id="exportDataBtn">全データをJSONでダウンロード</button>
+    <div id="exportStatus" class="status"></div>
     </div>
 
     <h3 class="section-gap">キャラクター一括インポート</h3>
@@ -151,11 +160,6 @@
     <textarea id="bulkCharInput" style="width:100%;min-height:160px;box-sizing:border-box;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--input-bg);color:var(--input-text);font-family:monospace;"></textarea>
     <button class="primary" id="bulkImportBtn" style="margin-top:10px;">この内容を一括登録する</button>
     <div id="bulkImportStatus" class="status"></div>
-
-    <h3 class="section-gap">データバックアップ</h3>
-    <div class="detail" style="margin-bottom:8px;">現在のすべてのデータ(装備・名簿・ログなど)をJSONファイルとしてダウンロードします。誤操作の際の保険として、定期的に取っておくことをおすすめします。</div>
-    <button id="exportDataBtn">全データをJSONでダウンロード</button>
-    <div id="exportStatus" class="status"></div>
   </div>
 
   <!-- 編集ログ -->
