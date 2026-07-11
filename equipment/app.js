@@ -678,9 +678,10 @@ function renderRosterUI() {
   if (rosterMembers.length === 0) {
     memberArea.innerHTML = '<div class="empty">まだメンバーが登録されていません。</div>';
   } else {
-    let mHtml = '<table><tr><th>名前</th><th style="width:100px;">操作</th></tr>';
+    let mHtml = '<table><tr><th>名前</th>' + (isAdmin ? '<th style="width:100px;">操作</th>' : '') + '</tr>';
     rosterMembers.forEach(name => {
-      mHtml += `<tr><td>${escapeHtml(name)}</td><td><button class="small danger del-member" data-name="${escapeHtml(name)}">削除</button></td></tr>`;
+      const delBtn = isAdmin ? `<td><button class="small danger del-member" data-name="${escapeHtml(name)}">削除</button></td>` : '';
+      mHtml += `<tr><td>${escapeHtml(name)}</td>${delBtn}</tr>`;
     });
     mHtml += '</table>';
     memberArea.innerHTML = `<div class="table-wrap">${mHtml}</div>`;
