@@ -81,7 +81,7 @@
   .formField { max-width: 320px; margin-bottom: 10px; }
   .formField label { margin: 0 0 4px; }
   .formField input { margin: 0; }
-  input[type=text], select {
+  input[type=text], input[type=password], select {
     box-sizing: border-box; padding: 8px; border: 1px solid var(--border);
     border-radius: 6px; font-size: 14px; width: 100%;
     background: var(--input-bg); color: var(--input-text);
