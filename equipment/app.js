@@ -265,6 +265,10 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('loginBtn').disabled = true;
     await init();
     await applyUserLinkIfAny(user);
+    try {
+      allMembersCache = await fetchAllMembers();
+      await getDocs(logsCol);
+    } catch (e) { /* 先読み失敗時は各タブを開いた時に通常通り再取得される */ }
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
   } else {
