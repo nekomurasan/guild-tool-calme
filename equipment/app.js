@@ -268,7 +268,9 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     // 一覧・ログのデータはバックグラウンドで先読み(失敗しても各タブを開いた時に通常通り再取得される)
-    fetchAllMembers().then(data => { allMembersCache = data; }).catch(() => {});
+    membersPrefetchPromise = fetchAllMembers()
+      .then(data => { allMembersCache = data; return data; })
+      .catch(() => null);
     getDocs(logsCol).catch(() => {});
   } else {
     document.getElementById('loginScreen').style.display = 'block';
@@ -413,6 +415,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
 
 // ---------- 一覧を見る ----------
 let allMembersCache = [];
+let membersPrefetchPromise = null;
 async function fetchAllMembers() {
   const snap = await getDocs(membersCol);
   const members = [];
@@ -657,10 +660,25 @@ function renderGenList(members, filters) {
   });
 }
 
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve('__TIMEOUT__'), ms))
+  ]);
+}
+
 async function loadList() {
   document.getElementById('exListArea').innerHTML = '<div class="empty">読み込み中...</div>';
   document.getElementById('genListArea').innerHTML = '<div class="empty">読み込み中...</div>';
   try {
+    if (membersPrefetchPromise) {
+      const result = await withTimeout(membersPrefetchPromise, 5000);
+      membersPrefetchPromise = null;
+      if (result && result !== '__TIMEOUT__') {
+        applyFilterAndRender();
+        return;
+      }
+    }
     allMembersCache = await fetchAllMembers();
     applyFilterAndRender();
   } catch (e) {
@@ -913,7 +931,10 @@ async function loadLogs() {
   const area = document.getElementById('logArea');
   area.innerHTML = '<div class="empty">読み込み中...</div>';
   try {
-    const snap = await getDocs(logsCol);
+    let snap = await withTimeout(getDocs(logsCol), 5000);
+    if (snap === '__TIMEOUT__') {
+      snap = await getDocs(logsCol); // 一度だけ自動で再試行
+    }
     const logs = [];
     snap.forEach(d => logs.push(d.data()));
     logs.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
