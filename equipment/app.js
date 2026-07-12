@@ -260,13 +260,18 @@ async function init() {
 }
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('loginStatus').className = 'status';
+    document.getElementById('loginStatus').textContent = '読み込み中...';
+    document.getElementById('loginBtn').disabled = true;
     await init();
     await applyUserLinkIfAny(user);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
   } else {
     document.getElementById('loginScreen').style.display = 'block';
     document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('loginBtn').disabled = false;
+    document.getElementById('loginStatus').textContent = '';
   }
 });
 
