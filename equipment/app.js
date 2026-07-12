@@ -364,7 +364,7 @@ function enterPendingEditMode(tr, i) {
     cell.appendChild(gradeSel);
   });
   const noteCell = tr.querySelector('.p-cell-note');
-  noteCell.innerHTML = `<input type="text" class="pe-note" maxlength="20" value="${escapeHtml(item.note || '')}">`;
+  noteCell.innerHTML = `<textarea class="pe-note" maxlength="20" rows="2" style="width:100%;box-sizing:border-box;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--input-bg);color:var(--input-text);resize:vertical;">${escapeHtml(item.note || '')}</textarea>`;
   tr.querySelector('.p-cell-actions').innerHTML = `<button class="primary small pe-save">保存</button><button class="small pe-cancel">キャンセル</button>`;
 
   tr.querySelector('.pe-cancel').addEventListener('click', () => renderExTable());
