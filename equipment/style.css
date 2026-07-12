@@ -108,8 +108,11 @@
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
   th, td { border: 1px solid var(--border); padding: 7px 8px; text-align: left; vertical-align: top; }
   th { background: #314051; color: var(--gold); border: 1px solid var(--border); border-bottom: 2px solid var(--gold); }
-  .table-wrap { border: 2px solid var(--gold); border-radius: 10px; overflow: hidden; margin-top: 10px; }
+  .table-wrap { border: 2px solid var(--gold); border-radius: 10px; overflow-x: auto; overflow-y: hidden; margin-top: 10px; -webkit-overflow-scrolling: touch; }
   .table-wrap table { margin-top: 0; }
+  .table-wrap table.wide-table { min-width: 760px; }
+  .scrollHint { display: none; margin-bottom: 8px; }
+  @media (max-width: 780px) { .scrollHint { display: block; } }
   td.name-cell { font-size: 15px; font-weight: 600; }
   tr.grp-a td { background: var(--bg-card); }
   tr.grp-b td { background: var(--bg-sub); }

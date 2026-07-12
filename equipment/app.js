@@ -522,7 +522,7 @@ function renderExList(members, filters) {
   const area = document.getElementById('exListArea');
   if (chars.length === 0) { area.innerHTML = '<div class="empty">該当する登録がありません。</div>'; return; }
 
-  let html = '<table><tr><th>キャラ</th><th>所持者</th><th>専用等級</th><th>キャラ等級</th><th>基本能力2</th><th>サブ1</th><th>サブ2</th><th>サブ3</th><th>操作</th></tr>';
+  let html = '<table class="wide-table"><tr><th>キャラ</th><th>所持者</th><th>専用等級</th><th>キャラ等級</th><th>基本能力2</th><th>サブ1</th><th>サブ2</th><th>サブ3</th><th>操作</th></tr>';
   chars.forEach((charName, ci) => {
     const holders = map[charName].sort(sortExHolders);
     const info = charInfo(charName);
@@ -596,7 +596,7 @@ function renderGenList(members, filters) {
   const area = document.getElementById('genListArea');
   if (labels.length === 0) { area.innerHTML = '<div class="empty">該当する登録がありません。</div>'; return; }
 
-  let html = '<table><tr><th>部位 / 装備名</th><th>所持者</th><th>等級</th><th>サブ1</th><th>サブ2</th><th>サブ3</th><th>操作</th></tr>';
+  let html = '<table class="wide-table"><tr><th>部位 / 装備名</th><th>所持者</th><th>等級</th><th>サブ1</th><th>サブ2</th><th>サブ3</th><th>操作</th></tr>';
   labels.forEach((label, li) => {
     const holders = map[label].sort(sortByGradeDesc);
     const itemName = label.split(' / ')[1];
