@@ -93,6 +93,22 @@
   .slotRow { display: grid; grid-template-columns: 90px 1fr 110px; gap: 10px; align-items: end; margin-bottom: 8px; }
   .slotLabel { font-size: 13px; color: var(--gold-soft); font-weight: 600; padding-bottom: 8px; }
   .exclusive-tag { color: var(--gold); font-weight: 700; }
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(10, 20, 35, 0.75); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-box {
+    background: var(--bg-card); border: 2px solid var(--gold); border-radius: 12px;
+    padding: 20px 24px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto;
+  }
+  .modal-box h3 { color: var(--gold); margin-top: 0; }
+  .relatedCharBlock { border-top: 1px solid var(--border); padding: 10px 0; }
+  .relatedCharBlock:first-of-type { border-top: none; }
+  .relatedCharName { font-weight: 700; color: var(--gold-soft); margin-bottom: 6px; }
+  .relatedSlots { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+  .relatedSlotItem { font-size: 13px; }
+  .relatedSlotItem .slotLabel { color: var(--text-dim); margin-right: 4px; }
   .addGrid.roster { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
   .addGrid.rosterChar { display: grid; grid-template-columns: 1fr 1.4fr 1fr auto; gap: 10px; align-items: end; }
   @media (max-width: 780px) {

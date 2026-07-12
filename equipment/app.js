@@ -77,6 +77,10 @@ Object.keys(EQUIPMENT_DATA).forEach(name => EQUIPMENT_BY_SLOT[EQUIPMENT_DATA[nam
 // 各部位の選択肢(汎用装備名 + 専用装備)
 const SLOT_ITEM_OPTIONS = {};
 SLOTS.forEach(slot => { SLOT_ITEM_OPTIONS[slot] = [...(EQUIPMENT_BY_SLOT[slot] || []), "専用装備"]; });
+// 関連キャラのグループ(キー: このキャラの行にボタンを出す / 値: 表示する関連キャラ一覧)
+const RELATED_CHAR_GROUPS = {
+  "グランヒルト": ["グランヒルト", "ディアナ", "ルゥ"]
+};
 
 let rosterMembers = [];
 let rosterCharacters = {};
@@ -325,13 +329,58 @@ function renderExTable() {
   let html = '<tr><th>キャラ</th><th>武器</th><th>鎧</th><th>頭</th><th>装飾</th><th>腕</th><th>備考</th><th></th></tr>';
   pendingEx.forEach((item, i) => {
     const slots = item.slots || {};
-    html += `<tr><td>${escapeHtml(item.character)}</td>`;
-    SLOTS.forEach(slot => { html += `<td>${escapeHtml(pendingRowSlotText(slots[slot]))}</td>`; });
-    html += `<td>${escapeHtml(item.note || '')}</td><td><button class="danger" data-i="${i}">削除</button></td></tr>`;
+    html += `<tr id="pending-row-${i}"><td>${escapeHtml(item.character)}</td>`;
+    SLOTS.forEach(slot => { html += `<td class="p-cell-${slot}">${escapeHtml(pendingRowSlotText(slots[slot]))}</td>`; });
+    html += `<td class="p-cell-note">${escapeHtml(item.note || '')}</td>`;
+    html += `<td class="p-cell-actions"><button class="small" data-action="edit-pending" data-i="${i}">編集</button><button class="small danger" data-action="del-pending" data-i="${i}">削除</button></td></tr>`;
   });
   table.innerHTML = html;
-  table.querySelectorAll('button.danger').forEach(btn => {
+  table.querySelectorAll('[data-action="del-pending"]').forEach(btn => {
     btn.addEventListener('click', () => { pendingEx.splice(parseInt(btn.dataset.i), 1); renderExTable(); });
+  });
+  table.querySelectorAll('[data-action="edit-pending"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.i);
+      enterPendingEditMode(document.getElementById(`pending-row-${i}`), i);
+    });
+  });
+}
+
+function enterPendingEditMode(tr, i) {
+  const item = pendingEx[i];
+  const slots = item.slots || {};
+  SLOTS.forEach(slot => {
+    const cell = tr.querySelector(`.p-cell-${slot}`);
+    const itemSel = document.createElement('select');
+    fillSelect(itemSel, SLOT_ITEM_OPTIONS[slot], '選択してください');
+    if (slots[slot] && slots[slot].item) itemSel.value = slots[slot].item;
+    itemSel.className = `pe-item-${slot}`;
+    const gradeSel = document.createElement('select');
+    fillSlotGradeSelect(gradeSel);
+    if (slots[slot] && slots[slot].grade) gradeSel.value = slots[slot].grade;
+    gradeSel.className = `pe-grade-${slot}`;
+    cell.innerHTML = '';
+    cell.appendChild(itemSel);
+    cell.appendChild(gradeSel);
+  });
+  const noteCell = tr.querySelector('.p-cell-note');
+  noteCell.innerHTML = `<input type="text" class="pe-note" maxlength="20" value="${escapeHtml(item.note || '')}">`;
+  tr.querySelector('.p-cell-actions').innerHTML = `<button class="primary small pe-save">保存</button><button class="small pe-cancel">キャンセル</button>`;
+
+  tr.querySelector('.pe-cancel').addEventListener('click', () => renderExTable());
+  tr.querySelector('.pe-save').addEventListener('click', () => {
+    const newSlots = {};
+    let anyFilled = false;
+    SLOTS.forEach(slot => {
+      const itemVal = tr.querySelector(`.pe-item-${slot}`).value;
+      const gradeVal = tr.querySelector(`.pe-grade-${slot}`).value;
+      newSlots[slot] = { item: itemVal, grade: itemVal ? gradeVal : '' };
+      if (itemVal) anyFilled = true;
+    });
+    if (!anyFilled) { alert('武器・鎧・頭・装飾・腕のうち、少なくとも1つは選択してください。'); return; }
+    const newNote = tr.querySelector('.pe-note').value.trim().slice(0, 20);
+    pendingEx[i] = { character: item.character, slots: newSlots, note: newNote };
+    renderExTable();
   });
 }
 
@@ -431,6 +480,7 @@ function enterExEditMode(tr, memberName, idx, item) {
     const mData = mSnap.data();
     mData.exclusive[idx] = newItem;
     await setDoc(doc(membersCol, memberName), mData);
+    if (memberName === currentUser) { pendingEx = mData.exclusive; renderExTable(); }
     await addLog(`「${memberName}」のキャラクター『${item.character}』を編集しました`);
     loadList();
   });
@@ -490,7 +540,10 @@ function renderExList(members, filters) {
       const slots = h.slots || {};
       html += `<tr id="${rowId}" class="${grpClass}${hi>0?' cont':''}" data-member="${escapeHtml(h.memberName)}" data-idx="${h.idx}">`;
       if (hi === 0) html += `<td class="name-cell" rowspan="${holders.length}">${charCellHtml}</td>`;
-      html += `<td>${escapeHtml(h.memberName)}</td>`;
+      const relatedBtn = RELATED_CHAR_GROUPS[charName]
+        ? ` <button class="small" data-action="related" data-member="${escapeHtml(h.memberName)}" data-group="${escapeHtml(charName)}">関連キャラ</button>`
+        : '';
+      html += `<td>${escapeHtml(h.memberName)}${relatedBtn}</td>`;
       SLOTS.forEach(slot => { html += `<td class="cell-${slot}">${slotCellHtml(slots[slot])}</td>`; });
       html += `<td class="cell-note">${escapeHtml(h.note || '')}</td>`;
       html += `<td class="cell-actions">${isOwner ? `<button class="small" data-action="edit-ex">編集</button><button class="small danger" data-action="del-ex">削除</button>` : ''}</td>`;
@@ -521,11 +574,48 @@ function renderExList(members, filters) {
       const removed = mData.exclusive[idx];
       mData.exclusive.splice(idx, 1);
       await setDoc(doc(membersCol, memberName), mData);
+      if (memberName === currentUser) { pendingEx = mData.exclusive; renderExTable(); }
       await addLog(`「${memberName}」のキャラクター『${removed.character}』を削除しました`);
       loadList();
     });
   });
+
+  area.querySelectorAll('[data-action="related"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      showRelatedModal(btn.dataset.member, RELATED_CHAR_GROUPS[btn.dataset.group]);
+    });
+  });
 }
+
+function showRelatedModal(memberName, relatedChars) {
+  const member = allMembersCache.find(m => m.name === memberName);
+  const content = document.getElementById('relatedModalContent');
+  let html = `<div class="detail" style="margin-bottom:10px;">所持者: ${escapeHtml(memberName)}</div>`;
+  relatedChars.forEach(charName => {
+    const entry = member && (member.exclusive || []).find(e => e.character === charName);
+    html += `<div class="relatedCharBlock"><div class="relatedCharName">${escapeHtml(charName)}</div>`;
+    if (!entry) {
+      html += `<div class="detail">未登録</div>`;
+    } else {
+      const slots = entry.slots || {};
+      html += `<div class="relatedSlots">`;
+      SLOTS.forEach(slot => {
+        html += `<div class="relatedSlotItem"><span class="slotLabel">${escapeHtml(slot)}</span>${slotCellHtml(slots[slot])}</div>`;
+      });
+      html += `</div>`;
+      if (entry.note) html += `<div class="detail">備考: ${escapeHtml(entry.note)}</div>`;
+    }
+    html += `</div>`;
+  });
+  content.innerHTML = html;
+  document.getElementById('relatedModal').style.display = 'flex';
+}
+document.getElementById('relatedModalClose').addEventListener('click', () => {
+  document.getElementById('relatedModal').style.display = 'none';
+});
+document.getElementById('relatedModal').addEventListener('click', (e) => {
+  if (e.target.id === 'relatedModal') document.getElementById('relatedModal').style.display = 'none';
+});
 
 function getMembersData() {
   if (!membersPrefetchPromise) {
