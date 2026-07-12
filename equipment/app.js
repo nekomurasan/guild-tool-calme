@@ -687,7 +687,7 @@ function renderRosterUI() {
   if (rosterMembers.length === 0) {
     memberArea.innerHTML = '<div class="empty">まだメンバーが登録されていません。</div>';
   } else {
-    let mHtml = '<table><tr><th>名前</th>' + (isAdmin ? '<th style="width:100px;">操作</th>' : '') + '</tr>';
+    let mHtml = '<table class="scroll-table"><tr><th>名前</th>' + (isAdmin ? '<th style="width:100px;">操作</th>' : '') + '</tr>';
     rosterMembers.forEach(name => {
       const delBtn = isAdmin ? `<td><button class="small danger del-member" data-name="${escapeHtml(name)}">削除</button></td>` : '';
       mHtml += `<tr><td>${escapeHtml(name)}</td>${delBtn}</tr>`;
@@ -714,7 +714,7 @@ function renderRosterUI() {
   if (rows.length === 0) {
     charArea.innerHTML = '<div class="empty">まだキャラクターが登録されていません。</div>';
   } else {
-    let cHtml = '<table><tr><th style="width:80px;">属性</th><th>キャラ名</th><th style="width:160px;">攻撃タイプ</th><th style="width:100px;">操作</th></tr>';
+    let cHtml = '<table class="scroll-table"><tr><th style="width:80px;">属性</th><th>キャラ名</th><th style="width:160px;">攻撃タイプ</th><th style="width:100px;">操作</th></tr>';
     rows.forEach(r => {
       cHtml += `<tr>
         <td>${r.attr}</td>
@@ -794,7 +794,7 @@ async function renderUserLinksUI() {
       area.innerHTML = '<div class="empty">まだ紐付けがありません。</div>';
       return;
     }
-    let html = '<div class="table-wrap"><table><tr><th>ID</th><th>紐付け先メンバー</th><th style="width:100px;">操作</th></tr>';
+    let html = '<div class="table-wrap"><table class="scroll-table"><tr><th>ID</th><th>紐付け先メンバー</th><th style="width:100px;">操作</th></tr>';
     links.forEach(l => {
       html += `<tr><td>${escapeHtml(emailToId(l.email))}</td><td>${escapeHtml(l.memberName)}</td><td><button class="small danger del-link" data-email="${escapeHtml(l.email)}">削除</button></td></tr>`;
     });
@@ -839,7 +839,7 @@ async function renderAdminsUI() {
       area.innerHTML = '<div class="empty">管理者が登録されていません。</div>';
       return;
     }
-    let html = '<div class="table-wrap"><table><tr><th>ID</th><th style="width:100px;">操作</th></tr>';
+    let html = '<div class="table-wrap"><table class="scroll-table"><tr><th>ID</th><th style="width:100px;">操作</th></tr>';
     admins.forEach(email => {
       html += `<tr><td>${escapeHtml(emailToId(email))}</td><td><button class="small danger del-admin" data-email="${escapeHtml(email)}">削除</button></td></tr>`;
     });
@@ -920,7 +920,7 @@ async function loadLogs() {
     logs.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
     const top = logs.slice(0, 200);
     if (top.length === 0) { area.innerHTML = '<div class="empty">まだログがありません。</div>'; return; }
-    let html = '<table><tr><th style="width:160px;">日時</th><th style="width:120px;">操作者</th><th>内容</th></tr>';
+    let html = '<table class="scroll-table"><tr><th style="width:160px;">日時</th><th style="width:120px;">操作者</th><th>内容</th></tr>';
     top.forEach(l => {
       const dt = l.ts ? new Date(l.ts).toLocaleString('ja-JP') : '-';
       html += `<tr><td>${escapeHtml(dt)}</td><td>${escapeHtml(l.member || '-')}</td><td>${escapeHtml(l.detail || '')}</td></tr>`;

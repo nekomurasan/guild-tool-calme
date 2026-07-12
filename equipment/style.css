@@ -111,6 +111,7 @@
   .table-wrap { border: 2px solid var(--gold); border-radius: 10px; overflow-x: auto; overflow-y: hidden; margin-top: 10px; -webkit-overflow-scrolling: touch; }
   .table-wrap table { margin-top: 0; }
   .table-wrap table.wide-table { min-width: 760px; }
+  .table-wrap table.scroll-table { min-width: 480px; }
   .scrollHint { display: none; margin-bottom: 8px; }
   @media (max-width: 780px) { .scrollHint { display: block; } }
   td.name-cell { font-size: 15px; font-weight: 600; }
