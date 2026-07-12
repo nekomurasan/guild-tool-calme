@@ -145,6 +145,10 @@
   td.name-cell { font-size: 13px; font-weight: 600; white-space: nowrap; }
   td.cell-武器, td.cell-鎧, td.cell-頭, td.cell-装飾, td.cell-腕 { white-space: nowrap; }
   td.cell-note { font-size: 11px; }
+  #exTable .p-cell-note { min-width: 170px; }
+  #exTable .p-cell-actions { min-width: 60px; }
+  #exTable .p-cell-actions button { display: block; width: 100%; margin: 2px 0 0 0; }
+  #exTable .p-cell-actions button:first-child { margin-top: 0; }
   tr.grp-a td { background: var(--bg-card); }
   tr.grp-b td { background: var(--bg-sub); }
   .grade-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 12px; font-weight: bold; margin: 2px 3px 2px 0; }
