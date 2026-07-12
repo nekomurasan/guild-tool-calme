@@ -101,7 +101,7 @@ function slotCellHtml(slotObj) {
   const itemText = slotObj.item === '専用装備'
     ? `<span class="exclusive-tag">専用装備</span>`
     : escapeHtml(slotObj.item);
-  return `${itemText}${slotObj.grade ? ' ' + gradeNumBadge(slotObj.grade) : ''}`;
+  return `${itemText}${slotObj.grade ? '<br>' + gradeNumBadge(slotObj.grade) : ''}`;
 }
 function fillSelect(sel, options, placeholder) {
   let html = placeholder !== undefined ? `<option value="">${escapeHtml(placeholder)}</option>` : '';

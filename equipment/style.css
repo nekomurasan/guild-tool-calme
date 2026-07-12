@@ -143,6 +143,7 @@
   @media (max-width: 780px) { .scrollHint { display: block; } }
   td.name-cell { font-size: 14px; font-weight: 600; white-space: nowrap; }
   td.cell-武器, td.cell-鎧, td.cell-頭, td.cell-装飾, td.cell-腕 { white-space: nowrap; }
+  td.cell-note { font-size: 12px; }
   tr.grp-a td { background: var(--bg-card); }
   tr.grp-b td { background: var(--bg-sub); }
   .grade-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 13px; font-weight: bold; margin: 2px 4px 2px 0; }
