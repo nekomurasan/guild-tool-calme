@@ -574,6 +574,36 @@ function applyFilterAndRender() {
 });
 
 // ---------- 名簿管理 ----------
+async function renameMember(oldName, newName) {
+  if (oldName === newName) { renderRosterUI(); return; }
+  try {
+    rosterMembers = rosterMembers.map(n => n === oldName ? newName : n);
+    await setDoc(doc(rosterCol, "members"), { names: rosterMembers });
+
+    const oldSnap = await getDoc(doc(membersCol, oldName));
+    if (oldSnap.exists()) {
+      const data = oldSnap.data();
+      data.name = newName;
+      await setDoc(doc(membersCol, newName), data);
+      await deleteDoc(doc(membersCol, oldName));
+    }
+
+    const linksSnap = await getDocs(userLinksCol);
+    const updates = [];
+    linksSnap.forEach(d => {
+      if (d.data().memberName === oldName) updates.push(setDoc(doc(userLinksCol, d.id), { memberName: newName }));
+    });
+    await Promise.all(updates);
+
+    if (currentUser === oldName) currentUser = newName;
+    await addLog(`メンバー名「${oldName}」を「${newName}」に変更しました`);
+    refreshMemberSelect();
+    renderRosterUI();
+  } catch (e) {
+    alert('名前の変更に失敗しました: ' + e.message);
+  }
+}
+
 function renderRosterUI() {
   fillSelect(document.getElementById('newLinkMember'), rosterMembers);
   renderUserLinksUI();
@@ -582,10 +612,12 @@ function renderRosterUI() {
   if (rosterMembers.length === 0) {
     memberArea.innerHTML = '<div class="empty">まだメンバーが登録されていません。</div>';
   } else {
-    let mHtml = '<table class="scroll-table"><tr><th>名前</th>' + (isAdmin ? '<th style="width:100px;">操作</th>' : '') + '</tr>';
+    let mHtml = '<table class="scroll-table"><tr><th>名前</th>' + (isAdmin ? '<th style="width:140px;">操作</th>' : '') + '</tr>';
     rosterMembers.forEach(name => {
-      const delBtn = isAdmin ? `<td><button class="small danger del-member" data-name="${escapeHtml(name)}">削除</button></td>` : '';
-      mHtml += `<tr><td>${escapeHtml(name)}</td>${delBtn}</tr>`;
+      const actionBtns = isAdmin
+        ? `<button class="small" data-action="edit-member" data-name="${escapeHtml(name)}">編集</button><button class="small danger del-member" data-name="${escapeHtml(name)}">削除</button>`
+        : '';
+      mHtml += `<tr data-name="${escapeHtml(name)}"><td class="member-name-cell">${escapeHtml(name)}</td>${isAdmin ? `<td class="member-actions-cell">${actionBtns}</td>` : ''}</tr>`;
     });
     mHtml += '</table>';
     memberArea.innerHTML = `<div class="table-wrap">${mHtml}</div>`;
@@ -597,6 +629,21 @@ function renderRosterUI() {
         await addLog(`名簿からメンバー「${btn.dataset.name}」を削除しました`);
         refreshMemberSelect();
         renderRosterUI();
+      });
+    });
+    memberArea.querySelectorAll('[data-action="edit-member"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tr = btn.closest('tr');
+        const oldName = tr.dataset.name;
+        tr.querySelector('.member-name-cell').innerHTML = `<input type="text" class="edit-member-input" value="${escapeHtml(oldName)}">`;
+        tr.querySelector('.member-actions-cell').innerHTML = `<button class="primary small save-member-name">保存</button><button class="small cancel-member-name">キャンセル</button>`;
+        tr.querySelector('.cancel-member-name').addEventListener('click', () => renderRosterUI());
+        tr.querySelector('.save-member-name').addEventListener('click', () => {
+          const newName = tr.querySelector('.edit-member-input').value.trim();
+          if (!newName) { alert('名前を入力してください。'); return; }
+          if (newName !== oldName && rosterMembers.includes(newName)) { alert('その名前はすでに使われています。'); return; }
+          renameMember(oldName, newName);
+        });
       });
     });
   }
