@@ -89,10 +89,14 @@
   .row5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; align-items: end; margin-bottom: 8px; }
   .row4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: end; margin-bottom: 8px; }
   .row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: end; margin-bottom: 8px; }
+  .row2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: end; margin-bottom: 8px; }
+  .slotRow { display: grid; grid-template-columns: 90px 1fr 110px; gap: 10px; align-items: end; margin-bottom: 8px; }
+  .slotLabel { font-size: 13px; color: var(--gold-soft); font-weight: 600; padding-bottom: 8px; }
+  .exclusive-tag { color: var(--gold); font-weight: 700; }
   .addGrid.roster { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
   .addGrid.rosterChar { display: grid; grid-template-columns: 1fr 1.4fr 1fr auto; gap: 10px; align-items: end; }
   @media (max-width: 780px) {
-    .row5, .row4, .row3, .addGrid.rosterChar { grid-template-columns: 1fr 1fr; }
+    .row5, .row4, .row3, .row2, .slotRow, .addGrid.rosterChar { grid-template-columns: 1fr 1fr; }
   }
   button {
     padding: 8px 14px; border-radius: 6px; font-size: 14px; cursor: pointer;
@@ -121,7 +125,6 @@
   .g24 { background: var(--gold); color: #22314a; }
   .g23 { background: #C9CDD3; color: #2a2f36; }
   .g22, .g21, .g20, .g19, .g18 { background: #333c48; color: #c3cbd4; }
-  .chargrade-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 13px; font-weight: bold; margin: 2px 4px 2px 0; background: #8FD3F4; color: #10314a; }
   .atktype-badge { display: inline-block; font-size: 13px; font-weight: 500; margin: 2px 4px 2px 0; color: var(--text-dim); background: none; padding: 0; }
   .section-gap { margin-top: 26px !important; padding-top: 14px; border-top: 1px solid var(--border); }
   .status { font-size: 14px; margin-top: 8px; }

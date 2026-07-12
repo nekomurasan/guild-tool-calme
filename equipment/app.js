@@ -29,7 +29,6 @@ const adminsCol = collection(db, "admins");
 let isAdmin = false;
 
 const SLOTS = ["武器", "鎧", "頭", "装飾", "腕"];
-const WIDE_GRADE_SLOTS = ["鎧", "頭"]; // 21〜24等級を選べる部位
 const ATTRIBUTES = ["💧水", "🔥火", "🍃風", "🌟光", "🟣闇"];
 const ATTACK_TYPES = ["物理", "魔法"];
 const DEFAULT_CHARACTERS = {
@@ -39,11 +38,6 @@ const DEFAULT_CHARACTERS = {
   "🌟光": [{ name: "ユースティア", atkType: "" }, { name: "オリビエ", atkType: "" }],
   "🟣闇": [{ name: "ルベンシア", atkType: "" }, { name: "ルゥ", atkType: "" }]
 };
-
-// キャラ等級の選択肢(70〜72、100〜120)
-const CHAR_GRADE_VALUES = [];
-for (let i = 70; i <= 72; i++) CHAR_GRADE_VALUES.push(String(i));
-for (let i = 100; i <= 120; i++) CHAR_GRADE_VALUES.push(String(i));
 
 const EX_GRADE_VALUES = ["24", "23", "22", "21", "20", "19", "18"];
 const EQUIPMENT_DATA = {
@@ -80,13 +74,13 @@ const EQUIPMENT_DATA = {
 };
 const EQUIPMENT_BY_SLOT = { "武器": [], "鎧": [], "頭": [], "装飾": [], "腕": [] };
 Object.keys(EQUIPMENT_DATA).forEach(name => EQUIPMENT_BY_SLOT[EQUIPMENT_DATA[name].slot].push(name));
-
-const SUB_OPTIONS = ["HP実数", "HP%", "攻撃力実数", "攻撃力%", "魔法力実数", "魔法力%", "クリ率", "クリダメ", "防御力", "魔法抵抗"];
+// 各部位の選択肢(汎用装備名 + 専用装備)
+const SLOT_ITEM_OPTIONS = {};
+SLOTS.forEach(slot => { SLOT_ITEM_OPTIONS[slot] = [...(EQUIPMENT_BY_SLOT[slot] || []), "専用装備"]; });
 
 let rosterMembers = [];
 let rosterCharacters = {};
 let pendingEx = [];
-let pendingGen = [];
 let currentUser = '';
 
 function escapeHtml(str) {
@@ -94,47 +88,24 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
-function gradeBadge(grade) { return `<span class="grade-badge g${grade}">${grade}等級</span>`; }
-function charGradeBadge(cg) { return cg ? `<span class="chargrade-badge">キャラ${cg}等級</span>` : ''; }
+function gradeNumBadge(grade) {
+  if (!grade) return '';
+  return `<span class="grade-badge g${grade}">${grade}</span>`;
+}
+function slotCellHtml(slotObj) {
+  if (!slotObj || !slotObj.item) return '<span class="detail">-</span>';
+  const itemText = slotObj.item === '専用装備'
+    ? `<span class="exclusive-tag">専用装備</span>`
+    : escapeHtml(slotObj.item);
+  return `${itemText}${slotObj.grade ? ' ' + gradeNumBadge(slotObj.grade) : ''}`;
+}
 function fillSelect(sel, options, placeholder) {
   let html = placeholder !== undefined ? `<option value="">${escapeHtml(placeholder)}</option>` : '';
   html += options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
   sel.innerHTML = html;
 }
-function genGradeOptionsFor(slot) {
-  return WIDE_GRADE_SLOTS.includes(slot) ? ["24", "23", "22", "21"] : ["24", "23"];
-}
-function fillGradeSelect(sel, grades, currentValue) {
-  sel.innerHTML = grades.map(g => `<option value="${g}">${g}等級</option>`).join('');
-  if (currentValue && grades.includes(currentValue)) sel.value = currentValue;
-}
-function fillCharGradeSelect(sel, currentValue) {
-  let html = `<option value="">未設定</option>`;
-  html += CHAR_GRADE_VALUES.map(v => `<option value="${v}">${v}等級</option>`).join('');
-  sel.innerHTML = html;
-  if (currentValue) sel.value = currentValue;
-}
-const CHAR_GRADE_FILTER_OPTIONS = [
-  { value: '70', label: '70等級' },
-  { value: '71', label: '71等級' },
-  { value: '72', label: '72等級' },
-  { value: '100-110', label: '100~110等級' },
-  { value: '111-120', label: '111~120等級' }
-];
-function fillCharGradeFilterSelect(sel) {
-  let html = `<option value="">すべて</option>`;
-  html += CHAR_GRADE_FILTER_OPTIONS.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
-  sel.innerHTML = html;
-}
-function matchesCharGradeFilter(charGrade, filterValue) {
-  if (!filterValue) return true;
-  if (!charGrade) return false;
-  const num = parseInt(charGrade, 10);
-  if (filterValue.includes('-')) {
-    const [lo, hi] = filterValue.split('-').map(Number);
-    return num >= lo && num <= hi;
-  }
-  return String(num) === filterValue;
+function fillSlotGradeSelect(sel) {
+  sel.innerHTML = '<option value="">-</option>' + EX_GRADE_VALUES.map(g => `<option value="${g}">${g}等級</option>`).join('');
 }
 async function addLog(detail) {
   try { await addDoc(logsCol, { ts: new Date().toISOString(), member: currentUser || '(未選択)', detail }); }
@@ -163,7 +134,7 @@ function updateLockState() {
     tab.classList.toggle('locked', locked);
   });
   document.getElementById('opWarn').style.display = locked ? 'inline' : 'none';
-  ['addExBtn', 'addGenBtn', 'saveBtn'].forEach(id => { document.getElementById(id).disabled = locked; });
+  ['addExBtn', 'saveBtn'].forEach(id => { document.getElementById(id).disabled = locked; });
 }
 
 document.getElementById('operatorSelect').addEventListener('change', async () => {
@@ -172,8 +143,8 @@ document.getElementById('operatorSelect').addEventListener('change', async () =>
   if (currentUser) {
     await loadMemberIfExists();
   } else {
-    pendingEx = []; pendingGen = [];
-    renderExTable(); renderGenTable();
+    pendingEx = [];
+    renderExTable();
   }
   const activeTab = document.querySelector('.tab.active');
   if (activeTab && activeTab.dataset.tab === 'list') loadList();
@@ -227,34 +198,30 @@ function refreshExCharOptions() {
   const chars = charNames(attr);
   fillSelect(document.getElementById('exChar'), chars);
 }
-function refreshGenItemOptions() {
-  const slot = document.getElementById('genSlot').value;
-  fillSelect(document.getElementById('genItem'), EQUIPMENT_BY_SLOT[slot] || []);
-}
-function refreshGenGradeOptions() {
-  const slot = document.getElementById('genSlot').value;
-  fillGradeSelect(document.getElementById('genGrade'), genGradeOptionsFor(slot));
+
+function buildSlotInputs() {
+  const container = document.getElementById('slotInputsArea');
+  container.innerHTML = SLOTS.map(slot => `
+    <div class="slotRow">
+      <div class="slotLabel">${escapeHtml(slot)}</div>
+      <select id="slotItem_${slot}"></select>
+      <select id="slotGrade_${slot}"></select>
+    </div>
+  `).join('');
+  SLOTS.forEach(slot => {
+    fillSelect(document.getElementById(`slotItem_${slot}`), SLOT_ITEM_OPTIONS[slot], '選択してください');
+    fillSlotGradeSelect(document.getElementById(`slotGrade_${slot}`));
+  });
 }
 
 async function init() {
   await initRoster();
-  fillSelect(document.getElementById('exAbility2'), SUB_OPTIONS);
-  fillSelect(document.getElementById('exSub1'), SUB_OPTIONS);
-  fillSelect(document.getElementById('exSub2'), SUB_OPTIONS);
-  fillSelect(document.getElementById('exSub3'), SUB_OPTIONS);
-  fillSelect(document.getElementById('genSlot'), SLOTS);
-  fillSelect(document.getElementById('genSub1'), SUB_OPTIONS);
-  fillSelect(document.getElementById('genSub2'), SUB_OPTIONS);
-  fillSelect(document.getElementById('genSub3'), SUB_OPTIONS);
   fillSelect(document.getElementById('exAttr'), ATTRIBUTES);
   fillSelect(document.getElementById('newCharAttr'), ATTRIBUTES);
   fillSelect(document.getElementById('filterAttr'), ATTRIBUTES, 'すべて');
-  fillCharGradeSelect(document.getElementById('exCharGrade'), '');
-  fillCharGradeFilterSelect(document.getElementById('filterCharGrade'));
+  buildSlotInputs();
   refreshMemberSelect();
   refreshExCharOptions();
-  refreshGenItemOptions();
-  refreshGenGradeOptions();
   updateLockState();
   document.getElementById('connNote').textContent = 'Firebaseに接続しました。';
 }
@@ -268,10 +235,8 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     // 一覧・ログのデータはバックグラウンドで先読み(失敗しても各タブを開いた時に通常通り再取得される)
-    membersPrefetchPromise = fetchAllMembers()
-      .then(data => { allMembersCache = data; return data; })
-      .catch(() => null);
-    getDocs(logsCol).catch(() => {});
+    getMembersData().catch(() => {});
+    getLogsData().catch(() => {});
   } else {
     document.getElementById('loginScreen').style.display = 'block';
     document.getElementById('mainApp').style.display = 'none';
@@ -333,80 +298,71 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('exAttr').addEventListener('change', refreshExCharOptions);
-document.getElementById('genSlot').addEventListener('change', () => { refreshGenItemOptions(); refreshGenGradeOptions(); });
 
 // ---------- 登録する ----------
 async function loadMemberIfExists() {
-  pendingEx = []; pendingGen = [];
+  pendingEx = [];
   if (currentUser) {
     try {
       const snap = await getDoc(doc(membersCol, currentUser));
       if (snap.exists()) {
         const data = snap.data();
         pendingEx = data.exclusive || [];
-        pendingGen = data.generic || [];
       }
     } catch (e) { console.error(e); }
   }
   renderExTable();
-  renderGenTable();
 }
 
-function subOptionsText(arr) { return (arr || []).join(' / '); }
+function pendingRowSlotText(slotObj) {
+  if (!slotObj || !slotObj.item) return '-';
+  return slotObj.grade ? `${slotObj.item}(${slotObj.grade})` : slotObj.item;
+}
 
 function renderExTable() {
   const table = document.getElementById('exTable');
   if (pendingEx.length === 0) { table.innerHTML = ''; return; }
-  let html = '<tr><th>キャラ</th><th>基本能力2</th><th>サブオプション</th><th>専用等級</th><th>キャラ等級</th><th></th></tr>';
+  let html = '<tr><th>キャラ</th><th>武器</th><th>鎧</th><th>頭</th><th>装飾</th><th>腕</th><th>備考</th><th></th></tr>';
   pendingEx.forEach((item, i) => {
-    html += `<tr><td>${escapeHtml(item.character)}</td><td>${escapeHtml(item.ability2)}</td><td>${escapeHtml(subOptionsText(item.subOptions))}</td><td>${gradeBadge(item.grade)}</td><td>${charGradeBadge(item.charGrade) || '<span class="detail">未設定</span>'}</td><td><button class="danger" data-i="${i}">削除</button></td></tr>`;
+    const slots = item.slots || {};
+    html += `<tr><td>${escapeHtml(item.character)}</td>`;
+    SLOTS.forEach(slot => { html += `<td>${escapeHtml(pendingRowSlotText(slots[slot]))}</td>`; });
+    html += `<td>${escapeHtml(item.note || '')}</td><td><button class="danger" data-i="${i}">削除</button></td></tr>`;
   });
   table.innerHTML = html;
   table.querySelectorAll('button.danger').forEach(btn => {
     btn.addEventListener('click', () => { pendingEx.splice(parseInt(btn.dataset.i), 1); renderExTable(); });
   });
 }
-function renderGenTable() {
-  const table = document.getElementById('genTable');
-  if (pendingGen.length === 0) { table.innerHTML = ''; return; }
-  let html = '<tr><th>部位</th><th>装備名</th><th>サブオプション</th><th>汎用等級</th><th></th></tr>';
-  pendingGen.forEach((item, i) => {
-    html += `<tr><td>${escapeHtml(item.slot)}</td><td>${escapeHtml(item.itemName)}</td><td>${escapeHtml(subOptionsText(item.subOptions))}</td><td>${gradeBadge(item.grade)}</td><td><button class="danger" data-i="${i}">削除</button></td></tr>`;
-  });
-  table.innerHTML = html;
-  table.querySelectorAll('button.danger').forEach(btn => {
-    btn.addEventListener('click', () => { pendingGen.splice(parseInt(btn.dataset.i), 1); renderGenTable(); });
-  });
-}
 
 document.getElementById('addExBtn').addEventListener('click', () => {
   const char = document.getElementById('exChar').value;
   if (!char) { alert('キャラクターを選択してください。'); return; }
-  const ability2 = document.getElementById('exAbility2').value;
-  const subOptions = [document.getElementById('exSub1').value, document.getElementById('exSub2').value, document.getElementById('exSub3').value];
-  const grade = document.getElementById('exGrade').value;
-  const charGrade = document.getElementById('exCharGrade').value;
-  pendingEx.push({ character: char, ability2, subOptions, grade, charGrade });
+  const slots = {};
+  let anyFilled = false;
+  SLOTS.forEach(slot => {
+    const itemSel = document.getElementById(`slotItem_${slot}`);
+    const gradeSel = document.getElementById(`slotGrade_${slot}`);
+    const itemVal = itemSel.value;
+    const gradeVal = gradeSel.value;
+    slots[slot] = { item: itemVal, grade: itemVal ? gradeVal : '' };
+    if (itemVal) anyFilled = true;
+  });
+  if (!anyFilled) { alert('武器・鎧・頭・装飾・腕のうち、少なくとも1つは選択してください。'); return; }
+  const note = document.getElementById('exNote').value.trim().slice(0, 20);
+  pendingEx.push({ character: char, slots, note });
   renderExTable();
-});
-document.getElementById('addGenBtn').addEventListener('click', () => {
-  const slot = document.getElementById('genSlot').value;
-  const itemName = document.getElementById('genItem').value;
-  const subOptions = [document.getElementById('genSub1').value, document.getElementById('genSub2').value, document.getElementById('genSub3').value];
-  const grade = document.getElementById('genGrade').value;
-  pendingGen.push({ slot, itemName, subOptions, grade });
-  renderGenTable();
 });
 
 document.getElementById('saveBtn').addEventListener('click', async () => {
   const statusEl = document.getElementById('saveStatus');
   if (!currentUser) { statusEl.className = 'status err'; statusEl.textContent = '操作者を選択してください。'; return; }
-  const data = { name: currentUser, exclusive: pendingEx, generic: pendingGen, updatedAt: new Date().toISOString() };
+  const data = { name: currentUser, exclusive: pendingEx, updatedAt: new Date().toISOString() };
   try {
     await setDoc(doc(membersCol, currentUser), data);
     statusEl.className = 'status ok';
     statusEl.textContent = `保存しました(${currentUser})。`;
-    await addLog(`装備データを保存しました(専用${pendingEx.length}件 / 汎用${pendingGen.length}件)`);
+    await addLog(`キャラクターデータを保存しました(${pendingEx.length}件)`);
   } catch (e) {
     statusEl.className = 'status err';
     statusEl.textContent = '保存に失敗しました: ' + e.message;
@@ -422,69 +378,60 @@ async function fetchAllMembers() {
   snap.forEach(d => members.push(d.data()));
   return members;
 }
-function sortByGradeDesc(a, b) { return parseInt(b.grade) - parseInt(a.grade); }
-function sortExHolders(a, b) {
-  const gd = parseInt(b.grade) - parseInt(a.grade);
-  if (gd !== 0) return gd;
-  const ca = a.charGrade ? parseInt(a.charGrade) : -1;
-  const cb = b.charGrade ? parseInt(b.charGrade) : -1;
-  return cb - ca;
+function maxGradeOf(item) {
+  let max = -1;
+  const slots = item.slots || {};
+  SLOTS.forEach(slot => {
+    const g = slots[slot] && slots[slot].grade;
+    if (g) max = Math.max(max, parseInt(g));
+  });
+  return max;
 }
+function hasGrade24(item) {
+  const slots = item.slots || {};
+  return SLOTS.some(slot => slots[slot] && slots[slot].grade === '24');
+}
+function sortExHolders(a, b) { return maxGradeOf(b) - maxGradeOf(a); }
 
 function enterExEditMode(tr, memberName, idx, item) {
-  tr.querySelector('.cell-grade').innerHTML = `<select class="e-grade">${EX_GRADE_VALUES.map(g => `<option value="${g}" ${g===item.grade?'selected':''}>${g}等級</option>`).join('')}</select>`;
-  const chargradeSel = document.createElement('select');
-  fillCharGradeSelect(chargradeSel, item.charGrade || '');
-  chargradeSel.className = 'e-chargrade';
-  const cgCell = tr.querySelector('.cell-chargrade');
-  cgCell.innerHTML = '';
-  cgCell.appendChild(chargradeSel);
-  tr.querySelector('.cell-ability2').innerHTML = `<select class="e-ability2">${SUB_OPTIONS.map(o => `<option ${o===item.ability2?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`;
-  tr.querySelector('.cell-sub1').innerHTML = `<select class="e-sub1">${SUB_OPTIONS.map(o => `<option ${o===item.subOptions[0]?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`;
-  tr.querySelector('.cell-sub2').innerHTML = `<select class="e-sub2">${SUB_OPTIONS.map(o => `<option ${o===item.subOptions[1]?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`;
-  tr.querySelector('.cell-sub3').innerHTML = `<select class="e-sub3">${SUB_OPTIONS.map(o => `<option ${o===item.subOptions[2]?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`;
+  const slots = item.slots || {};
+  SLOTS.forEach(slot => {
+    const cell = tr.querySelector(`.cell-${slot}`);
+    const itemSel = document.createElement('select');
+    fillSelect(itemSel, SLOT_ITEM_OPTIONS[slot], '選択してください');
+    if (slots[slot] && slots[slot].item) itemSel.value = slots[slot].item;
+    itemSel.className = `e-item-${slot}`;
+    const gradeSel = document.createElement('select');
+    fillSlotGradeSelect(gradeSel);
+    if (slots[slot] && slots[slot].grade) gradeSel.value = slots[slot].grade;
+    gradeSel.className = `e-grade-${slot}`;
+    cell.innerHTML = '';
+    cell.appendChild(itemSel);
+    cell.appendChild(gradeSel);
+  });
+  const noteCell = tr.querySelector('.cell-note');
+  noteCell.innerHTML = `<input type="text" class="e-note" maxlength="20" value="${escapeHtml(item.note || '')}">`;
   tr.querySelector('.cell-actions').innerHTML = `<button class="primary small e-save">保存</button><button class="small e-cancel">キャンセル</button>`;
 
   tr.querySelector('.e-cancel').addEventListener('click', () => loadList());
   tr.querySelector('.e-save').addEventListener('click', async () => {
-    const newItem = {
-      character: item.character,
-      ability2: tr.querySelector('.e-ability2').value,
-      subOptions: [tr.querySelector('.e-sub1').value, tr.querySelector('.e-sub2').value, tr.querySelector('.e-sub3').value],
-      grade: tr.querySelector('.e-grade').value,
-      charGrade: tr.querySelector('.e-chargrade').value
-    };
+    const newSlots = {};
+    let anyFilled = false;
+    SLOTS.forEach(slot => {
+      const itemVal = tr.querySelector(`.e-item-${slot}`).value;
+      const gradeVal = tr.querySelector(`.e-grade-${slot}`).value;
+      newSlots[slot] = { item: itemVal, grade: itemVal ? gradeVal : '' };
+      if (itemVal) anyFilled = true;
+    });
+    if (!anyFilled) { alert('武器・鎧・頭・装飾・腕のうち、少なくとも1つは選択してください。'); return; }
+    const newNote = tr.querySelector('.e-note').value.trim().slice(0, 20);
+    const newItem = { character: item.character, slots: newSlots, note: newNote };
     const mSnap = await getDoc(doc(membersCol, memberName));
     if (!mSnap.exists()) return;
     const mData = mSnap.data();
     mData.exclusive[idx] = newItem;
     await setDoc(doc(membersCol, memberName), mData);
-    await addLog(`「${memberName}」の専用装備『${item.character}』を編集しました`);
-    loadList();
-  });
-}
-function enterGenEditMode(tr, memberName, idx, item) {
-  const grades = genGradeOptionsFor(item.slot);
-  tr.querySelector('.cell-grade').innerHTML = `<select class="e-grade">${grades.map(g => `<option value="${g}" ${g===item.grade?'selected':''}>${g}等級</option>`).join('')}</select>`;
-  tr.querySelector('.cell-sub1').innerHTML = `<select class="e-sub1">${SUB_OPTIONS.map(o => `<option ${o===item.subOptions[0]?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`;
-  tr.querySelector('.cell-sub2').innerHTML = `<select class="e-sub2">${SUB_OPTIONS.map(o => `<option ${o===item.subOptions[1]?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`;
-  tr.querySelector('.cell-sub3').innerHTML = `<select class="e-sub3">${SUB_OPTIONS.map(o => `<option ${o===item.subOptions[2]?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>`;
-  tr.querySelector('.cell-actions').innerHTML = `<button class="primary small e-save">保存</button><button class="small e-cancel">キャンセル</button>`;
-
-  tr.querySelector('.e-cancel').addEventListener('click', () => loadList());
-  tr.querySelector('.e-save').addEventListener('click', async () => {
-    const newItem = {
-      slot: item.slot,
-      itemName: item.itemName,
-      subOptions: [tr.querySelector('.e-sub1').value, tr.querySelector('.e-sub2').value, tr.querySelector('.e-sub3').value],
-      grade: tr.querySelector('.e-grade').value
-    };
-    const mSnap = await getDoc(doc(membersCol, memberName));
-    if (!mSnap.exists()) return;
-    const mData = mSnap.data();
-    mData.generic[idx] = newItem;
-    await setDoc(doc(membersCol, memberName), mData);
-    await addLog(`「${memberName}」の汎用装備『${item.slot} / ${item.itemName}』を編集しました`);
+    await addLog(`「${memberName}」のキャラクター『${item.character}』を編集しました`);
     loadList();
   });
 }
@@ -495,7 +442,6 @@ function getFilters() {
     member: document.getElementById('filterMember').value,
     attr: document.getElementById('filterAttr').value,
     atkType: document.getElementById('filterAtkType').value,
-    charGrade: document.getElementById('filterCharGrade').value,
     g24Only: document.getElementById('filterG24Only').checked
   };
 }
@@ -506,8 +452,7 @@ function renderExList(members, filters) {
     (m.exclusive || []).forEach((item, idx) => {
       if (filters.search && !item.character.toLowerCase().includes(filters.search)) return;
       if (filters.member && m.name !== filters.member) return;
-      if (filters.g24Only && item.grade !== '24') return;
-      if (filters.charGrade && !matchesCharGradeFilter(item.charGrade, filters.charGrade)) return;
+      if (filters.g24Only && !hasGrade24(item)) return;
       if (!map[item.character]) map[item.character] = [];
       map[item.character].push({ memberName: m.name, idx, ...item });
     });
@@ -533,7 +478,7 @@ function renderExList(members, filters) {
   const area = document.getElementById('exListArea');
   if (chars.length === 0) { area.innerHTML = '<div class="empty">該当する登録がありません。</div>'; return; }
 
-  let html = '<table class="wide-table"><tr><th>キャラ</th><th>所持者</th><th>専用等級</th><th>キャラ等級</th><th>基本能力2</th><th>サブ1</th><th>サブ2</th><th>サブ3</th><th>操作</th></tr>';
+  let html = '<table class="wide-table"><tr><th>キャラ</th><th>所持者</th><th>武器</th><th>鎧</th><th>頭</th><th>装飾</th><th>腕</th><th>備考</th><th>操作</th></tr>';
   chars.forEach((charName, ci) => {
     const holders = map[charName].sort(sortExHolders);
     const info = charInfo(charName);
@@ -542,15 +487,12 @@ function renderExList(members, filters) {
     holders.forEach((h, hi) => {
       const rowId = `ex-row-${ci}-${hi}`;
       const isOwner = h.memberName === currentUser;
+      const slots = h.slots || {};
       html += `<tr id="${rowId}" class="${grpClass}${hi>0?' cont':''}" data-member="${escapeHtml(h.memberName)}" data-idx="${h.idx}">`;
       if (hi === 0) html += `<td class="name-cell" rowspan="${holders.length}">${charCellHtml}</td>`;
       html += `<td>${escapeHtml(h.memberName)}</td>`;
-      html += `<td class="cell-grade">${gradeBadge(h.grade)}</td>`;
-      html += `<td class="cell-chargrade">${charGradeBadge(h.charGrade) || '<span class="detail">未設定</span>'}</td>`;
-      html += `<td class="cell-ability2">${escapeHtml(h.ability2)}</td>`;
-      html += `<td class="cell-sub1">${escapeHtml(h.subOptions[0])}</td>`;
-      html += `<td class="cell-sub2">${escapeHtml(h.subOptions[1])}</td>`;
-      html += `<td class="cell-sub3">${escapeHtml(h.subOptions[2])}</td>`;
+      SLOTS.forEach(slot => { html += `<td class="cell-${slot}">${slotCellHtml(slots[slot])}</td>`; });
+      html += `<td class="cell-note">${escapeHtml(h.note || '')}</td>`;
       html += `<td class="cell-actions">${isOwner ? `<button class="small" data-action="edit-ex">編集</button><button class="small danger" data-action="del-ex">削除</button>` : ''}</td>`;
       html += `</tr>`;
     });
@@ -570,7 +512,7 @@ function renderExList(members, filters) {
   });
   area.querySelectorAll('[data-action="del-ex"]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('この専用装備の登録を削除しますか?')) return;
+      if (!confirm('このキャラクターの登録を削除しますか?')) return;
       const tr = btn.closest('tr');
       const memberName = tr.dataset.member, idx = parseInt(tr.dataset.idx);
       const mSnap = await getDoc(doc(membersCol, memberName));
@@ -579,107 +521,25 @@ function renderExList(members, filters) {
       const removed = mData.exclusive[idx];
       mData.exclusive.splice(idx, 1);
       await setDoc(doc(membersCol, memberName), mData);
-      await addLog(`「${memberName}」の専用装備『${removed.character}』を削除しました`);
+      await addLog(`「${memberName}」のキャラクター『${removed.character}』を削除しました`);
       loadList();
     });
   });
 }
 
-function renderGenList(members, filters) {
-  const map = {};
-  members.forEach(m => {
-    (m.generic || []).forEach((item, idx) => {
-      const label = `${item.slot} / ${item.itemName}`;
-      if (filters.search && !label.toLowerCase().includes(filters.search)) return;
-      if (filters.member && m.name !== filters.member) return;
-      if (filters.g24Only && item.grade !== '24') return;
-      if (!map[label]) map[label] = [];
-      map[label].push({ memberName: m.name, idx, ...item });
-    });
-  });
-  const labels = [];
-  SLOTS.forEach(slot => {
-    (EQUIPMENT_BY_SLOT[slot] || []).forEach(itemName => {
-      const label = `${slot} / ${itemName}`;
-      if (map[label]) labels.push(label);
-    });
-  });
-  const area = document.getElementById('genListArea');
-  if (labels.length === 0) { area.innerHTML = '<div class="empty">該当する登録がありません。</div>'; return; }
-
-  let html = '<table class="wide-table"><tr><th>部位 / 装備名</th><th>所持者</th><th>等級</th><th>サブ1</th><th>サブ2</th><th>サブ3</th><th>操作</th></tr>';
-  labels.forEach((label, li) => {
-    const holders = map[label].sort(sortByGradeDesc);
-    const itemName = label.split(' / ')[1];
-    const slot = label.split(' / ')[0];
-    const info = EQUIPMENT_DATA[itemName];
-    const abilityText = info ? info.abilities.map(a => `${a.name.replace(/%$/, '')} ${a.value}`).join(' / ') : '-';
-    const labelCellHtml = `${escapeHtml(label)}<span class="detail">${escapeHtml(abilityText)}</span>`;
-    const grpClass = (li % 2 === 0) ? 'grp-a' : 'grp-b';
-    holders.forEach((h, hi) => {
-      const rowId = `gen-row-${li}-${hi}`;
-      const isOwner = h.memberName === currentUser;
-      html += `<tr id="${rowId}" class="${grpClass}${hi>0?' cont':''}" data-member="${escapeHtml(h.memberName)}" data-idx="${h.idx}" data-slot="${escapeHtml(slot)}">`;
-      if (hi === 0) html += `<td class="name-cell" rowspan="${holders.length}">${labelCellHtml}</td>`;
-      html += `<td>${escapeHtml(h.memberName)}</td>`;
-      html += `<td class="cell-grade">${gradeBadge(h.grade)}</td>`;
-      html += `<td class="cell-sub1">${escapeHtml(h.subOptions[0])}</td>`;
-      html += `<td class="cell-sub2">${escapeHtml(h.subOptions[1])}</td>`;
-      html += `<td class="cell-sub3">${escapeHtml(h.subOptions[2])}</td>`;
-      html += `<td class="cell-actions">${isOwner ? `<button class="small" data-action="edit-gen">編集</button><button class="small danger" data-action="del-gen">削除</button>` : ''}</td>`;
-      html += `</tr>`;
-    });
-  });
-  html += '</table>';
-  area.innerHTML = `<div class="table-wrap">${html}</div>`;
-  const genNameCells = area.querySelectorAll('.name-cell');
-  if (genNameCells.length) genNameCells[genNameCells.length - 1].classList.add('last-name-cell');
-
-  area.querySelectorAll('[data-action="edit-gen"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tr = btn.closest('tr');
-      const memberName = tr.dataset.member, idx = parseInt(tr.dataset.idx);
-      const item = allMembersCache.find(m => m.name === memberName).generic[idx];
-      enterGenEditMode(tr, memberName, idx, item);
-    });
-  });
-  area.querySelectorAll('[data-action="del-gen"]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('この汎用装備の登録を削除しますか?')) return;
-      const tr = btn.closest('tr');
-      const memberName = tr.dataset.member, idx = parseInt(tr.dataset.idx);
-      const mSnap = await getDoc(doc(membersCol, memberName));
-      if (!mSnap.exists()) return;
-      const mData = mSnap.data();
-      const removed = mData.generic[idx];
-      mData.generic.splice(idx, 1);
-      await setDoc(doc(membersCol, memberName), mData);
-      await addLog(`「${memberName}」の汎用装備『${removed.slot} / ${removed.itemName}』を削除しました`);
-      loadList();
-    });
-  });
-}
-
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise(resolve => setTimeout(() => resolve('__TIMEOUT__'), ms))
-  ]);
+function getMembersData() {
+  if (!membersPrefetchPromise) {
+    membersPrefetchPromise = fetchAllMembers()
+      .then(data => { allMembersCache = data; membersPrefetchPromise = null; return data; })
+      .catch(err => { membersPrefetchPromise = null; throw err; });
+  }
+  return membersPrefetchPromise;
 }
 
 async function loadList() {
   document.getElementById('exListArea').innerHTML = '<div class="empty">読み込み中...</div>';
-  document.getElementById('genListArea').innerHTML = '<div class="empty">読み込み中...</div>';
   try {
-    if (membersPrefetchPromise) {
-      const result = await withTimeout(membersPrefetchPromise, 5000);
-      membersPrefetchPromise = null;
-      if (result && result !== '__TIMEOUT__') {
-        applyFilterAndRender();
-        return;
-      }
-    }
-    allMembersCache = await fetchAllMembers();
+    await getMembersData();
     applyFilterAndRender();
   } catch (e) {
     document.getElementById('exListArea').innerHTML = `<div class="empty">読み込みエラー: ${e.message}</div>`;
@@ -688,9 +548,8 @@ async function loadList() {
 function applyFilterAndRender() {
   const filters = getFilters();
   renderExList(allMembersCache, filters);
-  renderGenList(allMembersCache, filters);
 }
-['searchBox', 'filterMember', 'filterAttr', 'filterAtkType', 'filterCharGrade', 'filterG24Only'].forEach(id => {
+['searchBox', 'filterMember', 'filterAttr', 'filterAtkType', 'filterG24Only'].forEach(id => {
   document.getElementById(id).addEventListener('input', applyFilterAndRender);
   document.getElementById(id).addEventListener('change', applyFilterAndRender);
 });
@@ -927,14 +786,21 @@ document.getElementById('bulkImportBtn').addEventListener('click', async () => {
 });
 
 // ---------- 編集ログ ----------
+let logsFetchPromise = null;
+function getLogsData() {
+  if (!logsFetchPromise) {
+    logsFetchPromise = getDocs(logsCol)
+      .then(snap => { logsFetchPromise = null; return snap; })
+      .catch(err => { logsFetchPromise = null; throw err; });
+  }
+  return logsFetchPromise;
+}
+
 async function loadLogs() {
   const area = document.getElementById('logArea');
   area.innerHTML = '<div class="empty">読み込み中...</div>';
   try {
-    let snap = await withTimeout(getDocs(logsCol), 5000);
-    if (snap === '__TIMEOUT__') {
-      snap = await getDocs(logsCol); // 一度だけ自動で再試行
-    }
+    const snap = await getLogsData();
     const logs = [];
     snap.forEach(d => logs.push(d.data()));
     logs.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
