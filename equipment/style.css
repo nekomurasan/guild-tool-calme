@@ -18,7 +18,7 @@
     margin: 0;
     padding: 16px 20px;
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
   }
   .wrap { max-width: 1020px; margin: 0 auto; }
   .titleBlock { margin-bottom: 6px; }
@@ -141,7 +141,7 @@
   .table-wrap table.scroll-table { min-width: 480px; }
   .scrollHint { display: none; margin-bottom: 8px; }
   @media (max-width: 780px) { .scrollHint { display: block; } }
-  td.name-cell { font-size: 15px; font-weight: 600; }
+  td.name-cell { font-size: 14px; font-weight: 600; white-space: nowrap; }
   tr.grp-a td { background: var(--bg-card); }
   tr.grp-b td { background: var(--bg-sub); }
   .grade-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 13px; font-weight: bold; margin: 2px 4px 2px 0; }
