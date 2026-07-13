@@ -182,11 +182,14 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 // ---------- 初期化 ----------
 async function initRoster() {
-  const memberSnap = await getDoc(doc(rosterCol, "members"));
-  if (memberSnap.exists()) rosterMembers = memberSnap.data().names || [];
-  else { rosterMembers = []; await setDoc(doc(rosterCol, "members"), { names: [] }); }
+  const [memberSnap, charSnap] = await Promise.all([
+    getDoc(doc(rosterCol, "members")),
+    getDoc(doc(rosterCol, "characters"))
+  ]);
 
-  const charSnap = await getDoc(doc(rosterCol, "characters"));
+  if (memberSnap.exists()) rosterMembers = memberSnap.data().names || [];
+  else { rosterMembers = []; setDoc(doc(rosterCol, "members"), { names: [] }); }
+
   if (charSnap.exists()) {
     const raw = charSnap.data();
     let needsMigration = false;
@@ -198,10 +201,10 @@ async function initRoster() {
       });
     });
     rosterCharacters = raw;
-    if (needsMigration) await setDoc(doc(rosterCol, "characters"), rosterCharacters);
+    if (needsMigration) setDoc(doc(rosterCol, "characters"), rosterCharacters);
   } else {
     rosterCharacters = DEFAULT_CHARACTERS;
-    await setDoc(doc(rosterCol, "characters"), DEFAULT_CHARACTERS);
+    setDoc(doc(rosterCol, "characters"), DEFAULT_CHARACTERS);
   }
 }
 
@@ -246,8 +249,10 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('loginStatus').className = 'status';
     document.getElementById('loginStatus').textContent = '読み込み中...';
     document.getElementById('loginBtn').disabled = true;
-    await init();
-    await applyUserLinkIfAny(user);
+    const email = (user.email || '').toLowerCase();
+    const [, linkData] = await Promise.all([init(), fetchUserLinkData(email)]);
+    applyUserLinkResult(linkData[0], linkData[1]);
+    if (currentUser) await loadMemberIfExists();
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     // 一覧・ログのデータはバックグラウンドで先読み(失敗しても各タブを開いた時に通常通り再取得される)
@@ -261,33 +266,27 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-async function applyUserLinkIfAny(user) {
-  const email = (user.email || '').toLowerCase();
-  if (!email) return;
-  try {
-    const adminSnap = await getDoc(doc(adminsCol, email));
-    isAdmin = adminSnap.exists();
-    document.getElementById('adminOnlyArea').style.display = isAdmin ? 'block' : 'none';
-  } catch (e) {
-    isAdmin = false;
-    document.getElementById('adminOnlyArea').style.display = 'none';
-  }
-  try {
-    const linkSnap = await getDoc(doc(userLinksCol, email));
-    if (linkSnap.exists()) {
-      const memberName = linkSnap.data().memberName;
-      if (rosterMembers.includes(memberName)) {
-        currentUser = memberName;
-        document.getElementById('operatorSelect').style.display = 'none';
-        document.getElementById('operatorFixedName').style.display = 'inline';
-        document.getElementById('operatorFixedName').textContent = memberName;
-        document.getElementById('opWarn').style.display = 'none';
-        updateLockState();
-        await loadMemberIfExists();
-      }
+async function fetchUserLinkData(email) {
+  if (!email) return [null, null];
+  return Promise.all([
+    getDoc(doc(adminsCol, email)).catch(() => null),
+    getDoc(doc(userLinksCol, email)).catch(() => null)
+  ]);
+}
+
+function applyUserLinkResult(adminSnap, linkSnap) {
+  isAdmin = !!(adminSnap && adminSnap.exists());
+  document.getElementById('adminOnlyArea').style.display = isAdmin ? 'block' : 'none';
+  if (linkSnap && linkSnap.exists()) {
+    const memberName = linkSnap.data().memberName;
+    if (rosterMembers.includes(memberName)) {
+      currentUser = memberName;
+      document.getElementById('operatorSelect').style.display = 'none';
+      document.getElementById('operatorFixedName').style.display = 'inline';
+      document.getElementById('operatorFixedName').textContent = memberName;
+      document.getElementById('opWarn').style.display = 'none';
+      updateLockState();
     }
-  } catch (e) {
-    console.error('user link check error', e);
   }
 }
 
