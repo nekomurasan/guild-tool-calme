@@ -111,6 +111,18 @@ function fillSelect(sel, options, placeholder) {
 function fillSlotGradeSelect(sel) {
   sel.innerHTML = '<option value="">-</option>' + EX_GRADE_VALUES.map(g => `<option value="${g}">${g}等級</option>`).join('');
 }
+function validateSlots(slots) {
+  let anyFilled = false;
+  for (const slot of SLOTS) {
+    const s = slots[slot];
+    if (s && s.item) {
+      anyFilled = true;
+      if (!s.grade) return `「${slot}」の等級を選択してください。`;
+    }
+  }
+  if (!anyFilled) return '武器・鎧・頭・装飾・腕のうち、少なくとも1つは選択してください。';
+  return null;
+}
 async function addLog(detail) {
   try { await addDoc(logsCol, { ts: new Date().toISOString(), member: currentUser || '(未選択)', detail }); }
   catch (e) { console.error('log error', e); }
@@ -371,14 +383,13 @@ function enterPendingEditMode(tr, i) {
   tr.querySelector('.pe-cancel').addEventListener('click', () => renderExTable());
   tr.querySelector('.pe-save').addEventListener('click', () => {
     const newSlots = {};
-    let anyFilled = false;
     SLOTS.forEach(slot => {
       const itemVal = tr.querySelector(`.pe-item-${slot}`).value;
       const gradeVal = tr.querySelector(`.pe-grade-${slot}`).value;
       newSlots[slot] = { item: itemVal, grade: itemVal ? gradeVal : '' };
-      if (itemVal) anyFilled = true;
     });
-    if (!anyFilled) { alert('武器・鎧・頭・装飾・腕のうち、少なくとも1つは選択してください。'); return; }
+    const errorMsg = validateSlots(newSlots);
+    if (errorMsg) { alert(errorMsg); return; }
     const newNote = tr.querySelector('.pe-note').value.trim().slice(0, 20);
     pendingEx[i] = { character: item.character, slots: newSlots, note: newNote };
     renderExTable();
@@ -389,16 +400,15 @@ document.getElementById('addExBtn').addEventListener('click', () => {
   const char = document.getElementById('exChar').value;
   if (!char) { alert('キャラクターを選択してください。'); return; }
   const slots = {};
-  let anyFilled = false;
   SLOTS.forEach(slot => {
     const itemSel = document.getElementById(`slotItem_${slot}`);
     const gradeSel = document.getElementById(`slotGrade_${slot}`);
     const itemVal = itemSel.value;
     const gradeVal = gradeSel.value;
     slots[slot] = { item: itemVal, grade: itemVal ? gradeVal : '' };
-    if (itemVal) anyFilled = true;
   });
-  if (!anyFilled) { alert('武器・鎧・頭・装飾・腕のうち、少なくとも1つは選択してください。'); return; }
+  const errorMsg = validateSlots(slots);
+  if (errorMsg) { alert(errorMsg); return; }
   const note = document.getElementById('exNote').value.trim().slice(0, 20);
   pendingEx.push({ character: char, slots, note });
   renderExTable();
