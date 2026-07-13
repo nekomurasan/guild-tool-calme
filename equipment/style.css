@@ -141,7 +141,7 @@
   .table-wrap table.wide-table { min-width: 760px; }
   .table-wrap table.scroll-table { min-width: 480px; }
   #exListArea .table-wrap { max-height: 60vh; overflow-y: auto; }
-  #exListArea .table-wrap th { position: sticky; top: 0; z-index: 2; }
+  #exListArea .table-wrap th { position: sticky; top: 0; z-index: 2; border-bottom: none; box-shadow: 0 2px 0 0 var(--gold); }
   .scrollHint { display: none; margin-bottom: 6px; }
   @media (max-width: 780px) { .scrollHint { display: block; } }
   td.name-cell { font-size: 13px; font-weight: 600; white-space: nowrap; }
