@@ -329,7 +329,8 @@ function renderExTable() {
   let html = '<tr><th>キャラ</th><th>武器</th><th>鎧</th><th>頭</th><th>装飾</th><th>腕</th><th>備考</th><th></th></tr>';
   pendingEx.forEach((item, i) => {
     const slots = item.slots || {};
-    html += `<tr id="pending-row-${i}"><td>${escapeHtml(item.character)}</td>`;
+    const grpClass = (i % 2 === 0) ? 'grp-a' : 'grp-b';
+    html += `<tr id="pending-row-${i}" class="${grpClass}"><td>${escapeHtml(item.character)}</td>`;
     SLOTS.forEach(slot => { html += `<td class="p-cell-${slot}">${escapeHtml(pendingRowSlotText(slots[slot]))}</td>`; });
     html += `<td class="p-cell-note">${escapeHtml(item.note || '')}</td>`;
     html += `<td class="p-cell-actions"><button class="small" data-action="edit-pending" data-i="${i}">編集</button><button class="small danger" data-action="del-pending" data-i="${i}">削除</button></td></tr>`;
