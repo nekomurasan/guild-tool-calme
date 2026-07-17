@@ -1,0 +1,106 @@
+:root {
+  --bg: #1a3050;
+  --bg-card: #253F60;
+  --bg-card-alt: #213a58;
+  --bg-sub: #1a3050;
+  --gold: #D8B35D;
+  --gold-soft: #e8cd8f;
+  --text: #F3F5F8;
+  --text-dim: #B9C6D6;
+  --input-bg: #F2F3F5;
+  --input-text: #223247;
+  --border: #3E5B80;
+  --err: #FF6B81;
+}
+body {
+  font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  background: var(--bg);
+  margin: 0;
+  padding: 14px 18px;
+  color: var(--text);
+  font-size: 13px;
+}
+.wrap { max-width: 1020px; margin: 0 auto; }
+.titleBlock { margin-bottom: 6px; }
+.backLink {
+  display: inline-block; font-size: 11px; color: var(--text-dim); text-decoration: none;
+  margin-bottom: 6px; letter-spacing: 0.5px;
+}
+.backLink:hover { color: var(--gold-soft); text-decoration: underline; }
+h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 27px; margin: 0; color: var(--gold); letter-spacing: 1px;
+  font-weight: 700;
+}
+.sub { color: var(--text-dim); font-size: 13px; margin-bottom: 8px; }
+
+.topBar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg-card-alt); border: 1px solid var(--gold); border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 10px;
+}
+.topBar .opLabel { font-size: 13px; color: var(--gold-soft); font-weight: 600; white-space: nowrap; }
+.note-inline { font-size: 12px; color: var(--gold-soft); white-space: nowrap; }
+
+.note { background: rgba(216,179,93,0.12); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--gold-soft); margin-bottom: 8px; }
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+.card h2 { font-size: 16px; margin-top: 0; color: var(--gold); }
+.card h3 { font-size: 14px; margin: 0 0 8px; color: var(--gold-soft); }
+
+label { display: block; font-size: 12px; color: var(--text-dim); margin: 6px 0 3px; }
+.formField { max-width: 320px; margin-bottom: 8px; }
+.formField label { margin: 0 0 3px; }
+.formField input { margin: 0; }
+input[type=text], input[type=password], textarea {
+  box-sizing: border-box; padding: 6px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 13px; width: 100%;
+  background: var(--input-bg); color: var(--input-text);
+  font-family: inherit;
+}
+textarea { resize: vertical; }
+
+button {
+  padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;
+  border: 1px solid var(--gold); background: transparent; color: var(--gold-soft); white-space: nowrap;
+}
+button:hover:not(:disabled) { background: rgba(216,179,93,0.15); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.primary { background: var(--gold); color: #22314a; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: var(--gold-soft); }
+button.danger { border-color: var(--err); color: var(--err); }
+button.danger:hover { background: rgba(255,107,129,0.15); }
+button.small { padding: 3px 8px; font-size: 12px; margin-left: 4px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
+th { background: #314051; color: var(--gold); border-bottom: 2px solid var(--gold); }
+.table-wrap { border: 2px solid var(--gold); border-radius: 10px; overflow-x: auto; margin-top: 8px; -webkit-overflow-scrolling: touch; }
+.table-wrap table { margin-top: 0; min-width: 420px; }
+.scrollHint { display: none; margin-bottom: 6px; }
+@media (max-width: 780px) { .scrollHint { display: block; } }
+
+.listDesc { color: var(--text-dim); font-size: 13px; margin-bottom: 6px; white-space: pre-wrap; }
+.addRowBar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.addRowBar input { max-width: 220px; }
+
+.ingredientCell { display: flex; align-items: center; gap: 6px; }
+.ingredientCell img { width: 22px; height: 22px; object-fit: contain; border-radius: 4px; background: rgba(255,255,255,0.08); }
+td.noSellNote { font-size: 11px; color: var(--text-dim); max-width: 320px; }
+
+.status { font-size: 13px; margin-top: 6px; }
+.status.ok { color: #8fd3a5; }
+.status.err { color: var(--err); font-weight: 600; }
+.empty { color: var(--text-dim); font-size: 13px; padding: 8px 0; }
+.detail { font-size: 11px; color: var(--text-dim); display: block; }
+
+@media (max-width: 780px) {
+  .addRowBar { flex-direction: column; }
+  .addRowBar input { max-width: 100%; }
+}

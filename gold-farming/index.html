@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Farming Guide | BrownDust Ⅱ Calme Guild Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="titleBlock">
+    <a href="../index.html" class="backLink">← BrownDust Ⅱ Calme Guild Tool</a>
+    <h1>Gold Farming Guide</h1>
+  </div>
+  <div class="sub">商店と料理スキルを利用した金策についての解説を載せています。</div>
+
+  <!-- パスワードゲート -->
+  <div id="gateScreen" class="card">
+    <h2>閲覧パスワード</h2>
+    <div class="note">ギルド内で共有されているパスワードを入力してください。</div>
+    <div class="formField">
+      <label>パスワード</label>
+      <input type="password" id="gatePassword" placeholder="パスワード">
+    </div>
+    <button class="primary" id="gateBtn">閲覧する</button>
+    <div id="gateStatus" class="status"></div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div id="mainContent" style="display:none;">
+
+    <div class="topBar">
+      <span class="note-inline" id="connNote"></span>
+      <button class="small" id="manageBtn" style="margin-left:auto;">リスト管理</button>
+      <span class="opLabel" id="adminBadge" style="display:none;">管理者モード</span>
+      <button class="small" id="adminLogoutBtn" style="display:none;">管理者ログアウト</button>
+    </div>
+
+    <!-- 管理者ログインフォーム -->
+    <div id="adminLoginBox" class="card" style="display:none;">
+      <h3>管理者ログイン</h3>
+      <div class="detail" style="margin-bottom:8px;">リストの編集には管理者アカウントでのログインが必要です。</div>
+      <div class="formField">
+        <label>ID</label>
+        <input type="text" id="adminId" placeholder="例: taro">
+      </div>
+      <div class="formField">
+        <label>パスワード</label>
+        <input type="password" id="adminPassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="adminLoginBtn">ログイン</button>
+      <button class="small" id="adminLoginCancelBtn">キャンセル</button>
+      <div id="adminLoginStatus" class="status"></div>
+    </div>
+
+    <!-- 商店購入推奨リスト -->
+    <div class="card">
+      <h2>商店購入推奨リスト</h2>
+      <div id="shopDesc" class="listDesc"></div>
+      <div id="shopDescEdit" style="display:none;">
+        <textarea id="shopDescInput" rows="2" maxlength="200"></textarea>
+        <button class="primary small" id="shopDescSaveBtn">保存</button>
+      </div>
+      <div class="table-wrap"><table id="shopTable"></table></div>
+      <div id="shopAddRow" class="addRowBar" style="display:none;">
+        <input type="text" id="shopNewCassette" placeholder="カセット名">
+        <input type="text" id="shopNewIngredient" placeholder="食材名">
+        <button class="small" id="shopAddBtn">+ 追加</button>
+      </div>
+    </div>
+
+    <!-- 料理推奨リスト -->
+    <div class="card">
+      <h2>料理推奨リスト</h2>
+      <div id="cookDesc" class="listDesc"></div>
+      <div id="cookDescEdit" style="display:none;">
+        <textarea id="cookDescInput" rows="2" maxlength="200"></textarea>
+        <button class="primary small" id="cookDescSaveBtn">保存</button>
+      </div>
+      <div class="table-wrap"><table id="cookTable"></table></div>
+      <div id="cookAddRow" class="addRowBar" style="display:none;">
+        <input type="text" id="cookNewPriority" placeholder="優先度">
+        <input type="text" id="cookNewDish" placeholder="料理名">
+        <button class="small" id="cookAddBtn">+ 追加</button>
+      </div>
+    </div>
+
+    <!-- 売却してはいけないリスト -->
+    <div class="card">
+      <h2>売却してはいけないリスト</h2>
+      <div id="noSellDesc" class="listDesc"></div>
+      <div id="noSellDescEdit" style="display:none;">
+        <textarea id="noSellDescInput" rows="2" maxlength="200"></textarea>
+        <button class="primary small" id="noSellDescSaveBtn">保存</button>
+      </div>
+      <div class="table-wrap"><table id="noSellTable"></table></div>
+      <div id="noSellAddRow" class="addRowBar" style="display:none;">
+        <input type="text" id="noSellNewItem" placeholder="アイテム名">
+        <input type="text" id="noSellNewNote" placeholder="備考">
+        <button class="small" id="noSellAddBtn">+ 追加</button>
+      </div>
+    </div>
+
+    <!-- パスワード変更(管理者限定) -->
+    <div id="passwordChangeBox" class="card" style="display:none;">
+      <h3>閲覧パスワードの変更</h3>
+      <div class="detail" style="margin-bottom:8px;">このページの閲覧パスワードを変更できます。変更後は、ギルドメンバーに新しいパスワードを共有してください。</div>
+      <div class="formField">
+        <label>新しいパスワード</label>
+        <input type="text" id="newGatePassword" placeholder="新しいパスワード">
+      </div>
+      <button class="primary small" id="changePasswordBtn">変更する</button>
+      <div id="passwordChangeStatus" class="status"></div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
