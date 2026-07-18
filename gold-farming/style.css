@@ -115,11 +115,20 @@ td.c-cassette.cassette-nopurchase { color: #a68a4a; }
 th.wideCol { width: auto; }
 td.noSellNote { font-size: 11px; color: var(--text-dim); max-width: 320px; white-space: pre-wrap; }
 
-#shopTable td, #shopTable th { padding: 14px 10px; border: 2px solid var(--gold-soft); }
+#shopTable td, #shopTable th {
+  padding: 14px 10px;
+  border-top: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  border-left: 1px solid var(--gold);
+  border-right: 1px solid var(--gold);
+}
 #shopTable { border-collapse: separate; border-spacing: 0; }
 
-.ingredientBadge.noPurchase { color: var(--err); font-weight: 700; }
+.ingredientBadge.noPurchase { color: #9c2f2f; font-weight: 700; }
 .ingredientBadge.noPurchase img { display: none; }
+
+#noSellTable { table-layout: fixed; }
+#noSellTable th:first-child, #noSellTable td.c-item { width: 100px; }
 
 .status { font-size: 13px; margin-top: 6px; }
 .status.ok { color: #8fd3a5; }
