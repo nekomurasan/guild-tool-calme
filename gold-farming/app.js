@@ -185,11 +185,13 @@ async function saveContent() {
 // ---------- 商店購入推奨リスト(カセットごとにバッジでまとめ表示) ----------
 function ingredientBadgeHtml(name, showRemove, cassette) {
   const safe = escapeHtml(name);
+  const isNoPurchase = name === '購入なし';
   const src = `icons/${encodeURIComponent(name)}.png`;
   const removeBtn = showRemove
     ? `<button class="badgeX" data-action="del-ingredient" data-cassette="${escapeHtml(cassette)}" data-name="${escapeHtml(name)}">×</button>`
     : '';
-  return `<span class="ingredientBadge"><img src="${src}" alt="" onerror="this.style.display='none'">${safe}${removeBtn}</span>`;
+  const img = isNoPurchase ? '' : `<img src="${src}" alt="" onerror="this.style.display='none'">`;
+  return `<span class="ingredientBadge${isNoPurchase ? ' noPurchase' : ''}">${img}${safe}${removeBtn}</span>`;
 }
 
 function groupShopRows() {
@@ -207,18 +209,33 @@ function groupShopRows() {
   return groups;
 }
 
+function flattenShopGroups(groups) {
+  const rows = [];
+  groups.forEach(g => {
+    g.ingredients.forEach(ingredient => rows.push({ cassette: g.cassette, ingredient }));
+  });
+  return rows;
+}
+
 function renderShopTable() {
   const table = document.getElementById('shopTable');
   const groups = groupShopRows();
   const showActions = isAdmin && editModeOn;
-  let html = `<tr><th style="width:110px;">カセット名</th><th class="wideCol">食材</th>${showActions ? '<th style="width:90px;">操作</th>' : ''}</tr>`;
+  let html = `<tr><th style="width:110px;">カセット名</th><th class="wideCol">食材</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
   groups.forEach((g, gi) => {
     const grpClass = gi % 2 === 0 ? 'grp-a' : 'grp-b';
+    const hasNoPurchase = g.ingredients.includes('購入なし');
     const badges = g.ingredients.map(name => ingredientBadgeHtml(name, showActions, g.cassette)).join('');
     html += `<tr class="${grpClass}" data-cassette="${escapeHtml(g.cassette)}">`;
-    html += `<td class="c-cassette">${escapeHtml(g.cassette)}</td>`;
+    html += `<td class="c-cassette${hasNoPurchase ? ' cassette-nopurchase' : ''}">${escapeHtml(g.cassette)}</td>`;
     html += `<td class="c-ingredients"><div class="badgeWrap">${badges}</div></td>`;
-    if (showActions) html += `<td class="c-actions"><button class="small" data-action="edit-cassette" data-cassette="${escapeHtml(g.cassette)}">名前変更</button></td>`;
+    if (showActions) {
+      html += `<td class="c-actions">
+        <button class="small" data-action="edit-cassette" data-cassette="${escapeHtml(g.cassette)}">名前変更</button><br>
+        <button class="small" data-action="up-cassette" data-i="${gi}" ${gi===0?'disabled':''}>↑</button>
+        <button class="small" data-action="down-cassette" data-i="${gi}" ${gi===groups.length-1?'disabled':''}>↓</button>
+      </td>`;
+    }
     html += `</tr>`;
   });
   table.innerHTML = html;
@@ -241,6 +258,28 @@ function bindShopRowActions() {
   });
   table.querySelectorAll('[data-action="edit-cassette"]').forEach(btn => {
     btn.addEventListener('click', () => enterCassetteRenameMode(btn.dataset.cassette));
+  });
+  table.querySelectorAll('[data-action="up-cassette"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = parseInt(btn.dataset.i);
+      if (i <= 0) return;
+      const groups = groupShopRows();
+      [groups[i - 1], groups[i]] = [groups[i], groups[i - 1]];
+      contentData.shopList.rows = flattenShopGroups(groups);
+      await saveContent();
+      renderShopTable();
+    });
+  });
+  table.querySelectorAll('[data-action="down-cassette"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = parseInt(btn.dataset.i);
+      const groups = groupShopRows();
+      if (i >= groups.length - 1) return;
+      [groups[i + 1], groups[i]] = [groups[i], groups[i + 1]];
+      contentData.shopList.rows = flattenShopGroups(groups);
+      await saveContent();
+      renderShopTable();
+    });
   });
 }
 function enterCassetteRenameMode(cassette) {

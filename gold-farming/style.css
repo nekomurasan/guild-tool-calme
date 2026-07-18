@@ -111,8 +111,15 @@ tr.grp-b td { background: var(--bg-sub); }
 .ingredientBadge img { width: 20px; height: 20px; object-fit: contain; border-radius: 50%; background: rgba(255,255,255,0.08); }
 .badgeX { border: none; background: none; color: var(--err); padding: 0 0 0 4px; font-size: 13px; cursor: pointer; margin: 0; }
 td.c-cassette { font-weight: 600; color: var(--gold-soft); white-space: nowrap; width: 110px; }
+td.c-cassette.cassette-nopurchase { color: #a68a4a; }
 th.wideCol { width: auto; }
-td.noSellNote { font-size: 11px; color: var(--text-dim); max-width: 320px; }
+td.noSellNote { font-size: 11px; color: var(--text-dim); max-width: 320px; white-space: pre-wrap; }
+
+#shopTable td, #shopTable th { padding: 14px 10px; border: 2px solid var(--gold-soft); }
+#shopTable { border-collapse: separate; border-spacing: 0; }
+
+.ingredientBadge.noPurchase { color: var(--err); font-weight: 700; }
+.ingredientBadge.noPurchase img { display: none; }
 
 .status { font-size: 13px; margin-top: 6px; }
 .status.ok { color: #8fd3a5; }
