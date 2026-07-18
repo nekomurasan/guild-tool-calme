@@ -24,10 +24,11 @@ const adminsCol = collection(db, "admins");
 const LOGIN_ID_SUFFIX = '@calmeguild.local';
 function idToEmail(id) { return id.trim().toLowerCase() + LOGIN_ID_SUFFIX; }
 
-const SESSION_KEY = 'gfg_unlocked';
+const PRIORITY_LEVELS = ["★", "★★", "★★★", "★★★★", "★★★★★", "★★★★★★"];
+const SESSION_KEY = 'gfg_pw_unlocked';
 
 let isAdmin = false;
-let explicitLoginAttempt = false;
+let editModeOn = false;
 let contentData = {
   shopList: { description: '', rows: [] },
   cookingList: { description: '', rows: [] },
@@ -40,22 +41,30 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// ---------- パスワードゲート ----------
-async function checkGatePassword(input) {
-  const snap = await getDoc(doc(goldFarmingCol, "config"));
-  const correct = snap.exists() ? (snap.data().password || '') : '';
-  return correct !== '' && input === correct;
+// ---------- アクセス(2経路) ----------
+function showMainContent() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+}
+function showLoginScreen() {
+  document.getElementById('loginScreen').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'none';
 }
 
-async function tryUnlock() {
+// サブギルド: 共通パスワード
+document.getElementById('gateBtn').addEventListener('click', async () => {
   const statusEl = document.getElementById('gateStatus');
   const input = document.getElementById('gatePassword').value;
   if (!input) { statusEl.className = 'status err'; statusEl.textContent = 'パスワードを入力してください。'; return; }
   try {
-    const ok = await checkGatePassword(input);
-    if (ok) {
+    const snap = await getDoc(doc(goldFarmingCol, "config"));
+    const correct = snap.exists() ? (snap.data().password || '') : '';
+    if (correct && input === correct) {
       sessionStorage.setItem(SESSION_KEY, '1');
       showMainContent();
+      document.getElementById('connNote').textContent = '読み込み中...';
+      await loadContent();
+      document.getElementById('connNote').textContent = '';
     } else {
       statusEl.className = 'status err';
       statusEl.textContent = 'パスワードが違います。';
@@ -64,20 +73,74 @@ async function tryUnlock() {
     statusEl.className = 'status err';
     statusEl.textContent = '確認に失敗しました: ' + e.message;
   }
-}
-document.getElementById('gateBtn').addEventListener('click', tryUnlock);
-document.getElementById('gatePassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryUnlock(); });
+});
 
-async function showMainContent() {
-  document.getElementById('gateScreen').style.display = 'none';
-  document.getElementById('mainContent').style.display = 'block';
-  document.getElementById('connNote').textContent = '読み込み中...';
-  await loadContent();
-  document.getElementById('connNote').textContent = '';
-}
+// メインギルド: Firebaseログイン
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('loginStatus');
+  const id = document.getElementById('loginId').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!id || !password) { statusEl.className = 'status err'; statusEl.textContent = 'IDとパスワードを入力してください。'; return; }
+  try {
+    await signInWithEmailAndPassword(auth, idToEmail(id), password);
+  } catch (e) {
+    statusEl.className = 'status err';
+    statusEl.textContent = 'ログインに失敗しました。IDかパスワードが間違っています。';
+  }
+});
 
-if (sessionStorage.getItem(SESSION_KEY) === '1') {
-  showMainContent();
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  sessionStorage.removeItem(SESSION_KEY);
+  if (auth.currentUser) await signOut(auth);
+  isAdmin = false;
+  editModeOn = false;
+  showLoginScreen();
+});
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    showMainContent();
+    document.getElementById('connNote').textContent = '読み込み中...';
+    try {
+      const email = (user.email || '').toLowerCase();
+      const adminSnap = await getDoc(doc(adminsCol, email));
+      isAdmin = adminSnap.exists();
+    } catch (e) {
+      isAdmin = false;
+    }
+    document.getElementById('manageBtn').style.display = isAdmin ? '' : 'none';
+    if (!isAdmin) editModeOn = false;
+    await loadContent();
+    document.getElementById('connNote').textContent = '';
+  } else {
+    isAdmin = false;
+    document.getElementById('manageBtn').style.display = 'none';
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+      showMainContent();
+      await loadContent();
+    } else {
+      showLoginScreen();
+    }
+  }
+});
+
+document.getElementById('manageBtn').addEventListener('click', () => {
+  editModeOn = !editModeOn;
+  document.getElementById('manageBtn').textContent = editModeOn ? '管理者用:編集を終了' : '管理者用:リスト管理';
+  updateEditVisibility();
+});
+
+function updateEditVisibility() {
+  const show = isAdmin && editModeOn;
+  document.getElementById('shopDescEdit').style.display = show ? 'block' : 'none';
+  document.getElementById('cookDescEdit').style.display = show ? 'block' : 'none';
+  document.getElementById('noSellDescEdit').style.display = show ? 'block' : 'none';
+  document.getElementById('shopAddRow').style.display = show ? 'flex' : 'none';
+  document.getElementById('cookAddRow').style.display = show ? 'flex' : 'none';
+  document.getElementById('noSellAddRow').style.display = show ? 'flex' : 'none';
+  renderShopTable();
+  renderCookTable();
+  renderNoSellTable();
 }
 
 // ---------- コンテンツ読み込み ----------
@@ -93,7 +156,12 @@ async function loadContent() {
   } catch (e) {
     console.error('content load error', e);
   }
+  fillSelect(document.getElementById('cookNewPriority'), PRIORITY_LEVELS);
   renderAll();
+}
+
+function fillSelect(sel, options) {
+  sel.innerHTML = options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
 }
 
 function renderAll() {
@@ -103,9 +171,7 @@ function renderAll() {
   document.getElementById('shopDescInput').value = contentData.shopList.description || '';
   document.getElementById('cookDescInput').value = contentData.cookingList.description || '';
   document.getElementById('noSellDescInput').value = contentData.noSellList.description || '';
-  renderShopTable();
-  renderCookTable();
-  renderNoSellTable();
+  updateEditVisibility();
 }
 
 function renderDescription(elId, text) {
@@ -116,61 +182,101 @@ async function saveContent() {
   await setDoc(doc(goldFarmingCol, "content"), contentData);
 }
 
-// ---------- 商店購入推奨リスト ----------
-function ingredientCellHtml(name) {
-  if (!name) return '';
+// ---------- 商店購入推奨リスト(カセットごとにバッジでまとめ表示) ----------
+function ingredientBadgeHtml(name, showRemove, cassette) {
   const safe = escapeHtml(name);
   const src = `icons/${encodeURIComponent(name)}.png`;
-  return `<span class="ingredientCell"><img src="${src}" alt="" onerror="this.style.display='none'">${safe}</span>`;
+  const removeBtn = showRemove
+    ? `<button class="badgeX" data-action="del-ingredient" data-cassette="${escapeHtml(cassette)}" data-name="${escapeHtml(name)}">×</button>`
+    : '';
+  return `<span class="ingredientBadge"><img src="${src}" alt="" onerror="this.style.display='none'">${safe}${removeBtn}</span>`;
+}
+
+function groupShopRows() {
+  const rows = contentData.shopList.rows || [];
+  const groups = [];
+  const indexByCassette = {};
+  rows.forEach((r) => {
+    const key = r.cassette || '';
+    if (!(key in indexByCassette)) {
+      indexByCassette[key] = groups.length;
+      groups.push({ cassette: key, ingredients: [] });
+    }
+    groups[indexByCassette[key]].ingredients.push(r.ingredient);
+  });
+  return groups;
 }
 
 function renderShopTable() {
   const table = document.getElementById('shopTable');
-  const rows = contentData.shopList.rows || [];
-  let html = `<tr><th>カセット名</th><th>食材</th>${isAdmin ? '<th style="width:110px;">操作</th>' : ''}</tr>`;
-  rows.forEach((r, i) => {
-    html += `<tr data-i="${i}"><td class="c-cassette">${escapeHtml(r.cassette)}</td><td class="c-ingredient">${ingredientCellHtml(r.ingredient)}</td>`;
-    if (isAdmin) html += `<td class="c-actions"><button class="small" data-action="edit-shop" data-i="${i}">編集</button><button class="small danger" data-action="del-shop" data-i="${i}">削除</button></td>`;
+  const groups = groupShopRows();
+  const showActions = isAdmin && editModeOn;
+  let html = `<tr><th style="width:110px;">カセット名</th><th class="wideCol">食材</th>${showActions ? '<th style="width:90px;">操作</th>' : ''}</tr>`;
+  groups.forEach((g, gi) => {
+    const grpClass = gi % 2 === 0 ? 'grp-a' : 'grp-b';
+    const badges = g.ingredients.map(name => ingredientBadgeHtml(name, showActions, g.cassette)).join('');
+    html += `<tr class="${grpClass}" data-cassette="${escapeHtml(g.cassette)}">`;
+    html += `<td class="c-cassette">${escapeHtml(g.cassette)}</td>`;
+    html += `<td class="c-ingredients"><div class="badgeWrap">${badges}</div></td>`;
+    if (showActions) html += `<td class="c-actions"><button class="small" data-action="edit-cassette" data-cassette="${escapeHtml(g.cassette)}">名前変更</button></td>`;
     html += `</tr>`;
   });
   table.innerHTML = html;
   bindShopRowActions();
+  refreshShopCassetteSelect();
 }
 function bindShopRowActions() {
   const table = document.getElementById('shopTable');
-  table.querySelectorAll('[data-action="edit-shop"]').forEach(btn => {
-    btn.addEventListener('click', () => enterShopEditMode(parseInt(btn.dataset.i)));
-  });
-  table.querySelectorAll('[data-action="del-shop"]').forEach(btn => {
+  table.querySelectorAll('[data-action="del-ingredient"]').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('この行を削除しますか?')) return;
-      contentData.shopList.rows.splice(parseInt(btn.dataset.i), 1);
+      const cassette = btn.dataset.cassette, name = btn.dataset.name;
+      const rows = contentData.shopList.rows;
+      const idx = rows.findIndex(r => r.cassette === cassette && r.ingredient === name);
+      if (idx === -1) return;
+      if (!confirm(`「${name}」を削除しますか?`)) return;
+      rows.splice(idx, 1);
       await saveContent();
       renderShopTable();
     });
   });
+  table.querySelectorAll('[data-action="edit-cassette"]').forEach(btn => {
+    btn.addEventListener('click', () => enterCassetteRenameMode(btn.dataset.cassette));
+  });
 }
-function enterShopEditMode(i) {
-  const tr = document.getElementById('shopTable').querySelector(`tr[data-i="${i}"]`);
-  const row = contentData.shopList.rows[i];
-  tr.querySelector('.c-cassette').innerHTML = `<input type="text" class="e-cassette" value="${escapeHtml(row.cassette)}">`;
-  tr.querySelector('.c-ingredient').innerHTML = `<input type="text" class="e-ingredient" value="${escapeHtml(row.ingredient)}">`;
+function enterCassetteRenameMode(cassette) {
+  const tr = document.getElementById('shopTable').querySelector(`tr[data-cassette="${CSS.escape(cassette)}"]`);
+  tr.querySelector('.c-cassette').innerHTML = `<input type="text" class="e-cassette" value="${escapeHtml(cassette)}">`;
   tr.querySelector('.c-actions').innerHTML = `<button class="primary small e-save">保存</button><button class="small e-cancel">キャンセル</button>`;
   tr.querySelector('.e-cancel').addEventListener('click', () => renderShopTable());
   tr.querySelector('.e-save').addEventListener('click', async () => {
-    const cassette = tr.querySelector('.e-cassette').value.trim();
-    const ingredient = tr.querySelector('.e-ingredient').value.trim();
-    contentData.shopList.rows[i] = { cassette, ingredient };
+    const newName = tr.querySelector('.e-cassette').value.trim();
+    if (!newName) { alert('カセット名を入力してください。'); return; }
+    contentData.shopList.rows.forEach(r => { if (r.cassette === cassette) r.cassette = newName; });
     await saveContent();
     renderShopTable();
   });
 }
+function refreshShopCassetteSelect() {
+  const sel = document.getElementById('shopCassetteSelect');
+  const names = groupShopRows().map(g => g.cassette).filter(n => n);
+  let html = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  html += `<option value="__NEW__">+ 新しいカセットを追加</option>`;
+  sel.innerHTML = html;
+}
+document.getElementById('shopCassetteSelect').addEventListener('change', () => {
+  const isNew = document.getElementById('shopCassetteSelect').value === '__NEW__';
+  document.getElementById('shopNewCassetteText').style.display = isNew ? '' : 'none';
+});
 document.getElementById('shopAddBtn').addEventListener('click', async () => {
-  const cassette = document.getElementById('shopNewCassette').value.trim();
+  const sel = document.getElementById('shopCassetteSelect');
+  let cassette = sel.value;
+  if (cassette === '__NEW__') {
+    cassette = document.getElementById('shopNewCassetteText').value.trim();
+  }
   const ingredient = document.getElementById('shopNewIngredient').value.trim();
-  if (!cassette && !ingredient) return;
+  if (!cassette || !ingredient) { alert('カセット名と食材名を両方入力してください。'); return; }
   contentData.shopList.rows.push({ cassette, ingredient });
-  document.getElementById('shopNewCassette').value = '';
+  document.getElementById('shopNewCassetteText').value = '';
   document.getElementById('shopNewIngredient').value = '';
   await saveContent();
   renderShopTable();
@@ -181,14 +287,23 @@ document.getElementById('shopDescSaveBtn').addEventListener('click', async () =>
   renderDescription('shopDesc', contentData.shopList.description);
 });
 
-// ---------- 料理推奨リスト ----------
+// ---------- 料理推奨リスト(優先度select・並び替え対応) ----------
 function renderCookTable() {
   const table = document.getElementById('cookTable');
   const rows = contentData.cookingList.rows || [];
-  let html = `<tr><th style="width:100px;">優先度</th><th>料理</th>${isAdmin ? '<th style="width:110px;">操作</th>' : ''}</tr>`;
+  const showActions = isAdmin && editModeOn;
+  let html = `<tr><th style="width:110px;">優先度</th><th>料理</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
   rows.forEach((r, i) => {
-    html += `<tr data-i="${i}"><td class="c-priority">${escapeHtml(r.priority)}</td><td class="c-dish">${escapeHtml(r.dish)}</td>`;
-    if (isAdmin) html += `<td class="c-actions"><button class="small" data-action="edit-cook" data-i="${i}">編集</button><button class="small danger" data-action="del-cook" data-i="${i}">削除</button></td>`;
+    const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
+    html += `<tr class="${grpClass}" data-i="${i}"><td class="c-priority">${escapeHtml(r.priority)}</td><td class="c-dish">${escapeHtml(r.dish)}</td>`;
+    if (showActions) {
+      html += `<td class="c-actions">
+        <button class="small" data-action="edit-cook" data-i="${i}">編集</button>
+        <button class="small danger" data-action="del-cook" data-i="${i}">削除</button>
+        <button class="small" data-action="up-cook" data-i="${i}" ${i===0?'disabled':''}>↑</button>
+        <button class="small" data-action="down-cook" data-i="${i}" ${i===rows.length-1?'disabled':''}>↓</button>
+      </td>`;
+    }
     html += `</tr>`;
   });
   table.innerHTML = html;
@@ -207,16 +322,42 @@ function bindCookRowActions() {
       renderCookTable();
     });
   });
+  table.querySelectorAll('[data-action="up-cook"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = parseInt(btn.dataset.i);
+      if (i <= 0) return;
+      const rows = contentData.cookingList.rows;
+      [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]];
+      await saveContent();
+      renderCookTable();
+    });
+  });
+  table.querySelectorAll('[data-action="down-cook"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = parseInt(btn.dataset.i);
+      const rows = contentData.cookingList.rows;
+      if (i >= rows.length - 1) return;
+      [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]];
+      await saveContent();
+      renderCookTable();
+    });
+  });
 }
 function enterCookEditMode(i) {
   const tr = document.getElementById('cookTable').querySelector(`tr[data-i="${i}"]`);
   const row = contentData.cookingList.rows[i];
-  tr.querySelector('.c-priority').innerHTML = `<input type="text" class="e-priority" value="${escapeHtml(row.priority)}">`;
+  const prioritySel = document.createElement('select');
+  fillSelect(prioritySel, PRIORITY_LEVELS);
+  if (PRIORITY_LEVELS.includes(row.priority)) prioritySel.value = row.priority;
+  prioritySel.className = 'e-priority';
+  const priorityCell = tr.querySelector('.c-priority');
+  priorityCell.innerHTML = '';
+  priorityCell.appendChild(prioritySel);
   tr.querySelector('.c-dish').innerHTML = `<input type="text" class="e-dish" value="${escapeHtml(row.dish)}">`;
   tr.querySelector('.c-actions').innerHTML = `<button class="primary small e-save">保存</button><button class="small e-cancel">キャンセル</button>`;
   tr.querySelector('.e-cancel').addEventListener('click', () => renderCookTable());
   tr.querySelector('.e-save').addEventListener('click', async () => {
-    const priority = tr.querySelector('.e-priority').value.trim();
+    const priority = tr.querySelector('.e-priority').value;
     const dish = tr.querySelector('.e-dish').value.trim();
     contentData.cookingList.rows[i] = { priority, dish };
     await saveContent();
@@ -224,11 +365,10 @@ function enterCookEditMode(i) {
   });
 }
 document.getElementById('cookAddBtn').addEventListener('click', async () => {
-  const priority = document.getElementById('cookNewPriority').value.trim();
+  const priority = document.getElementById('cookNewPriority').value;
   const dish = document.getElementById('cookNewDish').value.trim();
-  if (!priority && !dish) return;
+  if (!dish) { alert('料理名を入力してください。'); return; }
   contentData.cookingList.rows.push({ priority, dish });
-  document.getElementById('cookNewPriority').value = '';
   document.getElementById('cookNewDish').value = '';
   await saveContent();
   renderCookTable();
@@ -239,14 +379,23 @@ document.getElementById('cookDescSaveBtn').addEventListener('click', async () =>
   renderDescription('cookDesc', contentData.cookingList.description);
 });
 
-// ---------- 売却してはいけないリスト ----------
+// ---------- 売却してはいけないNGリスト(並び替え対応) ----------
 function renderNoSellTable() {
   const table = document.getElementById('noSellTable');
   const rows = contentData.noSellList.rows || [];
-  let html = `<tr><th>アイテム</th><th>備考</th>${isAdmin ? '<th style="width:110px;">操作</th>' : ''}</tr>`;
+  const showActions = isAdmin && editModeOn;
+  let html = `<tr><th>アイテム</th><th>備考</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
   rows.forEach((r, i) => {
-    html += `<tr data-i="${i}"><td class="c-item">${escapeHtml(r.item)}</td><td class="c-note noSellNote">${escapeHtml(r.note)}</td>`;
-    if (isAdmin) html += `<td class="c-actions"><button class="small" data-action="edit-nosell" data-i="${i}">編集</button><button class="small danger" data-action="del-nosell" data-i="${i}">削除</button></td>`;
+    const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
+    html += `<tr class="${grpClass}" data-i="${i}"><td class="c-item">${escapeHtml(r.item)}</td><td class="c-note noSellNote">${escapeHtml(r.note)}</td>`;
+    if (showActions) {
+      html += `<td class="c-actions">
+        <button class="small" data-action="edit-nosell" data-i="${i}">編集</button>
+        <button class="small danger" data-action="del-nosell" data-i="${i}">削除</button>
+        <button class="small" data-action="up-nosell" data-i="${i}" ${i===0?'disabled':''}>↑</button>
+        <button class="small" data-action="down-nosell" data-i="${i}" ${i===rows.length-1?'disabled':''}>↓</button>
+      </td>`;
+    }
     html += `</tr>`;
   });
   table.innerHTML = html;
@@ -261,6 +410,26 @@ function bindNoSellRowActions() {
     btn.addEventListener('click', async () => {
       if (!confirm('この行を削除しますか?')) return;
       contentData.noSellList.rows.splice(parseInt(btn.dataset.i), 1);
+      await saveContent();
+      renderNoSellTable();
+    });
+  });
+  table.querySelectorAll('[data-action="up-nosell"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = parseInt(btn.dataset.i);
+      if (i <= 0) return;
+      const rows = contentData.noSellList.rows;
+      [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]];
+      await saveContent();
+      renderNoSellTable();
+    });
+  });
+  table.querySelectorAll('[data-action="down-nosell"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const i = parseInt(btn.dataset.i);
+      const rows = contentData.noSellList.rows;
+      if (i >= rows.length - 1) return;
+      [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]];
       await saveContent();
       renderNoSellTable();
     });
@@ -284,7 +453,7 @@ function enterNoSellEditMode(i) {
 document.getElementById('noSellAddBtn').addEventListener('click', async () => {
   const item = document.getElementById('noSellNewItem').value.trim();
   const note = document.getElementById('noSellNewNote').value.trim();
-  if (!item && !note) return;
+  if (!item) { alert('アイテム名を入力してください。'); return; }
   contentData.noSellList.rows.push({ item, note });
   document.getElementById('noSellNewItem').value = '';
   document.getElementById('noSellNewNote').value = '';
@@ -295,94 +464,4 @@ document.getElementById('noSellDescSaveBtn').addEventListener('click', async () 
   contentData.noSellList.description = document.getElementById('noSellDescInput').value.trim().slice(0, 200);
   await saveContent();
   renderDescription('noSellDesc', contentData.noSellList.description);
-});
-
-// ---------- 管理者ログイン ----------
-document.getElementById('manageBtn').addEventListener('click', () => {
-  if (isAdmin) return;
-  document.getElementById('adminLoginBox').style.display = 'block';
-});
-document.getElementById('adminLoginCancelBtn').addEventListener('click', () => {
-  document.getElementById('adminLoginBox').style.display = 'none';
-  document.getElementById('adminLoginStatus').textContent = '';
-});
-document.getElementById('adminLoginBtn').addEventListener('click', async () => {
-  const statusEl = document.getElementById('adminLoginStatus');
-  const id = document.getElementById('adminId').value.trim();
-  const password = document.getElementById('adminPassword').value;
-  if (!id || !password) { statusEl.className = 'status err'; statusEl.textContent = 'IDとパスワードを入力してください。'; return; }
-  explicitLoginAttempt = true;
-  try {
-    await signInWithEmailAndPassword(auth, idToEmail(id), password);
-  } catch (e) {
-    statusEl.className = 'status err';
-    statusEl.textContent = 'ログインに失敗しました。IDかパスワードが間違っています。';
-    explicitLoginAttempt = false;
-  }
-});
-document.getElementById('adminLogoutBtn').addEventListener('click', async () => {
-  await signOut(auth);
-});
-
-onAuthStateChanged(auth, async (user) => {
-  const statusEl = document.getElementById('adminLoginStatus');
-  if (!user) {
-    isAdmin = false;
-    document.getElementById('adminBadge').style.display = 'none';
-    document.getElementById('adminLogoutBtn').style.display = 'none';
-    document.getElementById('manageBtn').style.display = '';
-    updateEditVisibility();
-    return;
-  }
-  try {
-    const email = (user.email || '').toLowerCase();
-    const adminSnap = await getDoc(doc(adminsCol, email));
-    isAdmin = adminSnap.exists();
-  } catch (e) {
-    isAdmin = false;
-  }
-  if (isAdmin) {
-    document.getElementById('adminLoginBox').style.display = 'none';
-    document.getElementById('adminBadge').style.display = 'inline';
-    document.getElementById('adminLogoutBtn').style.display = '';
-    document.getElementById('manageBtn').style.display = 'none';
-    if (statusEl) { statusEl.className = 'status ok'; statusEl.textContent = ''; }
-  } else if (explicitLoginAttempt) {
-    statusEl.className = 'status err';
-    statusEl.textContent = '管理者権限がありません。';
-    await signOut(auth);
-  }
-  explicitLoginAttempt = false;
-  updateEditVisibility();
-});
-
-function updateEditVisibility() {
-  document.getElementById('shopDescEdit').style.display = isAdmin ? 'block' : 'none';
-  document.getElementById('cookDescEdit').style.display = isAdmin ? 'block' : 'none';
-  document.getElementById('noSellDescEdit').style.display = isAdmin ? 'block' : 'none';
-  document.getElementById('shopAddRow').style.display = isAdmin ? 'flex' : 'none';
-  document.getElementById('cookAddRow').style.display = isAdmin ? 'flex' : 'none';
-  document.getElementById('noSellAddRow').style.display = isAdmin ? 'flex' : 'none';
-  document.getElementById('passwordChangeBox').style.display = isAdmin ? 'block' : 'none';
-  if (document.getElementById('mainContent').style.display !== 'none') {
-    renderShopTable();
-    renderCookTable();
-    renderNoSellTable();
-  }
-}
-
-// ---------- 閲覧パスワードの変更(管理者限定) ----------
-document.getElementById('changePasswordBtn').addEventListener('click', async () => {
-  const statusEl = document.getElementById('passwordChangeStatus');
-  const newPass = document.getElementById('newGatePassword').value.trim();
-  if (!newPass) { statusEl.className = 'status err'; statusEl.textContent = '新しいパスワードを入力してください。'; return; }
-  try {
-    await setDoc(doc(goldFarmingCol, "config"), { password: newPass });
-    statusEl.className = 'status ok';
-    statusEl.textContent = '変更しました。ギルドメンバーに新しいパスワードを共有してください。';
-    document.getElementById('newGatePassword').value = '';
-  } catch (e) {
-    statusEl.className = 'status err';
-    statusEl.textContent = '変更に失敗しました(権限がない可能性があります): ' + e.message;
-  }
 });

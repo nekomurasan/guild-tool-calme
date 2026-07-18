@@ -37,10 +37,20 @@ h1 {
 .topBar {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   background: var(--bg-card-alt); border: 1px solid var(--gold); border-radius: 8px;
-  padding: 8px 12px; margin-bottom: 10px;
+  padding: 8px 12px; margin-bottom: 4px;
 }
 .topBar .opLabel { font-size: 13px; color: var(--gold-soft); font-weight: 600; white-space: nowrap; }
+.guideNote { font-size: 12px; color: var(--gold-soft); }
 .note-inline { font-size: 12px; color: var(--gold-soft); white-space: nowrap; }
+
+.accessOption {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--bg-sub);
+}
+.accessOption:last-child { margin-bottom: 0; }
 
 .note { background: rgba(216,179,93,0.12); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--gold-soft); margin-bottom: 8px; }
 .card {
@@ -58,7 +68,7 @@ label { display: block; font-size: 12px; color: var(--text-dim); margin: 6px 0 3
 .formField { max-width: 320px; margin-bottom: 8px; }
 .formField label { margin: 0 0 3px; }
 .formField input { margin: 0; }
-input[type=text], input[type=password], textarea {
+input[type=text], input[type=password], textarea, select {
   box-sizing: border-box; padding: 6px; border: 1px solid var(--border);
   border-radius: 6px; font-size: 13px; width: 100%;
   background: var(--input-bg); color: var(--input-text);
@@ -76,7 +86,7 @@ button.primary { background: var(--gold); color: #22314a; font-weight: 600; }
 button.primary:hover:not(:disabled) { background: var(--gold-soft); }
 button.danger { border-color: var(--err); color: var(--err); }
 button.danger:hover { background: rgba(255,107,129,0.15); }
-button.small { padding: 3px 8px; font-size: 12px; margin-left: 4px; }
+button.small { padding: 3px 8px; font-size: 12px; margin-left: 4px; margin-bottom: 2px; }
 
 table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
 th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
@@ -85,13 +95,23 @@ th { background: #314051; color: var(--gold); border-bottom: 2px solid var(--gol
 .table-wrap table { margin-top: 0; min-width: 420px; }
 .scrollHint { display: none; margin-bottom: 6px; }
 @media (max-width: 780px) { .scrollHint { display: block; } }
+tr.grp-a td { background: var(--bg-card); }
+tr.grp-b td { background: var(--bg-sub); }
 
 .listDesc { color: var(--text-dim); font-size: 13px; margin-bottom: 6px; white-space: pre-wrap; }
 .addRowBar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-.addRowBar input { max-width: 220px; }
+.addRowBar input, .addRowBar select { max-width: 220px; }
 
-.ingredientCell { display: flex; align-items: center; gap: 6px; }
-.ingredientCell img { width: 22px; height: 22px; object-fit: contain; border-radius: 4px; background: rgba(255,255,255,0.08); }
+.badgeWrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.ingredientBadge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--bg-card-alt); border: 1px solid var(--border); border-radius: 14px;
+  padding: 3px 8px 3px 4px; font-size: 12px; white-space: nowrap;
+}
+.ingredientBadge img { width: 20px; height: 20px; object-fit: contain; border-radius: 50%; background: rgba(255,255,255,0.08); }
+.badgeX { border: none; background: none; color: var(--err); padding: 0 0 0 4px; font-size: 13px; cursor: pointer; margin: 0; }
+td.c-cassette { font-weight: 600; color: var(--gold-soft); white-space: nowrap; width: 110px; }
+th.wideCol { width: auto; }
 td.noSellNote { font-size: 11px; color: var(--text-dim); max-width: 320px; }
 
 .status { font-size: 13px; margin-top: 6px; }

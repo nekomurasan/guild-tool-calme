@@ -17,44 +17,46 @@
   </div>
   <div class="sub">商店と料理スキルを利用した金策についての解説を載せています。</div>
 
-  <!-- パスワードゲート -->
-  <div id="gateScreen" class="card">
-    <h2>閲覧パスワード</h2>
-    <div class="note">ギルド内で共有されているパスワードを入力してください。</div>
-    <div class="formField">
-      <label>パスワード</label>
-      <input type="password" id="gatePassword" placeholder="パスワード">
+  <!-- ログイン -->
+  <div id="loginScreen" class="card">
+    <h2>アクセス方法を選択してください</h2>
+
+    <div class="accessOption">
+      <h3>メインギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">装備管理ツールと同じIDとパスワードでログインしてください。</div>
+      <div class="formField">
+        <label>ID</label>
+        <input type="text" id="loginId" placeholder="例: taro">
+      </div>
+      <div class="formField">
+        <label>パスワード</label>
+        <input type="password" id="loginPassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="loginBtn">ログイン</button>
+      <div id="loginStatus" class="status"></div>
     </div>
-    <button class="primary" id="gateBtn">閲覧する</button>
-    <div id="gateStatus" class="status"></div>
+
+    <div class="accessOption">
+      <h3>サブギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">ギルド内で共有されている共通パスワードを入力してください。</div>
+      <div class="formField">
+        <label>共通パスワード</label>
+        <input type="password" id="gatePassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="gateBtn">閲覧する</button>
+      <div id="gateStatus" class="status"></div>
+    </div>
   </div>
 
   <!-- メインコンテンツ -->
   <div id="mainContent" style="display:none;">
 
     <div class="topBar">
-      <span class="note-inline" id="connNote"></span>
-      <button class="small" id="manageBtn" style="margin-left:auto;">リスト管理</button>
-      <span class="opLabel" id="adminBadge" style="display:none;">管理者モード</span>
-      <button class="small" id="adminLogoutBtn" style="display:none;">管理者ログアウト</button>
+      <span class="guideNote">このページの上から順に、購入→料理→売却NGリストを参考にして売却してくださいね。</span>
+      <button class="small" id="manageBtn" style="display:none; margin-left:auto;">管理者用:リスト管理</button>
+      <button class="small" id="logoutBtn">ログアウト</button>
     </div>
-
-    <!-- 管理者ログインフォーム -->
-    <div id="adminLoginBox" class="card" style="display:none;">
-      <h3>管理者ログイン</h3>
-      <div class="detail" style="margin-bottom:8px;">リストの編集には管理者アカウントでのログインが必要です。</div>
-      <div class="formField">
-        <label>ID</label>
-        <input type="text" id="adminId" placeholder="例: taro">
-      </div>
-      <div class="formField">
-        <label>パスワード</label>
-        <input type="password" id="adminPassword" placeholder="パスワード">
-      </div>
-      <button class="primary" id="adminLoginBtn">ログイン</button>
-      <button class="small" id="adminLoginCancelBtn">キャンセル</button>
-      <div id="adminLoginStatus" class="status"></div>
-    </div>
+    <div class="status" id="connNote"></div>
 
     <!-- 商店購入推奨リスト -->
     <div class="card">
@@ -64,9 +66,11 @@
         <textarea id="shopDescInput" rows="2" maxlength="200"></textarea>
         <button class="primary small" id="shopDescSaveBtn">保存</button>
       </div>
+      <div class="detail scrollHint">※ 表が画面より広い場合は、横にスワイプ(スクロール)して見ることができます</div>
       <div class="table-wrap"><table id="shopTable"></table></div>
       <div id="shopAddRow" class="addRowBar" style="display:none;">
-        <input type="text" id="shopNewCassette" placeholder="カセット名">
+        <select id="shopCassetteSelect"></select>
+        <input type="text" id="shopNewCassetteText" placeholder="新しいカセット名" style="display:none;">
         <input type="text" id="shopNewIngredient" placeholder="食材名">
         <button class="small" id="shopAddBtn">+ 追加</button>
       </div>
@@ -82,15 +86,15 @@
       </div>
       <div class="table-wrap"><table id="cookTable"></table></div>
       <div id="cookAddRow" class="addRowBar" style="display:none;">
-        <input type="text" id="cookNewPriority" placeholder="優先度">
+        <select id="cookNewPriority"></select>
         <input type="text" id="cookNewDish" placeholder="料理名">
         <button class="small" id="cookAddBtn">+ 追加</button>
       </div>
     </div>
 
-    <!-- 売却してはいけないリスト -->
+    <!-- 売却してはいけないNGリスト -->
     <div class="card">
-      <h2>売却してはいけないリスト</h2>
+      <h2>売却してはいけないNGリスト</h2>
       <div id="noSellDesc" class="listDesc"></div>
       <div id="noSellDescEdit" style="display:none;">
         <textarea id="noSellDescInput" rows="2" maxlength="200"></textarea>
@@ -102,18 +106,6 @@
         <input type="text" id="noSellNewNote" placeholder="備考">
         <button class="small" id="noSellAddBtn">+ 追加</button>
       </div>
-    </div>
-
-    <!-- パスワード変更(管理者限定) -->
-    <div id="passwordChangeBox" class="card" style="display:none;">
-      <h3>閲覧パスワードの変更</h3>
-      <div class="detail" style="margin-bottom:8px;">このページの閲覧パスワードを変更できます。変更後は、ギルドメンバーに新しいパスワードを共有してください。</div>
-      <div class="formField">
-        <label>新しいパスワード</label>
-        <input type="text" id="newGatePassword" placeholder="新しいパスワード">
-      </div>
-      <button class="primary small" id="changePasswordBtn">変更する</button>
-      <div id="passwordChangeStatus" class="status"></div>
     </div>
 
   </div>
