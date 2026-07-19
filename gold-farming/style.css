@@ -111,7 +111,7 @@ tr.grp-b td { background: var(--bg-sub); }
 .ingredientBadge img { width: 20px; height: 20px; object-fit: contain; border-radius: 50%; background: rgba(255,255,255,0.08); }
 .badgeX { border: none; background: none; color: var(--err); padding: 0 0 0 4px; font-size: 13px; cursor: pointer; margin: 0; }
 td.c-cassette { font-weight: 600; color: var(--text); white-space: nowrap; width: 60px; }
-td.c-cassette.cassette-nopurchase { color: #a68a4a; }
+td.c-cassette.cassette-nopurchase { color: #8a8f96; }
 th.wideCol { width: auto; }
 td.noSellNote { font-size: 11px; color: var(--text-dim); max-width: 320px; white-space: pre-wrap; }
 
