@@ -98,7 +98,7 @@ th { background: #314051; color: var(--gold); border-bottom: 2px solid var(--gol
 tr.grp-a td { background: var(--bg-card); }
 tr.grp-b td { background: var(--bg-sub); }
 
-.listDesc { color: var(--text-dim); font-size: 13px; margin-bottom: 6px; white-space: pre-wrap; }
+.listDesc { color: var(--text-dim); font-size: 11px; margin-bottom: 6px; white-space: pre-wrap; }
 .addRowBar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .addRowBar input, .addRowBar select { max-width: 220px; }
 
@@ -110,19 +110,17 @@ tr.grp-b td { background: var(--bg-sub); }
 }
 .ingredientBadge img { width: 20px; height: 20px; object-fit: contain; border-radius: 50%; background: rgba(255,255,255,0.08); }
 .badgeX { border: none; background: none; color: var(--err); padding: 0 0 0 4px; font-size: 13px; cursor: pointer; margin: 0; }
-td.c-cassette { font-weight: 600; color: var(--gold-soft); white-space: nowrap; width: 110px; }
+td.c-cassette { font-weight: 600; color: var(--text); white-space: nowrap; width: 60px; }
 td.c-cassette.cassette-nopurchase { color: #a68a4a; }
 th.wideCol { width: auto; }
 td.noSellNote { font-size: 11px; color: var(--text-dim); max-width: 320px; white-space: pre-wrap; }
 
 #shopTable td, #shopTable th {
   padding: 14px 10px;
-  border-top: 2px solid var(--gold);
-  border-bottom: 2px solid var(--gold);
-  border-left: 1px solid var(--gold);
-  border-right: 1px solid var(--gold);
+  border: 1px solid var(--gold);
 }
-#shopTable { border-collapse: separate; border-spacing: 0; }
+#shopTable { border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+#shopTable th:first-child { width: 60px; }
 
 .ingredientBadge.noPurchase { color: #9c2f2f; font-weight: 700; }
 .ingredientBadge.noPurchase img { display: none; }
