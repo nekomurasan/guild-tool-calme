@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc, collection
+  getFirestore, doc, getDoc, getDocs, setDoc, addDoc, collection
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -20,9 +20,16 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const goldFarmingCol = collection(db, "goldFarming");
 const adminsCol = collection(db, "admins");
+const accessLogsCol = collection(db, "goldFarmingAccessLogs");
 
 const LOGIN_ID_SUFFIX = '@calmeguild.local';
 function idToEmail(id) { return id.trim().toLowerCase() + LOGIN_ID_SUFFIX; }
+
+function logAccessOnce(method) {
+  if (sessionStorage.getItem('gfg_access_logged') === '1') return;
+  sessionStorage.setItem('gfg_access_logged', '1');
+  addDoc(accessLogsCol, { ts: new Date().toISOString(), method }).catch(() => {});
+}
 
 const PRIORITY_LEVELS = ["★", "★★", "★★★", "★★★★", "★★★★★", "★★★★★★"];
 const SESSION_KEY = 'gfg_pw_unlocked';
@@ -61,6 +68,7 @@ document.getElementById('gateBtn').addEventListener('click', async () => {
     const correct = snap.exists() ? (snap.data().password || '') : '';
     if (correct && input === correct) {
       sessionStorage.setItem(SESSION_KEY, '1');
+      logAccessOnce('サブギルド');
       showMainContent();
       document.getElementById('connNote').textContent = '読み込み中...';
       await loadContent();
@@ -99,6 +107,7 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
+    logAccessOnce('メインギルド');
     showMainContent();
     document.getElementById('connNote').textContent = '読み込み中...';
     try {
@@ -109,6 +118,8 @@ onAuthStateChanged(auth, async (user) => {
       isAdmin = false;
     }
     document.getElementById('manageBtn').style.display = isAdmin ? '' : 'none';
+    document.getElementById('accessStatsBox').style.display = isAdmin ? 'block' : 'none';
+    if (isAdmin) loadAccessStats();
     if (!isAdmin) editModeOn = false;
     await loadContent();
     document.getElementById('connNote').textContent = '';
@@ -504,3 +515,54 @@ document.getElementById('noSellDescSaveBtn').addEventListener('click', async () 
   await saveContent();
   renderDescription('noSellDesc', contentData.noSellList.description);
 });
+
+// ---------- アクセス状況(管理者限定) ----------
+async function loadAccessStats() {
+  const summaryEl = document.getElementById('accessStatsSummary');
+  const table = document.getElementById('accessStatsTable');
+  summaryEl.textContent = '読み込み中...';
+  table.innerHTML = '';
+  try {
+    const snap = await getDocs(accessLogsCol);
+    const logs = [];
+    snap.forEach(d => logs.push(d.data()));
+
+    const now = new Date();
+    const todayKey = now.toISOString().slice(0, 10);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    let todayMain = 0, todaySub = 0, weekMain = 0, weekSub = 0;
+    const byDate = {};
+    logs.forEach(l => {
+      if (!l.ts) return;
+      const d = new Date(l.ts);
+      const key = l.ts.slice(0, 10);
+      if (!byDate[key]) byDate[key] = { main: 0, sub: 0 };
+      if (l.method === 'メインギルド') byDate[key].main++;
+      else byDate[key].sub++;
+
+      if (key === todayKey) {
+        if (l.method === 'メインギルド') todayMain++; else todaySub++;
+      }
+      if (d >= sevenDaysAgo) {
+        if (l.method === 'メインギルド') weekMain++; else weekSub++;
+      }
+    });
+
+    summaryEl.innerHTML = `本日: メインギルド ${todayMain}件 / サブギルド ${todaySub}件　|　直近7日間: メインギルド ${weekMain}件 / サブギルド ${weekSub}件`;
+
+    const dateKeys = Object.keys(byDate).sort().reverse().slice(0, 30);
+    if (dateKeys.length === 0) {
+      table.innerHTML = '<tr><td>まだアクセス記録がありません。</td></tr>';
+      return;
+    }
+    let html = '<tr><th>日付</th><th>メインギルド</th><th>サブギルド</th></tr>';
+    dateKeys.forEach((key, i) => {
+      const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
+      html += `<tr class="${grpClass}"><td>${escapeHtml(key)}</td><td>${byDate[key].main}件</td><td>${byDate[key].sub}件</td></tr>`;
+    });
+    table.innerHTML = html;
+  } catch (e) {
+    summaryEl.textContent = '読み込みエラー: ' + e.message;
+  }
+}

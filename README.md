@@ -1,22 +1,22 @@
 # BrownDust Ⅱ Calme Guild Tool
 
-ギルド運営に役立つツールをまとめたポータルです。現在はキャラクター管理ツール「Ace Character Database」を収録しています。
+ギルド運営に役立つツールをまとめたポータルです。現在はキャラクター管理ツール「Ace Characters Database」を収録しています。
 
 ## ファイル構成
 
 ```
 /index.html              … ポータル(トップページ)。ツール一覧を表示
 /style.css               … ポータルページの見た目
-/equipment/index.html    … 「Ace Character Database」の画面構造
-/equipment/style.css     … 「Ace Character Database」の見た目
-/equipment/app.js        … 「Ace Character Database」の動作(Firebase連携など)
+/equipment/index.html    … 「Ace Characters Database」の画面構造
+/equipment/style.css     … 「Ace Characters Database」の見た目
+/equipment/app.js        … 「Ace Characters Database」の動作(Firebase連携など)
 ```
 
 GitHub Pagesにアップロードする際は、このフォルダ構成のまま(`equipment`フォルダを作って中に3ファイル、直下にトップの`index.html`・`style.css`)アップロードしてください。
 
 **今後ツールを追加する場合**は、`/damage-calc/` のように新しいフォルダを作り、トップの `index.html` にあるツール一覧(`.tools` の中)にカードを1つ追加するだけで済むようにしてあります。
 
-## Ace Character Database について
+## Ace Characters Database について
 
 オーバーキルスコアを目指せるキャラクターについて、「誰が」「どのキャラを」「武器・鎧・頭・装飾・腕のどの部位でどの等級まで育成済みか」をギルドメンバー自身が登録・共有できるツールです。
 
@@ -103,4 +103,4 @@ const RELATED_CHAR_GROUPS = {
 
 ## 今後の機能追加について
 
-新しい機能(ダメージ計算、理想パーティ提案など)を既存のAce Character Databaseに追加する際は、上記のFirestore構造を踏まえた上で、`equipment/app.js` に新しいタブ・関数を追加していく形になります。データの持たせ方に迷ったら、既存の `members` / `roster` の形を参考にすると一貫性が保てます。新しい独立したツールを追加する場合は、新しいフォルダを作ってポータルの `index.html` にリンクを追加してください。
+新しい機能(ダメージ計算、理想パーティ提案など)を既存のAce Characters Databaseに追加する際は、上記のFirestore構造を踏まえた上で、`equipment/app.js` に新しいタブ・関数を追加していく形になります。データの持たせ方に迷ったら、既存の `members` / `roster` の形を参考にすると一貫性が保てます。新しい独立したツールを追加する場合は、新しいフォルダを作ってポータルの `index.html` にリンクを追加してください。
