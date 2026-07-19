@@ -89,7 +89,7 @@ button.danger:hover { background: rgba(255,107,129,0.15); }
 button.small { padding: 3px 8px; font-size: 12px; margin-left: 4px; margin-bottom: 2px; }
 
 table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
-th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
+th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: middle; }
 th { background: #314051; color: var(--gold); border-bottom: 2px solid var(--gold); }
 .table-wrap { border: 2px solid var(--gold); border-radius: 10px; overflow-x: auto; margin-top: 8px; -webkit-overflow-scrolling: touch; }
 .table-wrap table { margin-top: 0; min-width: 420px; }
@@ -137,4 +137,7 @@ td.noSellNote { font-size: 11px; color: var(--text-dim); max-width: 320px; white
 @media (max-width: 780px) {
   .addRowBar { flex-direction: column; }
   .addRowBar input { max-width: 100%; }
+  #shopTable, #noSellTable { min-width: 0; width: 100%; }
+  #noSellTable { table-layout: auto; }
+  td.noSellNote { max-width: none; }
 }
