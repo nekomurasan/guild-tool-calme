@@ -48,6 +48,12 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+async function sha256Hex(text) {
+  const data = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ---------- アクセス(2経路) ----------
 function showMainContent() {
   document.getElementById('loginScreen').style.display = 'none';
@@ -58,15 +64,19 @@ function showLoginScreen() {
   document.getElementById('mainContent').style.display = 'none';
 }
 
-// サブギルド: 共通パスワード
+// サブギルド: 共通パスワード(ハッシュ化して比較)
 document.getElementById('gateBtn').addEventListener('click', async () => {
   const statusEl = document.getElementById('gateStatus');
   const input = document.getElementById('gatePassword').value;
   if (!input) { statusEl.className = 'status err'; statusEl.textContent = 'パスワードを入力してください。'; return; }
   try {
     const snap = await getDoc(doc(goldFarmingCol, "config"));
-    const correct = snap.exists() ? (snap.data().password || '') : '';
-    if (correct && input === correct) {
+    const data = snap.exists() ? snap.data() : {};
+    const inputHash = await sha256Hex(input);
+    // passwordHash(新方式)があればそちらを優先、無ければ旧方式(平文)と比較(移行期間用)
+    const matched = (data.passwordHash && inputHash === data.passwordHash) ||
+                    (!data.passwordHash && data.password && input === data.password);
+    if (matched) {
       sessionStorage.setItem(SESSION_KEY, '1');
       logAccessOnce('サブギルド');
       showMainContent();
@@ -149,10 +159,27 @@ function updateEditVisibility() {
   document.getElementById('shopAddRow').style.display = show ? 'flex' : 'none';
   document.getElementById('cookAddRow').style.display = show ? 'flex' : 'none';
   document.getElementById('noSellAddRow').style.display = show ? 'flex' : 'none';
+  document.getElementById('passwordChangeBox').style.display = show ? 'block' : 'none';
   renderShopTable();
   renderCookTable();
   renderNoSellTable();
 }
+
+document.getElementById('changePasswordBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('passwordChangeStatus');
+  const newPass = document.getElementById('newGatePassword').value.trim();
+  if (!newPass) { statusEl.className = 'status err'; statusEl.textContent = '新しいパスワードを入力してください。'; return; }
+  try {
+    const passwordHash = await sha256Hex(newPass);
+    await setDoc(doc(goldFarmingCol, "config"), { passwordHash });
+    statusEl.className = 'status ok';
+    statusEl.textContent = '変更しました。サブギルドメンバーに新しいパスワードを共有してください。';
+    document.getElementById('newGatePassword').value = '';
+  } catch (e) {
+    statusEl.className = 'status err';
+    statusEl.textContent = '変更に失敗しました(権限がない可能性があります): ' + e.message;
+  }
+});
 
 // ---------- コンテンツ読み込み ----------
 async function loadContent() {

@@ -65,6 +65,18 @@
       <div class="table-wrap"><table id="accessStatsTable"></table></div>
     </div>
 
+    <!-- 共通パスワード変更(管理者・編集モード限定) -->
+    <div id="passwordChangeBox" class="card" style="display:none;">
+      <h3>サブギルド用 共通パスワードの変更</h3>
+      <div class="detail" style="margin-bottom:8px;">パスワードはそのままではなく、安全な形式(ハッシュ化)で保存されます。変更後は、サブギルドメンバーに新しいパスワードを共有してください。</div>
+      <div class="formField">
+        <label>新しい共通パスワード</label>
+        <input type="text" id="newGatePassword" placeholder="新しいパスワード">
+      </div>
+      <button class="primary small" id="changePasswordBtn">変更する</button>
+      <div id="passwordChangeStatus" class="status"></div>
+    </div>
+
     <!-- 商店購入推奨リスト -->
     <div class="card">
       <h2>🛒 商店購入推奨リスト</h2>
