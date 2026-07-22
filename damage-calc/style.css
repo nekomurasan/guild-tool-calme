@@ -1,0 +1,163 @@
+:root {
+  --bg: #1a3050;
+  --bg-card: #253F60;
+  --bg-card-alt: #213a58;
+  --bg-sub: #1a3050;
+  --gold: #D8B35D;
+  --gold-soft: #e8cd8f;
+  --text: #F3F5F8;
+  --text-dim: #B9C6D6;
+  --input-bg: #F2F3F5;
+  --input-text: #223247;
+  --border: #3E5B80;
+  --err: #FF6B81;
+  --ok: #8fd3a5;
+}
+body {
+  font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  background: var(--bg);
+  margin: 0;
+  padding: 14px 18px;
+  color: var(--text);
+  font-size: 13px;
+}
+.wrap { max-width: 1100px; margin: 0 auto; }
+.titleBlock { margin-bottom: 6px; }
+.backLink {
+  display: inline-block; font-size: 11px; color: var(--text-dim); text-decoration: none;
+  margin-bottom: 6px; letter-spacing: 0.5px;
+}
+.backLink:hover { color: var(--gold-soft); text-decoration: underline; }
+h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 27px; margin: 0; color: var(--gold); letter-spacing: 1px;
+  font-weight: 700;
+}
+.sub { color: var(--text-dim); font-size: 13px; margin-bottom: 8px; }
+
+.accessOption {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--bg-sub);
+}
+.accessOption:last-child { margin-bottom: 0; }
+
+.topBar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--bg-card-alt); border: 1px solid var(--gold); border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 10px;
+}
+.guideNote { font-size: 12px; color: var(--gold-soft); }
+
+.note { background: rgba(216,179,93,0.12); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--gold-soft); margin-bottom: 8px; }
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+.card h2 { font-size: 16px; margin-top: 0; color: var(--gold); }
+.card h3 { font-size: 14px; margin: 10px 0 8px; color: var(--gold-soft); }
+.card h3:first-child { margin-top: 0; }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.tab {
+  padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-card); color: var(--text); cursor: pointer; font-size: 13px;
+}
+.tab.active { background: var(--gold); color: #22314a; border-color: var(--gold); font-weight: 600; }
+
+label { display: block; font-size: 12px; color: var(--text-dim); margin: 6px 0 3px; }
+.formField { max-width: 320px; margin-bottom: 8px; }
+.formField label { margin: 0 0 3px; }
+.formField input { margin: 0; }
+input[type=text], input[type=password], input[type=number], textarea, select {
+  box-sizing: border-box; padding: 6px; border: 1px solid var(--border);
+  border-radius: 6px; font-size: 13px; width: 100%;
+  background: var(--input-bg); color: var(--input-text);
+  font-family: inherit;
+}
+textarea { resize: vertical; }
+.checkLabel { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); }
+.checkLabel input { width: auto; }
+
+button {
+  padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;
+  border: 1px solid var(--gold); background: transparent; color: var(--gold-soft); white-space: nowrap;
+}
+button:hover:not(:disabled) { background: rgba(216,179,93,0.15); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.primary { background: var(--gold); color: #22314a; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: var(--gold-soft); }
+button.danger { border-color: var(--err); color: var(--err); }
+button.danger:hover { background: rgba(255,107,129,0.15); }
+button.small { padding: 3px 8px; font-size: 12px; margin-left: 4px; margin-bottom: 2px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: middle; }
+th { background: #314051; color: var(--gold); border-bottom: 2px solid var(--gold); }
+.table-wrap { border: 2px solid var(--gold); border-radius: 10px; overflow-x: auto; margin-top: 8px; -webkit-overflow-scrolling: touch; }
+.table-wrap table { margin-top: 0; min-width: 480px; }
+
+.status { font-size: 13px; margin-top: 6px; }
+.status.ok { color: var(--ok); }
+.status.err { color: var(--err); font-weight: 600; }
+.empty { color: var(--text-dim); font-size: 13px; padding: 8px 0; }
+.detail { font-size: 11px; color: var(--text-dim); display: block; }
+
+/* ---- スキル編集ブロック ---- */
+.skillBlock {
+  border: 1px solid var(--border); border-left: 4px solid var(--gold);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; background: var(--bg-sub);
+}
+.skillBlock .skillHead { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+.skillBlock .skillHead input[type=text] { max-width: 220px; }
+.rowFields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.formulaRow { display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: 6px; margin-bottom: 6px; align-items: end; }
+
+/* ---- グリッド入力(凸/バースト) ---- */
+.gridTable { font-size: 11px; }
+.gridTable th, .gridTable td { padding: 4px 5px; white-space: nowrap; }
+.gridTable input[type=text], .gridTable input[type=number] { width: 72px; padding: 3px 4px; font-size: 11px; }
+.gridHint { font-size: 11px; color: var(--text-dim); margin: 4px 0 6px; }
+
+/* ---- 部位編集(ボス登録) ---- */
+.partBlock {
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  margin-bottom: 10px; background: var(--bg-sub);
+}
+.partBlock .partHead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.partBlock .partHead input[type=text] { max-width: 160px; }
+
+/* ---- 計算スロット ---- */
+.calcSlot {
+  border: 2px solid var(--gold); border-radius: 10px; padding: 14px 16px;
+  margin-bottom: 18px; background: var(--bg-card-alt);
+}
+.calcSlot .slotHead { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.calcSlot .slotHead h3 { margin: 0; }
+.buffList { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 8px; background: var(--bg-sub); }
+.buffItem { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.buffItem select { width: auto; max-width: 90px; }
+
+.critWarning {
+  background: rgba(255,107,129,0.15); border: 1px solid var(--err); color: #ffb3bf;
+  border-radius: 8px; padding: 8px 12px; font-size: 12px; margin: 8px 0; font-weight: 600;
+}
+.critOk {
+  background: rgba(143,211,165,0.12); border: 1px solid var(--ok); color: var(--ok);
+  border-radius: 8px; padding: 8px 12px; font-size: 12px; margin: 8px 0;
+}
+
+.resultCard { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 8px; background: var(--bg-sub); }
+
+.addGrid { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; margin-bottom: 8px; }
+
+@media (max-width: 780px) {
+  .rowFields { grid-template-columns: 1fr 1fr; }
+  .formulaRow { grid-template-columns: 1fr 1fr; }
+}

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Damage Calculator | BrownDust Ⅱ Calme Guild Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="titleBlock" style="margin-bottom: 4px;">
+    <a href="../index.html" class="backLink">← BrownDust Ⅱ Calme Guild Tool</a>
+    <h1>Skill Damage Calculator</h1>
+  </div>
+  <div class="sub">キャラ・スキル単位でダメージを計算し、ギルド内で共有できます。</div>
+
+  <!-- ログイン(2経路: メインギルド/サブギルド) -->
+  <div id="loginScreen" class="card">
+    <h2>アクセス方法を選択してください</h2>
+
+    <div class="accessOption">
+      <h3>メインギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">装備管理ツールと同じIDとパスワードでログインしてください。</div>
+      <div class="formField">
+        <label>ID</label>
+        <input type="text" id="loginId" placeholder="例: taro">
+      </div>
+      <div class="formField">
+        <label>パスワード</label>
+        <input type="password" id="loginPassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="loginBtn">ログイン</button>
+      <div id="loginStatus" class="status"></div>
+    </div>
+
+    <div class="accessOption">
+      <h3>サブギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">Gold Farming Guideと同じ、ギルド内で共有されている共通パスワードを入力してください。</div>
+      <div class="formField">
+        <label>共通パスワード</label>
+        <input type="password" id="gatePassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="gateBtn">利用する</button>
+      <div id="gateStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div id="mainContent" style="display:none;">
+    <div class="topBar">
+      <span class="guideNote" id="routeNote"></span>
+      <button class="small" id="logoutBtn" style="margin-left:auto;">ログアウト</button>
+    </div>
+    <div class="status" id="connNote"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="calc">計算</div>
+      <div class="tab" data-tab="charReg">キャラ登録</div>
+      <div class="tab" data-tab="bossReg">ボス登録</div>
+      <div class="tab" data-tab="results">保存済み結果</div>
+    </div>
+
+    <!-- 計算タブ -->
+    <div id="calc" class="tabPanel">
+      <div class="note">キャラ・スキル・凸/バーストを選び、ステータスとバフを入力して計算します。複数のスロットを並べて別スキルと比較できます。</div>
+      <div id="slotsArea"></div>
+      <button class="primary" id="addSlotBtn">+ 計算スロットを追加</button>
+    </div>
+
+    <!-- キャラ登録タブ -->
+    <div id="charReg" class="tabPanel" style="display:none;">
+      <div class="card" id="charAdminOnlyNote" style="display:none;">
+        <div class="note">キャラ登録は管理者アカウントのみ行えます。閲覧のみ可能です。</div>
+      </div>
+      <div class="card">
+        <h2>登録済みキャラクター一覧(閲覧専用)</h2>
+        <div id="charListArea"><div class="empty">読み込み中...</div></div>
+      </div>
+      <div class="card" id="charEditCard">
+        <h2 id="charEditTitle">キャラクターを新規登録</h2>
+        <div class="formField">
+          <label>キャラクター名</label>
+          <input type="text" id="charName" placeholder="例: シェラザード">
+        </div>
+        <div id="skillsArea"></div>
+        <button id="addSkillBtn">+ スキルを追加</button>
+        <div style="margin-top:12px;">
+          <button class="primary" id="saveCharBtn">この内容で保存する</button>
+          <button class="danger" id="deleteCharBtn" style="display:none;">このキャラを削除する</button>
+          <button id="newCharFormBtn">新規登録フォームに戻す</button>
+        </div>
+        <div id="charSaveStatus" class="status"></div>
+      </div>
+    </div>
+
+    <!-- ボス登録タブ -->
+    <div id="bossReg" class="tabPanel" style="display:none;">
+      <div class="card">
+        <h2>登録済みボス一覧(閲覧専用)</h2>
+        <div id="bossListArea"><div class="empty">読み込み中...</div></div>
+      </div>
+      <div class="card" id="bossEditCard">
+        <h2 id="bossEditTitle">ボスを新規登録</h2>
+        <div class="rowFields">
+          <div class="formField">
+            <label>ボス名</label>
+            <input type="text" id="bossName" placeholder="例: ○○ギルドレイドボス">
+          </div>
+          <div class="formField">
+            <label>ボス全体HP</label>
+            <div style="display:flex; gap:6px;">
+              <input type="number" id="bossTotalHP" placeholder="例: 32000">
+              <button class="small" id="bossHpCapBtn" type="button">5万超え</button>
+            </div>
+          </div>
+        </div>
+        <div id="partsArea"></div>
+        <button id="addPartBtn">+ 部位を追加</button>
+        <div style="margin-top:12px;">
+          <button class="primary" id="saveBossBtn">この内容で保存する</button>
+          <button class="danger" id="deleteBossBtn" style="display:none;">このボスを削除する</button>
+          <button id="newBossFormBtn">新規登録フォームに戻す</button>
+        </div>
+        <div id="bossSaveStatus" class="status"></div>
+      </div>
+    </div>
+
+    <!-- 保存済み結果タブ -->
+    <div id="results" class="tabPanel" style="display:none;">
+      <div class="card">
+        <h2>保存済み結果</h2>
+        <div class="detail" style="margin-bottom:8px;">保存期限は15日間です。期限を過ぎたものは一覧から自動的に非表示・削除されます。</div>
+        <div class="rowFields">
+          <div class="formField"><label>ボス名で絞り込み</label><input type="text" id="resultFilterBoss" placeholder="ボス名"></div>
+          <div class="formField"><label>キャラ名で絞り込み</label><input type="text" id="resultFilterChar" placeholder="キャラ名"></div>
+        </div>
+        <div id="resultsArea"><div class="empty">読み込み中...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
