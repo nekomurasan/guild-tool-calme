@@ -44,7 +44,7 @@ function escapeHtml(str) {
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
-const SESSION_KEY = 'dmgc_pw_unlocked';
+const SESSION_KEY = 'calmeguild_sub_unlocked'; // ポータル・gold-farmingと共通のキー名(どこで解錠しても他ページに引き継がれる)
 
 let route = null;        // 'main' | 'sub'
 let isAdmin = false;
@@ -182,7 +182,12 @@ document.querySelectorAll('.tab').forEach(tabEl => {
 // ------------------------------------------------------------------
 function parseIntervals(text) {
   if (!text) return [{ from: 1, value: 0 }];
-  const parts = text.split(',').map(s => s.trim()).filter(Boolean);
+  const trimmed = text.trim();
+  if (!trimmed.includes(':')) {
+    // コロンが無い場合は「ずっと同じ数値」として扱う
+    return [{ from: 1, value: Number(trimmed) || 0 }];
+  }
+  const parts = trimmed.split(',').map(s => s.trim()).filter(Boolean);
   const result = parts.map(p => {
     const [f, v] = p.split(':').map(s => s.trim());
     return { from: Number(f) || 1, value: Number(v) || 0 };
@@ -237,21 +242,23 @@ function blankLevel(copies) {
     enhance: [{ from: 1, value: 0 }],
     elementBoost: [{ from: 1, value: 0 }],
     chainDamageIncrease: [{ from: 1, value: 0 }],
-    selfBuff: { attackBuffPercent: [{ from: 1, value: 0 }], critRateBuffPercent: [{ from: 1, value: 0 }] },
+    selfBuff: { attackBuffPercent: [{ from: 1, value: 0 }], critRateBuffPercent: [{ from: 1, value: 0 }], chainEnhance: 0 },
     otherAdjustment: 0,
-    allyBuff: { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0 }
+    allyBuff: { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0, chainEnhance: 0 }
   };
 }
 function blankBurst(burst) {
   return {
     burst, maxHitsAdd: 0, skillMultiplierAdd: 0, enhanceAdd: 0, elementBoostAdd: 0, chainDamageIncreaseAdd: 0,
-    allyBuffAdd: { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0 }
+    selfBuffAttackAdd: 0, selfBuffCritAdd: 0, selfChainEnhanceAdd: 0,
+    allyBuffAdd: { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0, chainEnhance: 0 }
   };
 }
 function blankPotential() {
   return {
     description: '', maxHitsAdd: 0, skillMultiplierAdd: 0, enhanceAdd: 0, elementBoostAdd: 0, chainDamageIncreaseAdd: 0,
-    allyBuffAdd: { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0 }
+    selfBuffAttackAdd: 0, selfBuffCritAdd: 0, selfChainEnhanceAdd: 0,
+    allyBuffAdd: { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0, chainEnhance: 0 }
   };
 }
 function blankSkill() {
@@ -339,14 +346,20 @@ function skillBlockHtml(s) {
       <button class="small f-addFormula" type="button">+ 参照項目を追加</button>
 
       <h3>凸(0〜5)ごとの基本値</h3>
-      <div class="gridHint">スキル倍率・増強・属性強化・チェインダメ増加は「1:100,4:70」形式で「n回目の攻撃から値が変わる」を表現できます(変わらない場合は単一の値でOK)</div>
+      <div class="gridHint">
+        スキル倍率・増強・属性強化・チェイン増加の欄は「回数:数値」という形式で入力します。<br>
+        例：「1:100,4:70」と入力すると「1回目の攻撃では100%、4回目の攻撃からは70%に変わる」という意味になります。<br>
+        ずっと同じ数値でよい場合は、数値だけ(例: 100)を入力すればOKです(自動的に「1:100」として扱われます)。値の変化が複数ある場合は、カンマ(,)で区切って追加してください。<br>
+        ※魔法スキルの場合も「自己バフ:攻撃%」「配布:攻撃%」の欄をそのまま使ってください(参照ステータス側の数値に掛かる値のため、実質的に魔法力バフとして機能します)。
+      </div>
       <div class="table-wrap">${copiesGridHtml(s)}</div>
 
       <h3>バースト(0〜3)ごとの加算値</h3>
+      <div class="gridHint">凸の基本値に、ここで入力した数値がそのまま足し算されます(バーストで強化される分だけを入力してください)。</div>
       <div class="table-wrap">${burstGridHtml(s)}</div>
 
       <h3>潜在力(最大3枠・取得順は自由)</h3>
-      <div class="gridHint">各潜在力は個別にON/OFFできます(計算時に自由に選択)。ダメージに関係ない効果(例: 効果時間+1ターン)は「説明」欄にだけ書けばOKです。</div>
+      <div class="gridHint">各潜在力は個別にON/OFFできます(計算時に自由に選択)。バーストと同じく、凸の基本値に足し算される数値を入力してください。ダメージに関係ない効果(例: 効果時間+1ターン)は「説明」欄にだけ書けばOKです。</div>
       <div class="table-wrap">${potentialsGridHtml(s)}</div>
     </div>
 
@@ -367,8 +380,8 @@ function formulaRowHtml(t, i) {
 
 function copiesGridHtml(s) {
   let html = '<table class="gridTable"><tr><th>凸</th><th>攻撃回数</th><th>スキル倍率%</th><th>増強%</th><th>属性強化%</th><th>チェイン増加%</th>' +
-    '<th>自己バフ:攻撃%</th><th>自己バフ:クリ率%</th><th>その他補正%</th>' +
-    '<th>配布:攻撃%</th><th>配布:クリ率%</th><th>配布:増強%</th><th>配布:属性強化%</th><th>配布:チェイン増加%</th></tr>';
+    '<th>自己バフ:攻撃%</th><th>自己バフ:クリ率%</th><th>自己バフ:チェイン強化</th><th>その他補正%</th>' +
+    '<th>配布:攻撃%</th><th>配布:クリ率%</th><th>配布:増強%</th><th>配布:属性強化%</th><th>配布:チェイン増加%</th><th>配布:チェイン強化</th></tr>';
   s.copiesLevels.forEach((lv, i) => {
     html += `<tr data-copies-idx="${i}">
       <td>${lv.copies}凸</td>
@@ -379,12 +392,14 @@ function copiesGridHtml(s) {
       <td><input type="text" class="f-chainDamageIncrease" value="${serializeIntervals(lv.chainDamageIncrease)}"></td>
       <td><input type="text" class="f-selfBuffAttack" value="${serializeIntervals(lv.selfBuff.attackBuffPercent)}"></td>
       <td><input type="text" class="f-selfBuffCrit" value="${serializeIntervals(lv.selfBuff.critRateBuffPercent)}"></td>
+      <td><input type="number" class="f-selfChainEnhance" value="${lv.selfBuff.chainEnhance || 0}"></td>
       <td><input type="number" class="f-otherAdjustment" value="${lv.otherAdjustment || 0}"></td>
       <td><input type="number" class="f-allyAttack" value="${lv.allyBuff.attackBuffPercent || 0}"></td>
       <td><input type="number" class="f-allyCrit" value="${lv.allyBuff.critRateBuffPercent || 0}"></td>
       <td><input type="number" class="f-allyEnhance" value="${lv.allyBuff.enhancePercent || 0}"></td>
       <td><input type="number" class="f-allyElement" value="${lv.allyBuff.elementBoostPercent || 0}"></td>
       <td><input type="number" class="f-allyChain" value="${lv.allyBuff.chainDamageIncreasePercent || 0}"></td>
+      <td><input type="number" class="f-allyChainEnhance" value="${lv.allyBuff.chainEnhance || 0}"></td>
     </tr>`;
   });
   return html + '</table>';
@@ -392,7 +407,8 @@ function copiesGridHtml(s) {
 
 function burstGridHtml(s) {
   let html = '<table class="gridTable"><tr><th>バースト</th><th>攻撃回数+</th><th>スキル倍率+%</th><th>増強+%</th><th>属性強化+%</th><th>チェイン増加+%</th>' +
-    '<th>配布:攻撃+%</th><th>配布:クリ率+%</th><th>配布:増強+%</th><th>配布:属性強化+%</th><th>配布:チェイン増加+%</th></tr>';
+    '<th>自己バフ:攻撃+%</th><th>自己バフ:クリ率+%</th><th>自己バフ:チェイン強化+</th>' +
+    '<th>配布:攻撃+%</th><th>配布:クリ率+%</th><th>配布:増強+%</th><th>配布:属性強化+%</th><th>配布:チェイン増加+%</th><th>配布:チェイン強化+</th></tr>';
   s.burstBonus.forEach((b, i) => {
     html += `<tr data-burst-idx="${i}">
       <td>バースト${b.burst}</td>
@@ -401,11 +417,15 @@ function burstGridHtml(s) {
       <td><input type="number" class="f-enhanceAdd" value="${b.enhanceAdd || 0}"></td>
       <td><input type="number" class="f-elementBoostAdd" value="${b.elementBoostAdd || 0}"></td>
       <td><input type="number" class="f-chainDamageIncreaseAdd" value="${b.chainDamageIncreaseAdd || 0}"></td>
+      <td><input type="number" class="f-selfBuffAttackAdd" value="${b.selfBuffAttackAdd || 0}"></td>
+      <td><input type="number" class="f-selfBuffCritAdd" value="${b.selfBuffCritAdd || 0}"></td>
+      <td><input type="number" class="f-selfChainEnhanceAdd" value="${b.selfChainEnhanceAdd || 0}"></td>
       <td><input type="number" class="f-allyAttackAdd" value="${b.allyBuffAdd.attackBuffPercent || 0}"></td>
       <td><input type="number" class="f-allyCritAdd" value="${b.allyBuffAdd.critRateBuffPercent || 0}"></td>
       <td><input type="number" class="f-allyEnhanceAdd" value="${b.allyBuffAdd.enhancePercent || 0}"></td>
       <td><input type="number" class="f-allyElementAdd" value="${b.allyBuffAdd.elementBoostPercent || 0}"></td>
       <td><input type="number" class="f-allyChainAdd" value="${b.allyBuffAdd.chainDamageIncreasePercent || 0}"></td>
+      <td><input type="number" class="f-allyChainEnhanceAdd" value="${b.allyBuffAdd.chainEnhance || 0}"></td>
     </tr>`;
   });
   return html + '</table>';
@@ -413,7 +433,8 @@ function burstGridHtml(s) {
 
 function potentialsGridHtml(s) {
   let html = '<table class="gridTable"><tr><th>潜在力</th><th>説明(自由記述)</th><th>攻撃回数+</th><th>スキル倍率+%</th><th>増強+%</th><th>属性強化+%</th><th>チェイン増加+%</th>' +
-    '<th>配布:攻撃+%</th><th>配布:クリ率+%</th><th>配布:増強+%</th><th>配布:属性強化+%</th><th>配布:チェイン増加+%</th></tr>';
+    '<th>自己バフ:攻撃+%</th><th>自己バフ:クリ率+%</th><th>自己バフ:チェイン強化+</th>' +
+    '<th>配布:攻撃+%</th><th>配布:クリ率+%</th><th>配布:増強+%</th><th>配布:属性強化+%</th><th>配布:チェイン増加+%</th><th>配布:チェイン強化+</th></tr>';
   s.potentials.forEach((p, i) => {
     html += `<tr data-potential-idx="${i}">
       <td>潜在力${i + 1}</td>
@@ -423,11 +444,15 @@ function potentialsGridHtml(s) {
       <td><input type="number" class="f-enhanceAdd" value="${p.enhanceAdd || 0}"></td>
       <td><input type="number" class="f-elementBoostAdd" value="${p.elementBoostAdd || 0}"></td>
       <td><input type="number" class="f-chainDamageIncreaseAdd" value="${p.chainDamageIncreaseAdd || 0}"></td>
+      <td><input type="number" class="f-selfBuffAttackAdd" value="${p.selfBuffAttackAdd || 0}"></td>
+      <td><input type="number" class="f-selfBuffCritAdd" value="${p.selfBuffCritAdd || 0}"></td>
+      <td><input type="number" class="f-selfChainEnhanceAdd" value="${p.selfChainEnhanceAdd || 0}"></td>
       <td><input type="number" class="f-allyAttackAdd" value="${p.allyBuffAdd.attackBuffPercent || 0}"></td>
       <td><input type="number" class="f-allyCritAdd" value="${p.allyBuffAdd.critRateBuffPercent || 0}"></td>
       <td><input type="number" class="f-allyEnhanceAdd" value="${p.allyBuffAdd.enhancePercent || 0}"></td>
       <td><input type="number" class="f-allyElementAdd" value="${p.allyBuffAdd.elementBoostPercent || 0}"></td>
       <td><input type="number" class="f-allyChainAdd" value="${p.allyBuffAdd.chainDamageIncreasePercent || 0}"></td>
+      <td><input type="number" class="f-allyChainEnhanceAdd" value="${p.allyBuffAdd.chainEnhance || 0}"></td>
     </tr>`;
   });
   return html + '</table>';
@@ -467,22 +492,95 @@ function bindSkillBlockEvents(s) {
     });
   });
 
+  // 凸(copies)グリッド: 上位の凸レベルへ自動でカスケード(継承)する
+  //   例: 0凸の値を変更すると1〜5凸にも同じ値が自動反映される。1凸を変更すればさらに2〜5凸に反映される。
+  const cascadeToHigherCopies = (idx, applyFn, syncDom) => {
+    for (let j = idx + 1; j < s.copiesLevels.length; j++) {
+      applyFn(s.copiesLevels[j]);
+      const targetRow = block.querySelector(`[data-copies-idx="${j}"]`);
+      if (targetRow) syncDom(targetRow);
+    }
+  };
+
   block.querySelectorAll('[data-copies-idx]').forEach(row => {
     const idx = Number(row.dataset.copiesIdx);
     const lv = s.copiesLevels[idx];
-    row.querySelector('.f-maxHits').addEventListener('input', e => lv.maxHits = Number(e.target.value) || 1);
-    row.querySelector('.f-skillMultiplier').addEventListener('input', e => lv.skillMultiplier = parseIntervals(e.target.value));
-    row.querySelector('.f-enhance').addEventListener('input', e => lv.enhance = parseIntervals(e.target.value));
-    row.querySelector('.f-elementBoost').addEventListener('input', e => lv.elementBoost = parseIntervals(e.target.value));
-    row.querySelector('.f-chainDamageIncrease').addEventListener('input', e => lv.chainDamageIncrease = parseIntervals(e.target.value));
-    row.querySelector('.f-selfBuffAttack').addEventListener('input', e => lv.selfBuff.attackBuffPercent = parseIntervals(e.target.value));
-    row.querySelector('.f-selfBuffCrit').addEventListener('input', e => lv.selfBuff.critRateBuffPercent = parseIntervals(e.target.value));
-    row.querySelector('.f-otherAdjustment').addEventListener('input', e => lv.otherAdjustment = Number(e.target.value) || 0);
-    row.querySelector('.f-allyAttack').addEventListener('input', e => lv.allyBuff.attackBuffPercent = Number(e.target.value) || 0);
-    row.querySelector('.f-allyCrit').addEventListener('input', e => lv.allyBuff.critRateBuffPercent = Number(e.target.value) || 0);
-    row.querySelector('.f-allyEnhance').addEventListener('input', e => lv.allyBuff.enhancePercent = Number(e.target.value) || 0);
-    row.querySelector('.f-allyElement').addEventListener('input', e => lv.allyBuff.elementBoostPercent = Number(e.target.value) || 0);
-    row.querySelector('.f-allyChain').addEventListener('input', e => lv.allyBuff.chainDamageIncreasePercent = Number(e.target.value) || 0);
+
+    row.querySelector('.f-maxHits').addEventListener('input', e => {
+      const v = Number(e.target.value) || 1;
+      lv.maxHits = v;
+      cascadeToHigherCopies(idx, t => t.maxHits = v, r => r.querySelector('.f-maxHits').value = v);
+    });
+    row.querySelector('.f-skillMultiplier').addEventListener('input', e => {
+      const v = parseIntervals(e.target.value);
+      lv.skillMultiplier = v;
+      cascadeToHigherCopies(idx, t => t.skillMultiplier = JSON.parse(JSON.stringify(v)), r => r.querySelector('.f-skillMultiplier').value = serializeIntervals(v));
+    });
+    row.querySelector('.f-enhance').addEventListener('input', e => {
+      const v = parseIntervals(e.target.value);
+      lv.enhance = v;
+      cascadeToHigherCopies(idx, t => t.enhance = JSON.parse(JSON.stringify(v)), r => r.querySelector('.f-enhance').value = serializeIntervals(v));
+    });
+    row.querySelector('.f-elementBoost').addEventListener('input', e => {
+      const v = parseIntervals(e.target.value);
+      lv.elementBoost = v;
+      cascadeToHigherCopies(idx, t => t.elementBoost = JSON.parse(JSON.stringify(v)), r => r.querySelector('.f-elementBoost').value = serializeIntervals(v));
+    });
+    row.querySelector('.f-chainDamageIncrease').addEventListener('input', e => {
+      const v = parseIntervals(e.target.value);
+      lv.chainDamageIncrease = v;
+      cascadeToHigherCopies(idx, t => t.chainDamageIncrease = JSON.parse(JSON.stringify(v)), r => r.querySelector('.f-chainDamageIncrease').value = serializeIntervals(v));
+    });
+    row.querySelector('.f-selfBuffAttack').addEventListener('input', e => {
+      const v = parseIntervals(e.target.value);
+      lv.selfBuff.attackBuffPercent = v;
+      cascadeToHigherCopies(idx, t => t.selfBuff.attackBuffPercent = JSON.parse(JSON.stringify(v)), r => r.querySelector('.f-selfBuffAttack').value = serializeIntervals(v));
+    });
+    row.querySelector('.f-selfBuffCrit').addEventListener('input', e => {
+      const v = parseIntervals(e.target.value);
+      lv.selfBuff.critRateBuffPercent = v;
+      cascadeToHigherCopies(idx, t => t.selfBuff.critRateBuffPercent = JSON.parse(JSON.stringify(v)), r => r.querySelector('.f-selfBuffCrit').value = serializeIntervals(v));
+    });
+    row.querySelector('.f-selfChainEnhance').addEventListener('input', e => {
+      const v = Number(e.target.value) || 0;
+      lv.selfBuff.chainEnhance = v;
+      cascadeToHigherCopies(idx, t => t.selfBuff.chainEnhance = v, r => r.querySelector('.f-selfChainEnhance').value = v);
+    });
+    row.querySelector('.f-otherAdjustment').addEventListener('input', e => {
+      const v = Number(e.target.value) || 0;
+      lv.otherAdjustment = v;
+      cascadeToHigherCopies(idx, t => t.otherAdjustment = v, r => r.querySelector('.f-otherAdjustment').value = v);
+    });
+    row.querySelector('.f-allyAttack').addEventListener('input', e => {
+      const v = Number(e.target.value) || 0;
+      lv.allyBuff.attackBuffPercent = v;
+      cascadeToHigherCopies(idx, t => t.allyBuff.attackBuffPercent = v, r => r.querySelector('.f-allyAttack').value = v);
+    });
+    row.querySelector('.f-allyCrit').addEventListener('input', e => {
+      const v = Number(e.target.value) || 0;
+      lv.allyBuff.critRateBuffPercent = v;
+      cascadeToHigherCopies(idx, t => t.allyBuff.critRateBuffPercent = v, r => r.querySelector('.f-allyCrit').value = v);
+    });
+    row.querySelector('.f-allyEnhance').addEventListener('input', e => {
+      const v = Number(e.target.value) || 0;
+      lv.allyBuff.enhancePercent = v;
+      cascadeToHigherCopies(idx, t => t.allyBuff.enhancePercent = v, r => r.querySelector('.f-allyEnhance').value = v);
+    });
+    row.querySelector('.f-allyElement').addEventListener('input', e => {
+      const v = Number(e.target.value) || 0;
+      lv.allyBuff.elementBoostPercent = v;
+      cascadeToHigherCopies(idx, t => t.allyBuff.elementBoostPercent = v, r => r.querySelector('.f-allyElement').value = v);
+    });
+    row.querySelector('.f-allyChain').addEventListener('input', e => {
+      const v = Number(e.target.value) || 0;
+      lv.allyBuff.chainDamageIncreasePercent = v;
+      cascadeToHigherCopies(idx, t => t.allyBuff.chainDamageIncreasePercent = v, r => r.querySelector('.f-allyChain').value = v);
+    });
+    row.querySelector('.f-allyChainEnhance').addEventListener('input', e => {
+      const v = Number(e.target.value) || 0;
+      lv.allyBuff.chainEnhance = v;
+      cascadeToHigherCopies(idx, t => t.allyBuff.chainEnhance = v, r => r.querySelector('.f-allyChainEnhance').value = v);
+    });
   });
 
   block.querySelectorAll('[data-burst-idx]').forEach(row => {
@@ -493,11 +591,15 @@ function bindSkillBlockEvents(s) {
     row.querySelector('.f-enhanceAdd').addEventListener('input', e => b.enhanceAdd = Number(e.target.value) || 0);
     row.querySelector('.f-elementBoostAdd').addEventListener('input', e => b.elementBoostAdd = Number(e.target.value) || 0);
     row.querySelector('.f-chainDamageIncreaseAdd').addEventListener('input', e => b.chainDamageIncreaseAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-selfBuffAttackAdd').addEventListener('input', e => b.selfBuffAttackAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-selfBuffCritAdd').addEventListener('input', e => b.selfBuffCritAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-selfChainEnhanceAdd').addEventListener('input', e => b.selfChainEnhanceAdd = Number(e.target.value) || 0);
     row.querySelector('.f-allyAttackAdd').addEventListener('input', e => b.allyBuffAdd.attackBuffPercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyCritAdd').addEventListener('input', e => b.allyBuffAdd.critRateBuffPercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyEnhanceAdd').addEventListener('input', e => b.allyBuffAdd.enhancePercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyElementAdd').addEventListener('input', e => b.allyBuffAdd.elementBoostPercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyChainAdd').addEventListener('input', e => b.allyBuffAdd.chainDamageIncreasePercent = Number(e.target.value) || 0);
+    row.querySelector('.f-allyChainEnhanceAdd').addEventListener('input', e => b.allyBuffAdd.chainEnhance = Number(e.target.value) || 0);
   });
 
   block.querySelectorAll('[data-potential-idx]').forEach(row => {
@@ -509,11 +611,15 @@ function bindSkillBlockEvents(s) {
     row.querySelector('.f-enhanceAdd').addEventListener('input', e => p.enhanceAdd = Number(e.target.value) || 0);
     row.querySelector('.f-elementBoostAdd').addEventListener('input', e => p.elementBoostAdd = Number(e.target.value) || 0);
     row.querySelector('.f-chainDamageIncreaseAdd').addEventListener('input', e => p.chainDamageIncreaseAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-selfBuffAttackAdd').addEventListener('input', e => p.selfBuffAttackAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-selfBuffCritAdd').addEventListener('input', e => p.selfBuffCritAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-selfChainEnhanceAdd').addEventListener('input', e => p.selfChainEnhanceAdd = Number(e.target.value) || 0);
     row.querySelector('.f-allyAttackAdd').addEventListener('input', e => p.allyBuffAdd.attackBuffPercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyCritAdd').addEventListener('input', e => p.allyBuffAdd.critRateBuffPercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyEnhanceAdd').addEventListener('input', e => p.allyBuffAdd.enhancePercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyElementAdd').addEventListener('input', e => p.allyBuffAdd.elementBoostPercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyChainAdd').addEventListener('input', e => p.allyBuffAdd.chainDamageIncreasePercent = Number(e.target.value) || 0);
+    row.querySelector('.f-allyChainEnhanceAdd').addEventListener('input', e => p.allyBuffAdd.chainEnhance = Number(e.target.value) || 0);
   });
 }
 
@@ -571,14 +677,19 @@ function getEffectiveLevel(skill, copies, burst, selectedPotentialIdxs) {
     enhance: addBonus(base.enhance, sumField('enhanceAdd')),
     elementBoost: addBonus(base.elementBoost, sumField('elementBoostAdd')),
     chainDamageIncrease: addBonus(base.chainDamageIncrease, sumField('chainDamageIncreaseAdd')),
-    selfBuff: base.selfBuff,
     otherAdjustment: base.otherAdjustment || 0,
+    selfBuff: {
+      attackBuffPercent: addBonus(base.selfBuff.attackBuffPercent, sumField('selfBuffAttackAdd')),
+      critRateBuffPercent: addBonus(base.selfBuff.critRateBuffPercent, sumField('selfBuffCritAdd'))
+    },
+    selfChainEnhance: (base.selfBuff.chainEnhance || 0) + sumField('selfChainEnhanceAdd'),
     allyBuff: base.allyBuff ? {
       attackBuffPercent: (base.allyBuff.attackBuffPercent || 0) + sumAllyField('attackBuffPercent'),
       critRateBuffPercent: (base.allyBuff.critRateBuffPercent || 0) + sumAllyField('critRateBuffPercent'),
       enhancePercent: (base.allyBuff.enhancePercent || 0) + sumAllyField('enhancePercent'),
       elementBoostPercent: (base.allyBuff.elementBoostPercent || 0) + sumAllyField('elementBoostPercent'),
-      chainDamageIncreasePercent: (base.allyBuff.chainDamageIncreasePercent || 0) + sumAllyField('chainDamageIncreasePercent')
+      chainDamageIncreasePercent: (base.allyBuff.chainDamageIncreasePercent || 0) + sumAllyField('chainDamageIncreasePercent'),
+      chainEnhance: (base.allyBuff.chainEnhance || 0) + sumAllyField('chainEnhance')
     } : null
   };
 }
@@ -603,12 +714,13 @@ function sumAllyBuffs(list) {
     acc.enhancePercent += b.enhancePercent || 0;
     acc.elementBoostPercent += b.elementBoostPercent || 0;
     acc.chainDamageIncreasePercent += b.chainDamageIncreasePercent || 0;
+    acc.chainEnhance += b.chainEnhance || 0;
     return acc;
-  }, { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0 });
+  }, { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0, chainEnhance: 0 });
 }
 
 // skill: スキル本体, level: getEffectiveLevel()の結果, inputStats: 都度入力ステータス
-// battleBuffs: selfBuff以外(バフキャラ合算＋ボスから貰えるバフ)を合算したオブジェクト
+// battleBuffs: selfBuff以外(バフキャラ合算＋ボスから貰えるバフ)を合算したオブジェクト(chainEnhance含む)
 // boss: { totalHP } (計算スロット内で都度入力。enemyTotalHP参照スキルの時のみ使用)
 // part: このスロットで都度入力する部位(defense等は{from,value}配列, startingChainCountも部位ごとに都度入力)
 function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
@@ -618,6 +730,9 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
   const totalCritRate = (Number(inputStats.critRate) || 0) + battleBuffs.critRateBuffPercent;
   const overCap = Math.max(0, totalCritRate - 100);
   const critDmg = (Number(inputStats.critDamage) || 0) + overCap * 6;
+
+  // チェイン強化: 1回の攻撃で本来+1のところ、+(1+チェイン強化)チェイン貯まるようになる
+  const chainIncrementPerHit = 1 + (level.selfChainEnhance || 0) + (battleBuffs.chainEnhance || 0);
 
   let general = 0, fixed = 0, pure = 0;
 
@@ -631,7 +746,9 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
     const elementVuln = getValue(part.elementVulnerability, hit);
     const elementBoost = battleBuffs.elementBoostPercent + getValue(level.elementBoost, hit);
     const chainAdd = battleBuffs.chainDamageIncreasePercent + getValue(level.chainDamageIncrease, hit);
-    const chainCount = (part.startingChainCount || 0) + hit;
+    // このヒット時点のチェイン数 = 開始チェイン数 + 「これまでの」ヒットで積み上がった分
+    // (このヒット自体で貯まる分は、このヒットのバフには反映されない=次のヒットから反映)
+    const chainCount = (part.startingChainCount || 0) + (hit - 1) * chainIncrementPerHit;
     const weakSpot = part.weakSpot;
     const mainTargetMult = part.isMainTarget ? (1 + (skill.mainTargetBonus || 0) / 100) : 1;
     const otherMult = 1 + (level.otherAdjustment || 0) / 100;
@@ -766,10 +883,10 @@ function addSlot(snapshot) {
       <div class="formField"><label>増強%</label><input type="number" class="f-bossBuffEnhance" value="0"></div>
       <div class="formField"><label>属性強化%</label><input type="number" class="f-bossBuffElement" value="0"></div>
       <div class="formField"><label>チェイン増加%</label><input type="number" class="f-bossBuffChain" value="0"></div>
+      <div class="formField"><label>チェイン強化</label><input type="number" class="f-bossBuffChainEnhance" value="0"></div>
     </div>
 
     <h3>対象ボス・部位(都度入力)</h3>
-    <div class="formField"><label>ボス名(保存時のラベル用)</label><input type="text" class="f-bossName" placeholder="例: ○○ギルドレイドボス"></div>
     <div class="f-partsArea"></div>
     <button class="small f-addPart" type="button">+ 部位を追加</button>
 
@@ -879,14 +996,26 @@ function renderSkillInfo(el) {
   const burst = Number(el.querySelector('.f-slotBurst').value);
   const potentialIdxs = getSelectedPotentialIdxs(el);
   const level = getEffectiveLevel(cur.skill, copies, burst, potentialIdxs);
-  const mult1 = getValue(level.skillMultiplier, 1);
-  const enh1 = getValue(level.enhance, 1);
-  const elem1 = getValue(level.elementBoost, 1);
-  const chain1 = getValue(level.chainDamageIncrease, 1);
+
+  const items = [
+    { label: '攻撃回数', value: level.maxHits, unit: '回', alwaysShow: true },
+    { label: 'スキル倍率(1回目)', value: getValue(level.skillMultiplier, 1), unit: '%', alwaysShow: true },
+    { label: '増強', value: getValue(level.enhance, 1), unit: '%' },
+    { label: '属性強化', value: getValue(level.elementBoost, 1), unit: '%' },
+    { label: 'チェイン増加', value: getValue(level.chainDamageIncrease, 1), unit: '%' },
+    { label: 'メインターゲット', value: cur.skill.mainTargetBonus || 0, unit: '%' },
+    { label: 'その他補正', value: level.otherAdjustment || 0, unit: '%' },
+    { label: '自己バフ:攻撃', value: getValue(level.selfBuff.attackBuffPercent, 1), unit: '%' },
+    { label: '自己バフ:クリ率', value: getValue(level.selfBuff.critRateBuffPercent, 1), unit: '%' },
+    { label: '自己バフ:チェイン強化', value: level.selfChainEnhance || 0, unit: '' }
+  ];
+  const line = items.filter(it => it.alwaysShow || it.value !== 0)
+    .map(it => `${it.label}: ${it.value}${it.unit}`).join(' / ');
+
   const descs = potentialIdxs.map(i => cur.skill.potentials[i]?.description).filter(Boolean);
   box.style.display = 'block';
   box.innerHTML = `<strong>${escapeHtml(cur.skill.skillName)}</strong>(${copies}凸${burst}バースト${potentialIdxs.length ? '・潜在力' + potentialIdxs.map(i=>i+1).join(',') : ''})<br>
-    攻撃回数: ${level.maxHits}回 / スキル倍率(1回目): ${mult1}% / 増強: ${enh1}% / 属性強化: ${elem1}% / チェイン増加: ${chain1}% / メインターゲット+${cur.skill.mainTargetBonus || 0}%
+    ${line}
     ${descs.length ? `<div class="detail">潜在力の効果: ${descs.map(escapeHtml).join(' / ')}</div>` : ''}`;
 }
 
@@ -978,14 +1107,16 @@ function runSlotCalc(el) {
     critRateBuffPercent: Number(el.querySelector('.f-bossBuffCrit').value) || 0,
     enhancePercent: Number(el.querySelector('.f-bossBuffEnhance').value) || 0,
     elementBoostPercent: Number(el.querySelector('.f-bossBuffElement').value) || 0,
-    chainDamageIncreasePercent: Number(el.querySelector('.f-bossBuffChain').value) || 0
+    chainDamageIncreasePercent: Number(el.querySelector('.f-bossBuffChain').value) || 0,
+    chainEnhance: Number(el.querySelector('.f-bossBuffChainEnhance').value) || 0
   };
   const battleBuffs = {
     attackBuffPercent: buffSum.attackBuffPercent + bossBuff.attackBuffPercent,
     critRateBuffPercent: buffSum.critRateBuffPercent + bossBuff.critRateBuffPercent,
     enhancePercent: buffSum.enhancePercent + bossBuff.enhancePercent,
     elementBoostPercent: buffSum.elementBoostPercent + bossBuff.elementBoostPercent,
-    chainDamageIncreasePercent: buffSum.chainDamageIncreasePercent + bossBuff.chainDamageIncreasePercent
+    chainDamageIncreasePercent: buffSum.chainDamageIncreasePercent + bossBuff.chainDamageIncreasePercent,
+    chainEnhance: buffSum.chainEnhance + bossBuff.chainEnhance
   };
 
   const results = el._parts.map(part => {
@@ -1011,15 +1142,14 @@ function runSlotCalc(el) {
 async function saveSlotResult(el) {
   const statusEl = el.querySelector('.f-saveStatus');
   const cur = currentSlotSkill(el);
-  const bossName = el.querySelector('.f-bossName').value.trim() || '(ボス名未入力)';
   if (!cur || !el._lastResult) {
     statusEl.className = 'status err'; statusEl.textContent = '先に「計算する」を実行してください。'; return;
   }
   const label = el.querySelector('.f-saveLabel').value.trim() || `${cur.character.name} - ${cur.skill.skillName}`;
-  const inputSnapshot = buildSnapshot(el, cur, bossName);
+  const inputSnapshot = buildSnapshot(el, cur);
   try {
     await addDoc(resultsCol, {
-      label, bossName, characterName: cur.character.name, skillName: cur.skill.skillName,
+      label, characterName: cur.character.name, skillName: cur.skill.skillName,
       result: el._lastResult.results, inputSnapshot,
       savedBy: operatorName, savedAt: new Date().toISOString()
     });
@@ -1031,7 +1161,7 @@ async function saveSlotResult(el) {
   }
 }
 
-function buildSnapshot(el, cur, bossName) {
+function buildSnapshot(el, cur) {
   const inputStats = {};
   el.querySelectorAll('[class^="f-stat-"]').forEach(inp => {
     const statName = inp.className.replace('f-stat-', '').split(' ')[0];
@@ -1066,9 +1196,9 @@ function buildSnapshot(el, cur, bossName) {
       critRateBuffPercent: Number(el.querySelector('.f-bossBuffCrit').value) || 0,
       enhancePercent: Number(el.querySelector('.f-bossBuffEnhance').value) || 0,
       elementBoostPercent: Number(el.querySelector('.f-bossBuffElement').value) || 0,
-      chainDamageIncreasePercent: Number(el.querySelector('.f-bossBuffChain').value) || 0
+      chainDamageIncreasePercent: Number(el.querySelector('.f-bossBuffChain').value) || 0,
+      chainEnhance: Number(el.querySelector('.f-bossBuffChainEnhance').value) || 0
     },
-    bossName,
     parts: el._parts.map(({ _uid, ...rest }) => rest)
   };
 }
@@ -1101,7 +1231,7 @@ function applySnapshotToSlot(el, snap) {
   el.querySelector('.f-bossBuffEnhance').value = snap.bossBuff.enhancePercent;
   el.querySelector('.f-bossBuffElement').value = snap.bossBuff.elementBoostPercent;
   el.querySelector('.f-bossBuffChain').value = snap.bossBuff.chainDamageIncreasePercent;
-  el.querySelector('.f-bossName').value = snap.bossName || '';
+  el.querySelector('.f-bossBuffChainEnhance').value = snap.bossBuff.chainEnhance || 0;
   el._parts = (snap.parts || []).map(p => ({ ...p, _uid: uid() }));
   renderSlotParts(el);
   (snap.selectedBuffs || []).forEach(sb => {
@@ -1144,10 +1274,10 @@ async function loadResults() {
 }
 
 function renderResults(list) {
-  const bossFilter = document.getElementById('resultFilterBoss').value.trim();
+  const labelFilter = document.getElementById('resultFilterBoss').value.trim();
   const charFilter = document.getElementById('resultFilterChar').value.trim();
   const filtered = list.filter(r =>
-    (!bossFilter || r.bossName.includes(bossFilter)) &&
+    (!labelFilter || r.label.includes(labelFilter)) &&
     (!charFilter || r.characterName.includes(charFilter))
   ).sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
 
@@ -1158,7 +1288,7 @@ function renderResults(list) {
     const canDelete = (route === 'main' && r.savedBy === operatorName) || isAdmin;
     const best = (r.result || []).reduce((max, cur) => cur.general > (max?.general || 0) ? cur : max, null);
     return `<div class="resultCard">
-      <div><strong>${escapeHtml(r.label)}</strong>　<span class="detail">${escapeHtml(r.bossName)} / ${escapeHtml(r.characterName)} - ${escapeHtml(r.skillName)}</span></div>
+      <div><strong>${escapeHtml(r.label)}</strong>　<span class="detail">${escapeHtml(r.characterName)} - ${escapeHtml(r.skillName)}</span></div>
       <div class="detail">保存者: ${escapeHtml(r.savedBy)} / ${new Date(r.savedAt).toLocaleString('ja-JP')}</div>
       ${best ? `<div class="detail">最大一般ダメージ部位: ${escapeHtml(best.partName)} (${best.general.toLocaleString()})</div>` : ''}
       <div style="margin-top:6px;">

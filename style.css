@@ -1,11 +1,16 @@
 :root {
     --bg: #1a3050;
     --bg-card: #253F60;
+    --bg-card-alt: #213a58;
+    --bg-sub: #1a3050;
     --gold: #D8B35D;
     --gold-soft: #e8cd8f;
     --text: #F3F5F8;
     --text-dim: #B9C6D6;
+    --input-bg: #F2F3F5;
+    --input-text: #223247;
     --border: #3E5B80;
+    --err: #FF6B81;
   }
   body {
     font-family: -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
@@ -27,6 +32,58 @@
     text-transform: uppercase; font-weight: 600; text-align: center;
   }
   .sub { color: var(--text-dim); font-size: 14px; text-align: center; margin: 16px 0 36px; }
+
+  /* ---- ログイン画面(2経路) ---- */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  .card h2 { font-size: 16px; margin-top: 0; color: var(--gold); }
+  .card h3 { font-size: 14px; margin: 0 0 8px; color: var(--gold-soft); }
+  .accessOption {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: var(--bg-sub);
+  }
+  .accessOption:last-child { margin-bottom: 0; }
+  .note { background: rgba(216,179,93,0.12); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--gold-soft); margin-bottom: 8px; }
+  label { display: block; font-size: 12px; color: var(--text-dim); margin: 6px 0 3px; }
+  .formField { max-width: 320px; margin-bottom: 8px; }
+  .formField label { margin: 0 0 3px; }
+  .formField input { margin: 0; }
+  input[type=text], input[type=password], select {
+    box-sizing: border-box; padding: 6px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px; width: 100%;
+    background: var(--input-bg); color: var(--input-text);
+  }
+  button {
+    padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;
+    border: 1px solid var(--gold); background: transparent; color: var(--gold-soft); white-space: nowrap;
+  }
+  button:hover:not(:disabled) { background: rgba(216,179,93,0.15); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.primary { background: var(--gold); color: #22314a; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--gold-soft); }
+  button.small { padding: 3px 8px; font-size: 12px; margin-left: 4px; }
+  .status { font-size: 13px; margin-top: 6px; }
+  .status.ok { color: #8fd3a5; }
+  .status.err { color: var(--err); font-weight: 600; }
+  .detail { font-size: 11px; color: var(--text-dim); display: block; }
+
+  .topBar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--bg-card-alt); border: 1px solid var(--gold); border-radius: 8px;
+    padding: 8px 12px; margin-bottom: 20px;
+  }
+  .routeNote { font-size: 13px; color: var(--gold-soft); font-weight: 600; }
+
+  /* ---- ツール一覧 ---- */
   .tools {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

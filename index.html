@@ -15,31 +15,72 @@
     <h1>BrownDust Ⅱ Calme Guild Tool</h1>
   </div>
   <div class="subtitle">Guild Utility Suite</div>
-  <div class="sub">ギルド運営に役立つツール集です。使いたいツールを選んでください。</div>
+  <div class="sub">ギルド運営に役立つツール集です。ログイン後、使いたいツールを選んでください。</div>
 
-  <div class="tools">
-    <a class="tool-card" href="equipment/index.html">
-      <div class="tool-name">Ace Characters Database</div>
-      <div class="tool-desc">オーバーキルスコアを目指せるキャラクターを、ギルドメンバーが自分で登録・共有できる管理ツールです。</div>
-    </a>
+  <!-- ログイン(2経路) -->
+  <div id="loginScreen" class="card">
+    <h2>アクセス方法を選択してください</h2>
 
-    <a class="tool-card" href="gold-farming/index.html">
-      <div class="tool-name">Gold Farming Guide</div>
-      <div class="tool-desc">商店と料理スキルを利用した金策についての解説を載せています。</div>
-    </a>
-
-    <div class="tool-card disabled">
-      <div class="tool-name">Skill Damage Calculator</div>
-      <div class="tool-desc">ギルドレイドボス等を対象に、キャラ・スキル単位でダメージを計算できるツールです。</div>
-      <span class="tool-status">現在作成作業中</span>
+    <div class="accessOption">
+      <h3>メインギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">運営者から発行されたIDとパスワードでログインしてください。</div>
+      <div class="formField">
+        <label>ID</label>
+        <input type="text" id="loginId" placeholder="例: taro">
+      </div>
+      <div class="formField">
+        <label>パスワード</label>
+        <input type="password" id="loginPassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="loginBtn">ログイン</button>
+      <div id="loginStatus" class="status"></div>
     </div>
 
-    <div class="tool-card disabled">
-      <div class="tool-name">(準備中)</div>
-      <div class="tool-desc">今後もツールを追加していく予定です。</div>
-      <span class="tool-status">Coming soon</span>
+    <div class="accessOption">
+      <h3>サブギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">ギルド内で共有されている共通パスワードを入力してください。</div>
+      <div class="formField">
+        <label>共通パスワード</label>
+        <input type="password" id="gatePassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="gateBtn">利用する</button>
+      <div id="gateStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- ログイン後: ツール一覧 -->
+  <div id="mainContent" style="display:none;">
+    <div class="topBar">
+      <span class="routeNote" id="routeNote"></span>
+      <button class="small" id="logoutBtn" style="margin-left:auto;">ログアウト</button>
+    </div>
+
+    <div class="tools">
+      <a class="tool-card" id="cardEquipment" href="equipment/index.html">
+        <div class="tool-name">Ace Characters Database</div>
+        <div class="tool-desc">オーバーキルスコアを目指せるキャラクターを、ギルドメンバーが自分で登録・共有できる管理ツールです。</div>
+      </a>
+
+      <a class="tool-card" href="gold-farming/index.html">
+        <div class="tool-name">Gold Farming Guide</div>
+        <div class="tool-desc">商店と料理スキルを利用した金策についての解説を載せています。</div>
+      </a>
+
+      <div class="tool-card disabled">
+        <div class="tool-name">Skill Damage Calculator</div>
+        <div class="tool-desc">ギルドレイドボス等を対象に、キャラ・スキル単位でダメージを計算できるツールです。</div>
+        <span class="tool-status">現在作成作業中</span>
+      </div>
+
+      <div class="tool-card disabled">
+        <div class="tool-name">(準備中)</div>
+        <div class="tool-desc">今後もツールを追加していく予定です。</div>
+        <span class="tool-status">Coming soon</span>
+      </div>
     </div>
   </div>
 </div>
+
+<script type="module" src="app.js"></script>
 </body>
 </html>

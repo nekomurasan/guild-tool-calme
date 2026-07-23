@@ -32,7 +32,7 @@ function logAccessOnce(method) {
 }
 
 const PRIORITY_LEVELS = ["★", "★★", "★★★", "★★★★", "★★★★★", "★★★★★★"];
-const SESSION_KEY = 'gfg_pw_unlocked';
+const SESSION_KEY = 'calmeguild_sub_unlocked'; // ポータル・damage-calcと共通のキー名(どこで解錠しても他ページに引き継がれる)
 
 let isAdmin = false;
 let editModeOn = false;
