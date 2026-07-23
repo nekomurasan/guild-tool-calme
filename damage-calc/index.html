@@ -59,13 +59,12 @@
     <div class="tabs">
       <div class="tab active" data-tab="calc">計算</div>
       <div class="tab" data-tab="charReg">キャラ登録</div>
-      <div class="tab" data-tab="bossReg">ボス登録</div>
       <div class="tab" data-tab="results">保存済み結果</div>
     </div>
 
     <!-- 計算タブ -->
     <div id="calc" class="tabPanel">
-      <div class="note">キャラ・スキル・凸/バーストを選び、ステータスとバフを入力して計算します。複数のスロットを並べて別スキルと比較できます。</div>
+      <div class="note">キャラ・スキル・凸/バーストを選び、ステータスとバフ、対象部位を入力して計算します。複数のスロットを並べて別スキルと比較できます。</div>
       <div id="slotsArea"></div>
       <button class="primary" id="addSlotBtn">+ 計算スロットを追加</button>
     </div>
@@ -93,38 +92,6 @@
           <button id="newCharFormBtn">新規登録フォームに戻す</button>
         </div>
         <div id="charSaveStatus" class="status"></div>
-      </div>
-    </div>
-
-    <!-- ボス登録タブ -->
-    <div id="bossReg" class="tabPanel" style="display:none;">
-      <div class="card">
-        <h2>登録済みボス一覧(閲覧専用)</h2>
-        <div id="bossListArea"><div class="empty">読み込み中...</div></div>
-      </div>
-      <div class="card" id="bossEditCard">
-        <h2 id="bossEditTitle">ボスを新規登録</h2>
-        <div class="rowFields">
-          <div class="formField">
-            <label>ボス名</label>
-            <input type="text" id="bossName" placeholder="例: ○○ギルドレイドボス">
-          </div>
-          <div class="formField">
-            <label>ボス全体HP</label>
-            <div style="display:flex; gap:6px;">
-              <input type="number" id="bossTotalHP" placeholder="例: 32000">
-              <button class="small" id="bossHpCapBtn" type="button">5万超え</button>
-            </div>
-          </div>
-        </div>
-        <div id="partsArea"></div>
-        <button id="addPartBtn">+ 部位を追加</button>
-        <div style="margin-top:12px;">
-          <button class="primary" id="saveBossBtn">この内容で保存する</button>
-          <button class="danger" id="deleteBossBtn" style="display:none;">このボスを削除する</button>
-          <button id="newBossFormBtn">新規登録フォームに戻す</button>
-        </div>
-        <div id="bossSaveStatus" class="status"></div>
       </div>
     </div>
 

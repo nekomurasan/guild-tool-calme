@@ -22,7 +22,6 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const charactersCol = collection(db, "damageCalcCharacters");
-const bossesCol = collection(db, "damageCalcBosses");
 const resultsCol = collection(db, "damageCalcResults");
 const writeLogsCol = collection(db, "damageCalcWriteLogs");
 const adminsCol = collection(db, "admins");
@@ -51,9 +50,8 @@ let route = null;        // 'main' | 'sub'
 let isAdmin = false;
 let operatorName = '';   // メインギルドの場合、userLinksから解決される表示名
 
-// キャッシュ
+// キャッシュ(キャラのみ。ボスは登録機能を廃止し、計算スロット内で都度入力する)
 let charactersCache = []; // [{id, name, skills:[...]}]
-let bossesCache = [];     // [{id, name, totalHP, parts:[...]}]
 
 // ------------------------------------------------------------------
 // 書き込みログ(14章)
@@ -151,17 +149,16 @@ onAuthStateChanged(auth, async (user) => {
 async function enterApp() {
   showMainContent();
   document.getElementById('routeNote').textContent = route === 'main'
-    ? `メインギルドとしてログイン中(${operatorName}${isAdmin ? ' / 管理者' : ''})`
-    : 'サブギルドとして利用中';
+    ? `メインギルドメンバーとしてログイン中(${operatorName}${isAdmin ? ' / 管理者' : ''})`
+    : 'サブギルドメンバーとして利用中';
   document.getElementById('charAdminOnlyNote').style.display = isAdmin ? 'none' : 'block';
   document.getElementById('deleteCharBtn').style.display = 'none';
   document.getElementById('saveCharBtn').disabled = !isAdmin;
   document.getElementById('addSkillBtn').disabled = !isAdmin;
   document.getElementById('connNote').textContent = '読み込み中...';
-  await Promise.all([loadCharacters(), loadBosses()]);
+  await loadCharacters();
   document.getElementById('connNote').textContent = '';
   renderCharList();
-  renderBossList();
   if (document.getElementById('slotsArea').children.length === 0) addSlot();
   loadResults();
 }
@@ -251,6 +248,12 @@ function blankBurst(burst) {
     allyBuffAdd: { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0 }
   };
 }
+function blankPotential() {
+  return {
+    description: '', maxHitsAdd: 0, skillMultiplierAdd: 0, enhanceAdd: 0, elementBoostAdd: 0, chainDamageIncreaseAdd: 0,
+    allyBuffAdd: { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0 }
+  };
+}
 function blankSkill() {
   return {
     _uid: uid(),
@@ -261,7 +264,8 @@ function blankSkill() {
     referenceFormula: [{ stat: 'attack', cap: null, coefficient: 100 }],
     mainTargetBonus: 0,
     copiesLevels: [0, 1, 2, 3, 4, 5].map(blankLevel),
-    burstBonus: [0, 1, 2, 3].map(blankBurst)
+    burstBonus: [0, 1, 2, 3].map(blankBurst),
+    potentials: [0, 1, 2].map(blankPotential)
   };
 }
 
@@ -340,10 +344,14 @@ function skillBlockHtml(s) {
 
       <h3>バースト(0〜3)ごとの加算値</h3>
       <div class="table-wrap">${burstGridHtml(s)}</div>
+
+      <h3>潜在力(最大3枠・取得順は自由)</h3>
+      <div class="gridHint">各潜在力は個別にON/OFFできます(計算時に自由に選択)。ダメージに関係ない効果(例: 効果時間+1ターン)は「説明」欄にだけ書けばOKです。</div>
+      <div class="table-wrap">${potentialsGridHtml(s)}</div>
     </div>
 
     <div class="allyFields" ${allyFieldsDisplay}>
-      <div class="detail">味方への配布バフ数値も、凸/バーストのグリッド内(バフ列)にまとめて入力してください。</div>
+      <div class="detail">味方への配布バフ数値も、凸/バースト/潜在力のグリッド内(バフ列)にまとめて入力してください。</div>
     </div>
   </div>`;
 }
@@ -398,6 +406,28 @@ function burstGridHtml(s) {
       <td><input type="number" class="f-allyEnhanceAdd" value="${b.allyBuffAdd.enhancePercent || 0}"></td>
       <td><input type="number" class="f-allyElementAdd" value="${b.allyBuffAdd.elementBoostPercent || 0}"></td>
       <td><input type="number" class="f-allyChainAdd" value="${b.allyBuffAdd.chainDamageIncreasePercent || 0}"></td>
+    </tr>`;
+  });
+  return html + '</table>';
+}
+
+function potentialsGridHtml(s) {
+  let html = '<table class="gridTable"><tr><th>潜在力</th><th>説明(自由記述)</th><th>攻撃回数+</th><th>スキル倍率+%</th><th>増強+%</th><th>属性強化+%</th><th>チェイン増加+%</th>' +
+    '<th>配布:攻撃+%</th><th>配布:クリ率+%</th><th>配布:増強+%</th><th>配布:属性強化+%</th><th>配布:チェイン増加+%</th></tr>';
+  s.potentials.forEach((p, i) => {
+    html += `<tr data-potential-idx="${i}">
+      <td>潜在力${i + 1}</td>
+      <td><input type="text" class="f-potentialDesc" value="${escapeHtml(p.description || '')}" placeholder="例: 効果時間+1ターン" style="width:140px;"></td>
+      <td><input type="number" class="f-maxHitsAdd" value="${p.maxHitsAdd || 0}"></td>
+      <td><input type="number" class="f-skillMultiplierAdd" value="${p.skillMultiplierAdd || 0}"></td>
+      <td><input type="number" class="f-enhanceAdd" value="${p.enhanceAdd || 0}"></td>
+      <td><input type="number" class="f-elementBoostAdd" value="${p.elementBoostAdd || 0}"></td>
+      <td><input type="number" class="f-chainDamageIncreaseAdd" value="${p.chainDamageIncreaseAdd || 0}"></td>
+      <td><input type="number" class="f-allyAttackAdd" value="${p.allyBuffAdd.attackBuffPercent || 0}"></td>
+      <td><input type="number" class="f-allyCritAdd" value="${p.allyBuffAdd.critRateBuffPercent || 0}"></td>
+      <td><input type="number" class="f-allyEnhanceAdd" value="${p.allyBuffAdd.enhancePercent || 0}"></td>
+      <td><input type="number" class="f-allyElementAdd" value="${p.allyBuffAdd.elementBoostPercent || 0}"></td>
+      <td><input type="number" class="f-allyChainAdd" value="${p.allyBuffAdd.chainDamageIncreasePercent || 0}"></td>
     </tr>`;
   });
   return html + '</table>';
@@ -469,6 +499,22 @@ function bindSkillBlockEvents(s) {
     row.querySelector('.f-allyElementAdd').addEventListener('input', e => b.allyBuffAdd.elementBoostPercent = Number(e.target.value) || 0);
     row.querySelector('.f-allyChainAdd').addEventListener('input', e => b.allyBuffAdd.chainDamageIncreasePercent = Number(e.target.value) || 0);
   });
+
+  block.querySelectorAll('[data-potential-idx]').forEach(row => {
+    const idx = Number(row.dataset.potentialIdx);
+    const p = s.potentials[idx];
+    row.querySelector('.f-potentialDesc').addEventListener('input', e => p.description = e.target.value);
+    row.querySelector('.f-maxHitsAdd').addEventListener('input', e => p.maxHitsAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-skillMultiplierAdd').addEventListener('input', e => p.skillMultiplierAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-enhanceAdd').addEventListener('input', e => p.enhanceAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-elementBoostAdd').addEventListener('input', e => p.elementBoostAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-chainDamageIncreaseAdd').addEventListener('input', e => p.chainDamageIncreaseAdd = Number(e.target.value) || 0);
+    row.querySelector('.f-allyAttackAdd').addEventListener('input', e => p.allyBuffAdd.attackBuffPercent = Number(e.target.value) || 0);
+    row.querySelector('.f-allyCritAdd').addEventListener('input', e => p.allyBuffAdd.critRateBuffPercent = Number(e.target.value) || 0);
+    row.querySelector('.f-allyEnhanceAdd').addEventListener('input', e => p.allyBuffAdd.enhancePercent = Number(e.target.value) || 0);
+    row.querySelector('.f-allyElementAdd').addEventListener('input', e => p.allyBuffAdd.elementBoostPercent = Number(e.target.value) || 0);
+    row.querySelector('.f-allyChainAdd').addEventListener('input', e => p.allyBuffAdd.chainDamageIncreasePercent = Number(e.target.value) || 0);
+  });
 }
 
 document.getElementById('saveCharBtn').addEventListener('click', async () => {
@@ -508,187 +554,37 @@ document.getElementById('deleteCharBtn').addEventListener('click', async () => {
 });
 
 // ==================================================================
-// 6章: ボスデータ / ボス登録タブ
-// ==================================================================
-async function loadBosses() {
-  try {
-    const snap = await getDocs(bossesCol);
-    bossesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) {
-    bossesCache = [];
-  }
-}
-
-function renderBossList() {
-  const area = document.getElementById('bossListArea');
-  if (!bossesCache.length) { area.innerHTML = '<div class="empty">まだ登録がありません。</div>'; return; }
-  let html = '<div class="table-wrap"><table><tr><th>ボス名</th><th>全体HP</th><th>部位数</th><th></th></tr>';
-  bossesCache.forEach(b => {
-    html += `<tr><td>${escapeHtml(b.name)}</td><td>${b.totalHP}</td><td>${(b.parts || []).length}</td>
-      <td><button class="small" data-edit-boss="${b.id}">編集する</button></td></tr>`;
-  });
-  html += '</table></div>';
-  area.innerHTML = html;
-  area.querySelectorAll('[data-edit-boss]').forEach(btn => {
-    btn.addEventListener('click', () => loadBossIntoForm(btn.dataset.editBoss));
-  });
-}
-
-let currentEditBossId = null;
-let partDraftList = [];
-
-function blankPart() {
-  return {
-    _uid: uid(), name: '新しい部位', weakSpot: 100,
-    defense: [{ from: 1, value: 0 }], magicResist: [{ from: 1, value: 0 }],
-    vulnerability: [{ from: 1, value: 0 }], barrier: [{ from: 1, value: 0 }],
-    elementVulnerability: [{ from: 1, value: 0 }], isMainTarget: false
-  };
-}
-
-function loadBossIntoForm(bossId) {
-  const b = bossesCache.find(x => x.id === bossId);
-  if (!b) return;
-  currentEditBossId = bossId;
-  document.getElementById('bossEditTitle').textContent = `ボスを編集: ${b.name}`;
-  document.getElementById('bossName').value = b.name;
-  document.getElementById('bossTotalHP').value = b.totalHP;
-  partDraftList = JSON.parse(JSON.stringify(b.parts || [])).map(p => ({ ...p, _uid: uid() }));
-  renderPartsArea();
-  document.getElementById('deleteBossBtn').style.display = 'inline-block';
-}
-
-document.getElementById('newBossFormBtn').addEventListener('click', () => {
-  currentEditBossId = null;
-  document.getElementById('bossEditTitle').textContent = 'ボスを新規登録';
-  document.getElementById('bossName').value = '';
-  document.getElementById('bossTotalHP').value = '';
-  partDraftList = [];
-  renderPartsArea();
-  document.getElementById('deleteBossBtn').style.display = 'none';
-  document.getElementById('bossSaveStatus').textContent = '';
-});
-
-document.getElementById('bossHpCapBtn').addEventListener('click', () => {
-  document.getElementById('bossTotalHP').value = 50000;
-});
-
-document.getElementById('addPartBtn').addEventListener('click', () => {
-  partDraftList.push(blankPart());
-  renderPartsArea();
-});
-
-function renderPartsArea() {
-  const area = document.getElementById('partsArea');
-  if (!partDraftList.length) { area.innerHTML = '<div class="empty">部位を追加してください。</div>'; return; }
-  area.innerHTML = partDraftList.map(p => partBlockHtml(p)).join('');
-  partDraftList.forEach(p => bindPartBlockEvents(p));
-}
-
-function partBlockHtml(p) {
-  return `
-  <div class="partBlock" data-part="${p._uid}">
-    <div class="partHead">
-      <input type="text" class="f-partName" value="${escapeHtml(p.name)}" placeholder="部位名">
-      <label>弱点倍率(100+WEAK%)</label>
-      <input type="number" class="f-weakSpot" value="${p.weakSpot}" style="max-width:100px;">
-      <label class="checkLabel"><input type="radio" name="mainTargetRadio" class="f-isMainTarget" ${p.isMainTarget ? 'checked' : ''}> メインターゲット</label>
-      <button class="small danger f-removePart" type="button">部位を削除</button>
-    </div>
-    <div class="gridHint">各項目は「1:30,4:0」形式で「n回目の攻撃から値が変わる」を表現できます(バリアが途中で割れる等)</div>
-    <div class="rowFields">
-      <div class="formField"><label>物理防御%</label><input type="text" class="f-defense" value="${serializeIntervals(p.defense)}"></div>
-      <div class="formField"><label>魔法抵抗%</label><input type="text" class="f-magicResist" value="${serializeIntervals(p.magicResist)}"></div>
-      <div class="formField"><label>脆弱%</label><input type="text" class="f-vulnerability" value="${serializeIntervals(p.vulnerability)}"></div>
-      <div class="formField"><label>バリア%</label><input type="text" class="f-barrier" value="${serializeIntervals(p.barrier)}"></div>
-      <div class="formField"><label>属性脆弱%</label><input type="text" class="f-elementVulnerability" value="${serializeIntervals(p.elementVulnerability)}"></div>
-    </div>
-  </div>`;
-}
-
-function bindPartBlockEvents(p) {
-  const block = document.querySelector(`[data-part="${p._uid}"]`);
-  if (!block) return;
-  block.querySelector('.f-partName').addEventListener('input', e => p.name = e.target.value);
-  block.querySelector('.f-weakSpot').addEventListener('input', e => p.weakSpot = Number(e.target.value) || 0);
-  block.querySelector('.f-isMainTarget').addEventListener('change', () => {
-    partDraftList.forEach(x => x.isMainTarget = false);
-    p.isMainTarget = true;
-  });
-  block.querySelector('.f-removePart').addEventListener('click', () => {
-    partDraftList = partDraftList.filter(x => x._uid !== p._uid);
-    renderPartsArea();
-  });
-  block.querySelector('.f-defense').addEventListener('input', e => p.defense = parseIntervals(e.target.value));
-  block.querySelector('.f-magicResist').addEventListener('input', e => p.magicResist = parseIntervals(e.target.value));
-  block.querySelector('.f-vulnerability').addEventListener('input', e => p.vulnerability = parseIntervals(e.target.value));
-  block.querySelector('.f-barrier').addEventListener('input', e => p.barrier = parseIntervals(e.target.value));
-  block.querySelector('.f-elementVulnerability').addEventListener('input', e => p.elementVulnerability = parseIntervals(e.target.value));
-}
-
-document.getElementById('saveBossBtn').addEventListener('click', async () => {
-  const statusEl = document.getElementById('bossSaveStatus');
-  const name = document.getElementById('bossName').value.trim();
-  const totalHP = Number(document.getElementById('bossTotalHP').value) || 0;
-  if (!name) { statusEl.className = 'status err'; statusEl.textContent = 'ボス名を入力してください。'; return; }
-  if (!partDraftList.length) { statusEl.className = 'status err'; statusEl.textContent = '部位を最低1つ追加してください。'; return; }
-  const cleanParts = partDraftList.map(({ _uid, ...rest }) => rest);
-  const docId = currentEditBossId || name;
-  try {
-    await setDoc(doc(bossesCol, docId), {
-      name, totalHP, parts: cleanParts, updatedAt: new Date().toISOString()
-    });
-    logWrite('bossSave', name);
-    statusEl.className = 'status ok'; statusEl.textContent = '保存しました。';
-    currentEditBossId = docId;
-    await loadBosses();
-    renderBossList();
-  } catch (e) {
-    statusEl.className = 'status err'; statusEl.textContent = '保存に失敗しました: ' + e.message;
-  }
-});
-
-document.getElementById('deleteBossBtn').addEventListener('click', async () => {
-  if (!currentEditBossId) return;
-  if (!confirm('このボスを削除しますか？この操作は取り消せません。')) return;
-  try {
-    await deleteDoc(doc(bossesCol, currentEditBossId));
-    logWrite('bossDelete', document.getElementById('bossName').value);
-    document.getElementById('newBossFormBtn').click();
-    await loadBosses();
-    renderBossList();
-  } catch (e) {
-    alert('削除に失敗しました: ' + e.message);
-  }
-});
-
-// ==================================================================
 // 5・7・8・9章: 計算エンジン
 // ==================================================================
-function getEffectiveLevel(skill, copies, burst) {
+function getEffectiveLevel(skill, copies, burst, selectedPotentialIdxs) {
   const base = skill.copiesLevels.find(c => c.copies === copies);
   const bonus = skill.burstBonus.find(b => b.burst === burst);
+  const potentials = (selectedPotentialIdxs || []).map(i => skill.potentials[i]).filter(Boolean);
   const addBonus = (intervals, add) => (intervals || []).map(iv => ({ ...iv, value: iv.value + add }));
+
+  const sumField = (field) => (bonus[field] || 0) + potentials.reduce((s, p) => s + (p[field] || 0), 0);
+  const sumAllyField = (field) => (bonus.allyBuffAdd?.[field] || 0) + potentials.reduce((s, p) => s + (p.allyBuffAdd?.[field] || 0), 0);
+
   return {
-    maxHits: (base.maxHits || 1) + (bonus.maxHitsAdd || 0),
-    skillMultiplier: addBonus(base.skillMultiplier, bonus.skillMultiplierAdd),
-    enhance: addBonus(base.enhance, bonus.enhanceAdd),
-    elementBoost: addBonus(base.elementBoost, bonus.elementBoostAdd),
-    chainDamageIncrease: addBonus(base.chainDamageIncrease, bonus.chainDamageIncreaseAdd),
+    maxHits: (base.maxHits || 1) + sumField('maxHitsAdd'),
+    skillMultiplier: addBonus(base.skillMultiplier, sumField('skillMultiplierAdd')),
+    enhance: addBonus(base.enhance, sumField('enhanceAdd')),
+    elementBoost: addBonus(base.elementBoost, sumField('elementBoostAdd')),
+    chainDamageIncrease: addBonus(base.chainDamageIncrease, sumField('chainDamageIncreaseAdd')),
     selfBuff: base.selfBuff,
     otherAdjustment: base.otherAdjustment || 0,
     allyBuff: base.allyBuff ? {
-      attackBuffPercent: (base.allyBuff.attackBuffPercent || 0) + (bonus.allyBuffAdd?.attackBuffPercent || 0),
-      critRateBuffPercent: (base.allyBuff.critRateBuffPercent || 0) + (bonus.allyBuffAdd?.critRateBuffPercent || 0),
-      enhancePercent: (base.allyBuff.enhancePercent || 0) + (bonus.allyBuffAdd?.enhancePercent || 0),
-      elementBoostPercent: (base.allyBuff.elementBoostPercent || 0) + (bonus.allyBuffAdd?.elementBoostPercent || 0),
-      chainDamageIncreasePercent: (base.allyBuff.chainDamageIncreasePercent || 0) + (bonus.allyBuffAdd?.chainDamageIncreasePercent || 0)
+      attackBuffPercent: (base.allyBuff.attackBuffPercent || 0) + sumAllyField('attackBuffPercent'),
+      critRateBuffPercent: (base.allyBuff.critRateBuffPercent || 0) + sumAllyField('critRateBuffPercent'),
+      enhancePercent: (base.allyBuff.enhancePercent || 0) + sumAllyField('enhancePercent'),
+      elementBoostPercent: (base.allyBuff.elementBoostPercent || 0) + sumAllyField('elementBoostPercent'),
+      chainDamageIncreasePercent: (base.allyBuff.chainDamageIncreasePercent || 0) + sumAllyField('chainDamageIncreasePercent')
     } : null
   };
 }
 
 function getStatValue(stat, inputStats, boss) {
-  if (stat === 'enemyTotalHP') return Math.min(boss ? boss.totalHP : 0, 50000);
+  if (stat === 'enemyTotalHP') return Math.min(boss ? (Number(boss.totalHP) || 0) : 0, 50000);
   return Number(inputStats[stat]) || 0;
 }
 function getBaseValue(referenceFormula, inputStats, boss) {
@@ -713,7 +609,8 @@ function sumAllyBuffs(list) {
 
 // skill: スキル本体, level: getEffectiveLevel()の結果, inputStats: 都度入力ステータス
 // battleBuffs: selfBuff以外(バフキャラ合算＋ボスから貰えるバフ)を合算したオブジェクト
-// part: ボスの部位(defense等は{from,value}配列, startingChainCountは呼び出し側で都度入力)
+// boss: { totalHP } (計算スロット内で都度入力。enemyTotalHP参照スキルの時のみ使用)
+// part: このスロットで都度入力する部位(defense等は{from,value}配列, startingChainCountも部位ごとに都度入力)
 function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
   const base = getBaseValue(skill.referenceFormula, inputStats, boss);
   const isMagic = skill.damageType === 'magic';
@@ -768,12 +665,69 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
 }
 
 // ==================================================================
+// 部位の都度入力(計算スロット内で共通利用)
+// ==================================================================
+function blankPart() {
+  return {
+    _uid: uid(), name: '新しい部位', weakSpot: 100, startingChainCount: 0,
+    defense: [{ from: 1, value: 0 }], magicResist: [{ from: 1, value: 0 }],
+    vulnerability: [{ from: 1, value: 0 }], barrier: [{ from: 1, value: 0 }],
+    elementVulnerability: [{ from: 1, value: 0 }], isMainTarget: false
+  };
+}
+
+function partBlockHtml(p, radioGroupName) {
+  return `
+  <div class="partBlock" data-part="${p._uid}">
+    <div class="partHead">
+      <input type="text" class="f-partName" value="${escapeHtml(p.name)}" placeholder="部位名">
+      <label>弱点倍率(100+WEAK%)</label>
+      <input type="number" class="f-weakSpot" value="${p.weakSpot}" style="max-width:100px;">
+      <label>開始チェイン数</label>
+      <input type="number" class="f-startChain" value="${p.startingChainCount || 0}" style="max-width:80px;">
+      <label class="checkLabel"><input type="radio" name="${radioGroupName}" class="f-isMainTarget" ${p.isMainTarget ? 'checked' : ''}> メインターゲット</label>
+      <button class="small danger f-removePart" type="button">部位を削除</button>
+    </div>
+    <div class="gridHint">各項目は「1:30,4:0」形式で「n回目の攻撃から値が変わる」を表現できます(バリアが途中で割れる等)</div>
+    <div class="rowFields">
+      <div class="formField"><label>物理防御%</label><input type="text" class="f-defense" value="${serializeIntervals(p.defense)}"></div>
+      <div class="formField"><label>魔法抵抗%</label><input type="text" class="f-magicResist" value="${serializeIntervals(p.magicResist)}"></div>
+      <div class="formField"><label>脆弱%</label><input type="text" class="f-vulnerability" value="${serializeIntervals(p.vulnerability)}"></div>
+      <div class="formField"><label>バリア%</label><input type="text" class="f-barrier" value="${serializeIntervals(p.barrier)}"></div>
+      <div class="formField"><label>属性脆弱%</label><input type="text" class="f-elementVulnerability" value="${serializeIntervals(p.elementVulnerability)}"></div>
+    </div>
+  </div>`;
+}
+
+function bindPartBlockEvents(p, partList, rerender) {
+  const block = document.querySelector(`[data-part="${p._uid}"]`);
+  if (!block) return;
+  block.querySelector('.f-partName').addEventListener('input', e => p.name = e.target.value);
+  block.querySelector('.f-weakSpot').addEventListener('input', e => p.weakSpot = Number(e.target.value) || 0);
+  block.querySelector('.f-startChain').addEventListener('input', e => p.startingChainCount = Number(e.target.value) || 0);
+  block.querySelector('.f-isMainTarget').addEventListener('change', () => {
+    partList.forEach(x => x.isMainTarget = false);
+    p.isMainTarget = true;
+  });
+  block.querySelector('.f-removePart').addEventListener('click', () => {
+    const i = partList.findIndex(x => x._uid === p._uid);
+    if (i >= 0) partList.splice(i, 1);
+    rerender();
+  });
+  block.querySelector('.f-defense').addEventListener('input', e => p.defense = parseIntervals(e.target.value));
+  block.querySelector('.f-magicResist').addEventListener('input', e => p.magicResist = parseIntervals(e.target.value));
+  block.querySelector('.f-vulnerability').addEventListener('input', e => p.vulnerability = parseIntervals(e.target.value));
+  block.querySelector('.f-barrier').addEventListener('input', e => p.barrier = parseIntervals(e.target.value));
+  block.querySelector('.f-elementVulnerability').addEventListener('input', e => p.elementVulnerability = parseIntervals(e.target.value));
+}
+
+// ==================================================================
 // 7.5章: 計算タブ(スロットUI)
 // ==================================================================
 let slotCounter = 0;
 
 function statInputLabel(stat) {
-  return { attack: '攻撃力', magicAttack: '魔法力', selfMaxHP: '自身最大HP', energyGuard: 'エナジーガード', enemyTotalHP: '敵全体HP(ボスから自動取得)' }[stat] || stat;
+  return { attack: '攻撃力', magicAttack: '魔法力', selfMaxHP: '自身最大HP', energyGuard: 'エナジーガード' }[stat] || stat;
 }
 
 function addSlot(snapshot) {
@@ -782,6 +736,7 @@ function addSlot(snapshot) {
   const el = document.createElement('div');
   el.className = 'calcSlot';
   el.id = slotId;
+  el._parts = []; // このスロット固有の部位リスト(都度入力)
   el.innerHTML = `
     <div class="slotHead">
       <h3>計算スロット #${slotCounter}</h3>
@@ -793,6 +748,8 @@ function addSlot(snapshot) {
       <div class="formField"><label>凸</label><select class="f-slotCopies">${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n}凸</option>`).join('')}</select></div>
       <div class="formField"><label>バースト</label><select class="f-slotBurst">${[0,1,2,3].map(n=>`<option value="${n}">バースト${n}</option>`).join('')}</select></div>
     </div>
+    <div class="formField"><label>潜在力(取得済みのものだけチェック)</label><div class="f-potentialsArea buffList"></div></div>
+    <div class="f-skillInfo resultCard" style="display:none;"></div>
     <div class="f-referenceInputs rowFields"></div>
     <div class="rowFields">
       <div class="formField"><label>クリ率(ステータス画面値・%)</label><input type="number" class="f-critRate" value="0"></div>
@@ -811,9 +768,10 @@ function addSlot(snapshot) {
       <div class="formField"><label>チェイン増加%</label><input type="number" class="f-bossBuffChain" value="0"></div>
     </div>
 
-    <h3>対象ボス</h3>
-    <div class="formField"><label>ボス</label><select class="f-slotBoss"><option value="">選択してください</option></select></div>
-    <div class="f-partsTable"></div>
+    <h3>対象ボス・部位(都度入力)</h3>
+    <div class="formField"><label>ボス名(保存時のラベル用)</label><input type="text" class="f-bossName" placeholder="例: ○○ギルドレイドボス"></div>
+    <div class="f-partsArea"></div>
+    <button class="small f-addPart" type="button">+ 部位を追加</button>
 
     <div style="margin-top:10px;">
       <button class="primary f-calcBtn" type="button">計算する</button>
@@ -829,8 +787,8 @@ function addSlot(snapshot) {
   document.getElementById('slotsArea').appendChild(el);
   bindSlotEvents(el);
   populateSlotCharSelect(el);
-  populateSlotBossSelect(el);
   renderSlotBuffList(el);
+  renderSlotParts(el);
   if (snapshot) applySnapshotToSlot(el, snapshot);
   return el;
 }
@@ -842,11 +800,6 @@ function populateSlotCharSelect(el) {
   const damageChars = charactersCache.filter(c => (c.skills || []).some(s => s.dealsDamage));
   sel.innerHTML = '<option value="">選択してください</option>' +
     damageChars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-}
-function populateSlotBossSelect(el) {
-  const sel = el.querySelector('.f-slotBoss');
-  sel.innerHTML = '<option value="">選択してください</option>' +
-    bossesCache.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
 }
 
 function renderSlotBuffList(el) {
@@ -863,17 +816,78 @@ function renderSlotBuffList(el) {
       <label class="checkLabel"><input type="checkbox" class="f-buffCheck"> ${escapeHtml(it.charName)} - ${escapeHtml(it.skill.skillName)}</label>
       凸<select class="f-buffCopies">${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
       バースト<select class="f-buffBurst">${[0,1,2,3].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
+      ${(it.skill.potentials || []).map((p, pi) => `
+        <label class="checkLabel"><input type="checkbox" class="f-buffPotential" data-idx="${pi}"> 潜在${pi + 1}${p.description ? '(' + escapeHtml(p.description) + ')' : ''}</label>
+      `).join('')}
     </div>`).join('');
   wrap._buffItems = items;
+}
+
+function renderSlotParts(el) {
+  const wrap = el.querySelector('.f-partsArea');
+  if (!el._parts.length) { wrap.innerHTML = '<div class="empty">部位を追加してください。</div>'; return; }
+  const radioGroupName = 'mainTarget-' + el.id;
+  wrap.innerHTML = el._parts.map(p => partBlockHtml(p, radioGroupName)).join('');
+  el._parts.forEach(p => bindPartBlockEvents(p, el._parts, () => renderSlotParts(el)));
 }
 
 function bindSlotEvents(el) {
   el.querySelector('.f-removeSlot').addEventListener('click', () => el.remove());
   el.querySelector('.f-slotChar').addEventListener('change', () => populateSlotSkillSelect(el));
-  el.querySelector('.f-slotSkill').addEventListener('change', () => renderReferenceInputs(el));
-  el.querySelector('.f-slotBoss').addEventListener('change', () => renderPartsTable(el));
+  el.querySelector('.f-slotSkill').addEventListener('change', () => {
+    renderReferenceInputs(el);
+    renderPotentialsArea(el);
+    renderSkillInfo(el);
+  });
+  el.querySelector('.f-slotCopies').addEventListener('change', () => renderSkillInfo(el));
+  el.querySelector('.f-slotBurst').addEventListener('change', () => renderSkillInfo(el));
+  el.querySelector('.f-addPart').addEventListener('click', () => {
+    el._parts.push(blankPart());
+    renderSlotParts(el);
+  });
   el.querySelector('.f-calcBtn').addEventListener('click', () => runSlotCalc(el));
   el.querySelector('.f-saveResultBtn').addEventListener('click', () => saveSlotResult(el));
+}
+
+function getSelectedPotentialIdxs(el) {
+  const idxs = [];
+  el.querySelectorAll('.f-potentialCheck').forEach(chk => {
+    if (chk.checked) idxs.push(Number(chk.dataset.idx));
+  });
+  return idxs;
+}
+
+function renderPotentialsArea(el) {
+  const wrap = el.querySelector('.f-potentialsArea');
+  const cur = currentSlotSkill(el);
+  if (!cur || !cur.skill.potentials) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = cur.skill.potentials.map((p, i) => `
+    <label class="checkLabel">
+      <input type="checkbox" class="f-potentialCheck" data-idx="${i}">
+      潜在力${i + 1}${p.description ? '：' + escapeHtml(p.description) : ''}
+    </label>`).join('');
+  wrap.querySelectorAll('.f-potentialCheck').forEach(chk => {
+    chk.addEventListener('change', () => renderSkillInfo(el));
+  });
+}
+
+function renderSkillInfo(el) {
+  const box = el.querySelector('.f-skillInfo');
+  const cur = currentSlotSkill(el);
+  if (!cur) { box.style.display = 'none'; return; }
+  const copies = Number(el.querySelector('.f-slotCopies').value);
+  const burst = Number(el.querySelector('.f-slotBurst').value);
+  const potentialIdxs = getSelectedPotentialIdxs(el);
+  const level = getEffectiveLevel(cur.skill, copies, burst, potentialIdxs);
+  const mult1 = getValue(level.skillMultiplier, 1);
+  const enh1 = getValue(level.enhance, 1);
+  const elem1 = getValue(level.elementBoost, 1);
+  const chain1 = getValue(level.chainDamageIncrease, 1);
+  const descs = potentialIdxs.map(i => cur.skill.potentials[i]?.description).filter(Boolean);
+  box.style.display = 'block';
+  box.innerHTML = `<strong>${escapeHtml(cur.skill.skillName)}</strong>(${copies}凸${burst}バースト${potentialIdxs.length ? '・潜在力' + potentialIdxs.map(i=>i+1).join(',') : ''})<br>
+    攻撃回数: ${level.maxHits}回 / スキル倍率(1回目): ${mult1}% / 増強: ${enh1}% / 属性強化: ${elem1}% / チェイン増加: ${chain1}% / メインターゲット+${cur.skill.mainTargetBonus || 0}%
+    ${descs.length ? `<div class="detail">潜在力の効果: ${descs.map(escapeHtml).join(' / ')}</div>` : ''}`;
 }
 
 function currentSlotSkill(el) {
@@ -888,30 +902,37 @@ function populateSlotSkillSelect(el) {
   const charId = el.querySelector('.f-slotChar').value;
   const c = charactersCache.find(x => x.id === charId);
   const sel = el.querySelector('.f-slotSkill');
-  if (!c) { sel.innerHTML = '<option value="">-</option>'; renderReferenceInputs(el); return; }
+  if (!c) {
+    sel.innerHTML = '<option value="">-</option>';
+    renderReferenceInputs(el);
+    renderPotentialsArea(el);
+    renderSkillInfo(el);
+    return;
+  }
   sel.innerHTML = c.skills.map((s, i) => s.dealsDamage ? `<option value="${i}">${escapeHtml(s.skillName)}</option>` : '').join('');
   renderReferenceInputs(el);
+  renderPotentialsArea(el);
+  renderSkillInfo(el);
 }
 
 function renderReferenceInputs(el) {
   const wrap = el.querySelector('.f-referenceInputs');
   const cur = currentSlotSkill(el);
   if (!cur || !cur.skill.referenceFormula) { wrap.innerHTML = ''; return; }
-  const stats = [...new Set(cur.skill.referenceFormula.map(t => t.stat))].filter(s => s !== 'enemyTotalHP');
-  wrap.innerHTML = stats.map(s => `
-    <div class="formField"><label>${statInputLabel(s)}</label><input type="number" class="f-stat-${s}" value="0"></div>
-  `).join('');
-}
-
-function renderPartsTable(el) {
-  const bossId = el.querySelector('.f-slotBoss').value;
-  const boss = bossesCache.find(x => x.id === bossId);
-  const wrap = el.querySelector('.f-partsTable');
-  if (!boss) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = `<div class="table-wrap"><table><tr><th>部位</th><th>メインターゲット</th><th>開始チェイン数</th></tr>
-    ${boss.parts.map((p, i) => `<tr><td>${escapeHtml(p.name)}</td><td>${p.isMainTarget ? '★' : ''}</td>
-      <td><input type="number" class="f-startChain" data-part-idx="${i}" value="0" style="width:80px;"></td></tr>`).join('')}
-  </table></div>`;
+  const stats = [...new Set(cur.skill.referenceFormula.map(t => t.stat))];
+  wrap.innerHTML = stats.map(s => {
+    if (s === 'enemyTotalHP') {
+      return `<div class="formField"><label>ボスHP(敵全体・5万上限)</label>
+        <div style="display:flex; gap:6px;">
+          <input type="number" class="f-bossHP" placeholder="例: 32000">
+          <button class="small f-bossHpCap" type="button">5万超え</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="formField"><label>${statInputLabel(s)}</label><input type="number" class="f-stat-${s}" value="0"></div>`;
+  }).join('');
+  const capBtn = wrap.querySelector('.f-bossHpCap');
+  if (capBtn) capBtn.addEventListener('click', () => { wrap.querySelector('.f-bossHP').value = 50000; });
 }
 
 function runSlotCalc(el) {
@@ -919,13 +940,12 @@ function runSlotCalc(el) {
   const resultArea = el.querySelector('.f-resultArea');
   const warnArea = el.querySelector('.f-critWarning');
   if (!cur) { resultArea.innerHTML = '<div class="status err">キャラ・スキルを選択してください。</div>'; return; }
-  const bossId = el.querySelector('.f-slotBoss').value;
-  const boss = bossesCache.find(x => x.id === bossId);
-  if (!boss) { resultArea.innerHTML = '<div class="status err">対象ボスを選択してください。</div>'; return; }
+  if (!el._parts.length) { resultArea.innerHTML = '<div class="status err">対象部位を最低1つ追加してください。</div>'; return; }
 
   const copies = Number(el.querySelector('.f-slotCopies').value);
   const burst = Number(el.querySelector('.f-slotBurst').value);
-  const level = getEffectiveLevel(cur.skill, copies, burst);
+  const potentialIdxs = getSelectedPotentialIdxs(el);
+  const level = getEffectiveLevel(cur.skill, copies, burst, potentialIdxs);
 
   const inputStats = {};
   el.querySelectorAll('[class^="f-stat-"]').forEach(inp => {
@@ -934,6 +954,9 @@ function runSlotCalc(el) {
   });
   inputStats.critRate = Number(el.querySelector('.f-critRate').value) || 0;
   inputStats.critDamage = Number(el.querySelector('.f-critDamage').value) || 0;
+
+  const bossHpInput = el.querySelector('.f-bossHP');
+  const boss = { totalHP: bossHpInput ? Number(bossHpInput.value) || 0 : 0 };
 
   // バフキャラ合算
   const buffWrap = el.querySelector('.f-buffList');
@@ -944,8 +967,9 @@ function runSlotCalc(el) {
     if (!checked) return;
     const bCopies = Number(item.querySelector('.f-buffCopies').value);
     const bBurst = Number(item.querySelector('.f-buffBurst').value);
+    const bPotentialIdxs = [...item.querySelectorAll('.f-buffPotential')].filter(c => c.checked).map(c => Number(c.dataset.idx));
     const it = buffWrap._buffItems[idx];
-    const effLevel = getEffectiveLevel(it.skill, bCopies, bBurst);
+    const effLevel = getEffectiveLevel(it.skill, bCopies, bBurst, bPotentialIdxs);
     if (effLevel.allyBuff) selectedAllyBuffs.push(effLevel.allyBuff);
   });
   const buffSum = sumAllyBuffs(selectedAllyBuffs);
@@ -964,10 +988,8 @@ function runSlotCalc(el) {
     chainDamageIncreasePercent: buffSum.chainDamageIncreasePercent + bossBuff.chainDamageIncreasePercent
   };
 
-  const startChainInputs = el.querySelectorAll('.f-startChain');
-  const results = boss.parts.map((part, i) => {
-    const partWithChain = { ...part, startingChainCount: Number(startChainInputs[i]?.value) || 0 };
-    const r = calcDamage(cur.skill, level, inputStats, battleBuffs, boss, partWithChain);
+  const results = el._parts.map(part => {
+    const r = calcDamage(cur.skill, level, inputStats, battleBuffs, boss, part);
     return { partName: part.name, ...r };
   });
 
@@ -989,16 +1011,15 @@ function runSlotCalc(el) {
 async function saveSlotResult(el) {
   const statusEl = el.querySelector('.f-saveStatus');
   const cur = currentSlotSkill(el);
-  const bossId = el.querySelector('.f-slotBoss').value;
-  const boss = bossesCache.find(x => x.id === bossId);
-  if (!cur || !boss || !el._lastResult) {
+  const bossName = el.querySelector('.f-bossName').value.trim() || '(ボス名未入力)';
+  if (!cur || !el._lastResult) {
     statusEl.className = 'status err'; statusEl.textContent = '先に「計算する」を実行してください。'; return;
   }
   const label = el.querySelector('.f-saveLabel').value.trim() || `${cur.character.name} - ${cur.skill.skillName}`;
-  const inputSnapshot = buildSnapshot(el, cur, boss);
+  const inputSnapshot = buildSnapshot(el, cur, bossName);
   try {
     await addDoc(resultsCol, {
-      label, bossName: boss.name, characterName: cur.character.name, skillName: cur.skill.skillName,
+      label, bossName, characterName: cur.character.name, skillName: cur.skill.skillName,
       result: el._lastResult.results, inputSnapshot,
       savedBy: operatorName, savedAt: new Date().toISOString()
     });
@@ -1010,12 +1031,13 @@ async function saveSlotResult(el) {
   }
 }
 
-function buildSnapshot(el, cur, boss) {
+function buildSnapshot(el, cur, bossName) {
   const inputStats = {};
   el.querySelectorAll('[class^="f-stat-"]').forEach(inp => {
     const statName = inp.className.replace('f-stat-', '').split(' ')[0];
     inputStats[statName] = Number(inp.value) || 0;
   });
+  const bossHpInput = el.querySelector('.f-bossHP');
   const buffWrap = el.querySelector('.f-buffList');
   const selectedBuffs = [];
   buffWrap.querySelectorAll('.buffItem').forEach(item => {
@@ -1025,15 +1047,17 @@ function buildSnapshot(el, cur, boss) {
     selectedBuffs.push({
       idx,
       copies: Number(item.querySelector('.f-buffCopies').value),
-      burst: Number(item.querySelector('.f-buffBurst').value)
+      burst: Number(item.querySelector('.f-buffBurst').value),
+      potentialIdxs: [...item.querySelectorAll('.f-buffPotential')].filter(c => c.checked).map(c => Number(c.dataset.idx))
     });
   });
-  const startChainInputs = [...el.querySelectorAll('.f-startChain')].map(inp => Number(inp.value) || 0);
   return {
     charId: cur.character.id, skillIdx: cur.character.skills.indexOf(cur.skill),
     copies: Number(el.querySelector('.f-slotCopies').value),
     burst: Number(el.querySelector('.f-slotBurst').value),
+    potentialIdxs: getSelectedPotentialIdxs(el),
     inputStats,
+    bossHP: bossHpInput ? Number(bossHpInput.value) || 0 : null,
     critRate: Number(el.querySelector('.f-critRate').value) || 0,
     critDamage: Number(el.querySelector('.f-critDamage').value) || 0,
     selectedBuffs,
@@ -1044,8 +1068,8 @@ function buildSnapshot(el, cur, boss) {
       elementBoostPercent: Number(el.querySelector('.f-bossBuffElement').value) || 0,
       chainDamageIncreasePercent: Number(el.querySelector('.f-bossBuffChain').value) || 0
     },
-    bossId: boss.id,
-    startingChainCounts: startChainInputs
+    bossName,
+    parts: el._parts.map(({ _uid, ...rest }) => rest)
   };
 }
 
@@ -1058,10 +1082,18 @@ function applySnapshotToSlot(el, snap) {
   renderReferenceInputs(el);
   el.querySelector('.f-slotCopies').value = snap.copies;
   el.querySelector('.f-slotBurst').value = snap.burst;
+  renderPotentialsArea(el);
+  (snap.potentialIdxs || []).forEach(i => {
+    const chk = el.querySelector(`.f-potentialCheck[data-idx="${i}"]`);
+    if (chk) chk.checked = true;
+  });
+  renderSkillInfo(el);
   Object.entries(snap.inputStats || {}).forEach(([k, v]) => {
     const inp = el.querySelector(`.f-stat-${k}`);
     if (inp) inp.value = v;
   });
+  const bossHpInput = el.querySelector('.f-bossHP');
+  if (bossHpInput && snap.bossHP != null) bossHpInput.value = snap.bossHP;
   el.querySelector('.f-critRate').value = snap.critRate;
   el.querySelector('.f-critDamage').value = snap.critDamage;
   el.querySelector('.f-bossBuffAttack').value = snap.bossBuff.attackBuffPercent;
@@ -1069,18 +1101,19 @@ function applySnapshotToSlot(el, snap) {
   el.querySelector('.f-bossBuffEnhance').value = snap.bossBuff.enhancePercent;
   el.querySelector('.f-bossBuffElement').value = snap.bossBuff.elementBoostPercent;
   el.querySelector('.f-bossBuffChain').value = snap.bossBuff.chainDamageIncreasePercent;
-  el.querySelector('.f-slotBoss').value = snap.bossId;
-  renderPartsTable(el);
-  (snap.startingChainCounts || []).forEach((v, i) => {
-    const inp = el.querySelectorAll('.f-startChain')[i];
-    if (inp) inp.value = v;
-  });
+  el.querySelector('.f-bossName').value = snap.bossName || '';
+  el._parts = (snap.parts || []).map(p => ({ ...p, _uid: uid() }));
+  renderSlotParts(el);
   (snap.selectedBuffs || []).forEach(sb => {
     const item = el.querySelectorAll('.buffItem')[sb.idx];
     if (!item) return;
     item.querySelector('.f-buffCheck').checked = true;
     item.querySelector('.f-buffCopies').value = sb.copies;
     item.querySelector('.f-buffBurst').value = sb.burst;
+    (sb.potentialIdxs || []).forEach(i => {
+      const chk = item.querySelector(`.f-buffPotential[data-idx="${i}"]`);
+      if (chk) chk.checked = true;
+    });
   });
 }
 
