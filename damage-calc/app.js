@@ -220,9 +220,9 @@ async function loadCharacters() {
 function renderCharList() {
   const area = document.getElementById('charListArea');
   if (!charactersCache.length) { area.innerHTML = '<div class="empty">まだ登録がありません。</div>'; return; }
-  let html = '<div class="table-wrap"><table><tr><th>キャラ名</th><th>スキル数</th><th></th></tr>';
+  let html = '<div class="table-wrap"><table><tr><th>キャラ名</th><th>属性</th><th>スキル数</th><th></th></tr>';
   charactersCache.forEach(c => {
-    html += `<tr><td>${escapeHtml(c.name)}</td><td>${(c.skills || []).length}</td>
+    html += `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.attribute || '-')}</td><td>${(c.skills || []).length}</td>
       <td><button class="small" data-edit-char="${c.id}" ${isAdmin ? '' : 'disabled'}>編集する</button></td></tr>`;
   });
   html += '</table></div>';
@@ -282,6 +282,7 @@ function loadCharIntoForm(charId) {
   currentEditCharId = charId;
   document.getElementById('charEditTitle').textContent = `キャラクターを編集: ${c.name}`;
   document.getElementById('charName').value = c.name;
+  document.getElementById('charAttribute').value = c.attribute || '火';
   skillDraftList = JSON.parse(JSON.stringify(c.skills || [])).map(s => ({ ...s, _uid: uid() }));
   renderSkillsArea();
   document.getElementById('deleteCharBtn').style.display = isAdmin ? 'inline-block' : 'none';
@@ -291,6 +292,7 @@ document.getElementById('newCharFormBtn').addEventListener('click', () => {
   currentEditCharId = null;
   document.getElementById('charEditTitle').textContent = 'キャラクターを新規登録';
   document.getElementById('charName').value = '';
+  document.getElementById('charAttribute').value = '火';
   skillDraftList = [];
   renderSkillsArea();
   document.getElementById('deleteCharBtn').style.display = 'none';
@@ -318,8 +320,8 @@ function statOptionsHtml(selected) {
 }
 
 function skillBlockHtml(s) {
-  const damageFieldsDisplay = s.dealsDamage ? '' : 'style="display:none;"';
-  const allyFieldsDisplay = s.grantsAllyBuff ? '' : 'style="display:none;"';
+  const damageOnlyDisplay = s.dealsDamage ? '' : 'style="display:none;"';
+  const gridsDisplay = (s.dealsDamage || s.grantsAllyBuff) ? '' : 'style="display:none;"';
   return `
   <div class="skillBlock" data-skill="${s._uid}">
     <div class="skillHead">
@@ -329,7 +331,7 @@ function skillBlockHtml(s) {
       <button class="small danger f-removeSkill" type="button">スキルを削除</button>
     </div>
 
-    <div class="damageFields" ${damageFieldsDisplay}>
+    <div class="damageOnlyFields" ${damageOnlyDisplay}>
       <div class="rowFields">
         <div class="formField"><label>ダメージ種別</label>
           <select class="f-damageType">
@@ -344,13 +346,16 @@ function skillBlockHtml(s) {
       <label>参照ステータス(基準値の合成式)</label>
       <div class="formulaRows">${(s.referenceFormula || []).map((t, i) => formulaRowHtml(t, i)).join('')}</div>
       <button class="small f-addFormula" type="button">+ 参照項目を追加</button>
+    </div>
 
+    <div class="gridsFields" ${gridsDisplay}>
       <h3>凸(0〜5)ごとの基本値</h3>
       <div class="gridHint">
         スキル倍率・増強・属性強化・チェイン増加の欄は「回数:数値」という形式で入力します。<br>
         例：「1:100,4:70」と入力すると「1回目の攻撃では100%、4回目の攻撃からは70%に変わる」という意味になります。<br>
         ずっと同じ数値でよい場合は、数値だけ(例: 100)を入力すればOKです(自動的に「1:100」として扱われます)。値の変化が複数ある場合は、カンマ(,)で区切って追加してください。<br>
         ※魔法スキルの場合も「自己バフ:攻撃%」「配布:攻撃%」の欄をそのまま使ってください(参照ステータス側の数値に掛かる値のため、実質的に魔法力バフとして機能します)。
+        ※「ダメージを与える」がOFFの(バフ専用)スキルの場合、このグリッド内のダメージ関連の項目は無視されます。「配布:〜」の列だけ入力してください。
       </div>
       <div class="table-wrap">${copiesGridHtml(s)}</div>
 
@@ -361,10 +366,6 @@ function skillBlockHtml(s) {
       <h3>潜在力(最大3枠・取得順は自由)</h3>
       <div class="gridHint">各潜在力は個別にON/OFFできます(計算時に自由に選択)。バーストと同じく、凸の基本値に足し算される数値を入力してください。ダメージに関係ない効果(例: 効果時間+1ターン)は「説明」欄にだけ書けばOKです。</div>
       <div class="table-wrap">${potentialsGridHtml(s)}</div>
-    </div>
-
-    <div class="allyFields" ${allyFieldsDisplay}>
-      <div class="detail">味方への配布バフ数値も、凸/バースト/潜在力のグリッド内(バフ列)にまとめて入力してください。</div>
     </div>
   </div>`;
 }
@@ -464,11 +465,12 @@ function bindSkillBlockEvents(s) {
   block.querySelector('.f-skillName').addEventListener('input', e => s.skillName = e.target.value);
   block.querySelector('.f-dealsDamage').addEventListener('change', e => {
     s.dealsDamage = e.target.checked;
-    block.querySelector('.damageFields').style.display = s.dealsDamage ? '' : 'none';
+    block.querySelector('.damageOnlyFields').style.display = s.dealsDamage ? '' : 'none';
+    block.querySelector('.gridsFields').style.display = (s.dealsDamage || s.grantsAllyBuff) ? '' : 'none';
   });
   block.querySelector('.f-grantsAllyBuff').addEventListener('change', e => {
     s.grantsAllyBuff = e.target.checked;
-    block.querySelector('.allyFields').style.display = s.grantsAllyBuff ? '' : 'none';
+    block.querySelector('.gridsFields').style.display = (s.dealsDamage || s.grantsAllyBuff) ? '' : 'none';
   });
   block.querySelector('.f-removeSkill').addEventListener('click', () => {
     skillDraftList = skillDraftList.filter(x => x._uid !== s._uid);
@@ -627,13 +629,14 @@ document.getElementById('saveCharBtn').addEventListener('click', async () => {
   const statusEl = document.getElementById('charSaveStatus');
   if (!isAdmin) { statusEl.className = 'status err'; statusEl.textContent = 'キャラ登録は管理者のみ行えます。'; return; }
   const name = document.getElementById('charName').value.trim();
+  const attribute = document.getElementById('charAttribute').value;
   if (!name) { statusEl.className = 'status err'; statusEl.textContent = 'キャラクター名を入力してください。'; return; }
   if (!skillDraftList.length) { statusEl.className = 'status err'; statusEl.textContent = 'スキルを最低1つ追加してください。'; return; }
   const cleanSkills = skillDraftList.map(({ _uid, ...rest }) => rest);
   const docId = currentEditCharId || name;
   try {
     await setDoc(doc(charactersCol, docId), {
-      name, skills: cleanSkills, registeredBy: operatorName, updatedAt: new Date().toISOString()
+      name, attribute, skills: cleanSkills, registeredBy: operatorName, updatedAt: new Date().toISOString()
     });
     logWrite('characterSave', name);
     statusEl.className = 'status ok'; statusEl.textContent = '保存しました。';
@@ -719,11 +722,16 @@ function sumAllyBuffs(list) {
   }, { attackBuffPercent: 0, critRateBuffPercent: 0, enhancePercent: 0, elementBoostPercent: 0, chainDamageIncreasePercent: 0, chainEnhance: 0 });
 }
 
-// skill: スキル本体, level: getEffectiveLevel()の結果, inputStats: 都度入力ステータス
+// skill: スキル本体, level: getEffectiveLevel()の結果, inputStats: 都度入力ステータス(elementDamage=属性ダメージ%含む)
 // battleBuffs: selfBuff以外(バフキャラ合算＋ボスから貰えるバフ)を合算したオブジェクト(chainEnhance含む)
 // boss: { totalHP } (計算スロット内で都度入力。enemyTotalHP参照スキルの時のみ使用)
 // part: このスロットで都度入力する部位(defense等は{from,value}配列, startingChainCountも部位ごとに都度入力)
-function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
+// elementMode: 'advantage'(有利属性) | 'neutral'(属性相性無) | 'disadvantage'(不利属性)
+//   - 有利属性: 属性強化バフ + 属性ダメージ%(ステータス)の両方が有効
+//   - 属性相性無: 属性強化・属性ダメージ%とも無効(0扱い)
+//   - 不利属性: 属性強化・属性ダメージ%とも無効、かつ属性耐性により最終ダメージが半減
+//   - 属性脆弱(ボス部位側のデバフ)はどのモードでも常に有効
+function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMode) {
   const base = getBaseValue(skill.referenceFormula, inputStats, boss);
   const isMagic = skill.damageType === 'magic';
 
@@ -734,6 +742,10 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
   // チェイン強化: 1回の攻撃で本来+1のところ、+(1+チェイン強化)チェイン貯まるようになる
   const chainIncrementPerHit = 1 + (level.selfChainEnhance || 0) + (battleBuffs.chainEnhance || 0);
 
+  // 属性相性による補正
+  const elementDamageStat = Number(inputStats.elementDamage) || 0;
+  const resistanceMult = elementMode === 'disadvantage' ? 0.5 : 1; // 不利属性: 属性耐性により半減
+
   let general = 0, fixed = 0, pure = 0;
 
   for (let hit = 1; hit <= level.maxHits; hit++) {
@@ -743,8 +755,10 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
     const barrier = getValue(part.barrier, hit);
     const enhance = battleBuffs.enhancePercent + getValue(level.enhance, hit);
     const vulnerability = getValue(part.vulnerability, hit);
-    const elementVuln = getValue(part.elementVulnerability, hit);
-    const elementBoost = battleBuffs.elementBoostPercent + getValue(level.elementBoost, hit);
+    const elementVuln = getValue(part.elementVulnerability, hit); // 属性脆弱: 常に有効
+    const elementBoostRaw = battleBuffs.elementBoostPercent + getValue(level.elementBoost, hit);
+    // 属性強化バフ・属性ダメージ%は「有利属性」の時だけ有効
+    const elementBoost = elementMode === 'advantage' ? (elementBoostRaw + elementDamageStat) : 0;
     const chainAdd = battleBuffs.chainDamageIncreasePercent + getValue(level.chainDamageIncrease, hit);
     // このヒット時点のチェイン数 = 開始チェイン数 + 「これまでの」ヒットで積み上がった分
     // (このヒット自体で貯まる分は、このヒットのバフには反映されない=次のヒットから反映)
@@ -761,25 +775,47 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part) {
     g = roundDown(g * (1 - barrier / 100) * (1 + (enhance + vulnerability + elementVuln) / 100));
     g = roundDown(g * (1 + elementBoost / 100));
     g = g * (1 + (10 + chainAdd) / 100 * chainCount);
-    g = roundDown(g * weakSpot / 100 * mainTargetMult * otherMult);
+    g = roundDown(g * weakSpot / 100 * mainTargetMult * otherMult * resistanceMult);
     general += roundDown(g);
 
     let f = roundDown(step2 * (1 + enhance / 100));
     f = roundDown(f * (1 + elementBoost / 100));
     f = f * (1 + (10 + chainAdd) / 100 * chainCount);
-    f = roundDown(f * weakSpot / 100 * mainTargetMult * otherMult);
+    f = roundDown(f * weakSpot / 100 * mainTargetMult * otherMult * resistanceMult);
     fixed += roundDown(f);
 
     let p2 = roundDown(step2 * (1 + (enhance + vulnerability + elementVuln) / 100));
     p2 = roundDown(p2 * (1 + elementBoost / 100));
     p2 = p2 * (1 + critDmg / 100);
     p2 = p2 * (1 + (10 + chainAdd) / 100 * chainCount);
-    p2 = roundDown(p2 * weakSpot / 100 * mainTargetMult * otherMult);
+    p2 = roundDown(p2 * weakSpot / 100 * mainTargetMult * otherMult * resistanceMult);
     pure += roundDown(p2);
   }
 
   return { general, fixed, pure, maxHits: level.maxHits, totalCritRate };
 }
+
+// 有利属性・属性相性無・不利属性の3パターンをまとめて計算する
+function calcDamageAllModes(skill, level, inputStats, battleBuffs, boss, part) {
+  return {
+    advantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'advantage'),
+    neutral: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'neutral'),
+    disadvantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'disadvantage')
+  };
+}
+
+// 属性相性表: キー(攻撃側属性) → 値(その属性が有利を取る相手の属性)
+// 水は火に有利・火は風に有利・風は水に有利(三すくみ)。光と闇はお互いに有利(属性耐性0)。
+const ELEMENT_ADVANTAGE_MAP = { '水': '火', '火': '風', '風': '水', '光': '闇', '闇': '光' };
+
+// attackerAttr(攻撃側の属性) と bossAttr(ボスの属性) から、有利/相性無/不利を自動判定する
+function getElementMode(attackerAttr, bossAttr) {
+  if (!attackerAttr || !bossAttr) return null;
+  if (ELEMENT_ADVANTAGE_MAP[attackerAttr] === bossAttr) return 'advantage';
+  if (ELEMENT_ADVANTAGE_MAP[bossAttr] === attackerAttr) return 'disadvantage';
+  return 'neutral';
+}
+const ELEMENT_MODE_LABEL = { advantage: '有利属性', neutral: '属性相性無', disadvantage: '不利属性' };
 
 // ==================================================================
 // 部位の都度入力(計算スロット内で共通利用)
@@ -860,6 +896,10 @@ function addSlot(snapshot) {
       <button class="small danger f-removeSlot" type="button" style="margin-left:auto;">スロットを閉じる</button>
     </div>
     <div class="rowFields">
+      <div class="formField"><label>属性で絞り込み</label><select class="f-slotAttrFilter">
+        <option value="">すべて</option>
+        <option value="火">火</option><option value="水">水</option><option value="風">風</option><option value="光">光</option><option value="闇">闇</option>
+      </select></div>
       <div class="formField"><label>キャラクター</label><select class="f-slotChar"><option value="">選択してください</option></select></div>
       <div class="formField"><label>スキル</label><select class="f-slotSkill"><option value="">-</option></select></div>
       <div class="formField"><label>凸</label><select class="f-slotCopies">${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n}凸</option>`).join('')}</select></div>
@@ -871,6 +911,7 @@ function addSlot(snapshot) {
     <div class="rowFields">
       <div class="formField"><label>クリ率(ステータス画面値・%)</label><input type="number" class="f-critRate" value="0"></div>
       <div class="formField"><label>クリダメ(ステータス画面値・%)</label><input type="number" class="f-critDamage" value="0"></div>
+      <div class="formField"><label>属性ダメージ(ステータス画面値・%)</label><input type="number" class="f-elementDamage" value="0"></div>
     </div>
 
     <h3>バフキャラ選択</h3>
@@ -887,6 +928,13 @@ function addSlot(snapshot) {
     </div>
 
     <h3>対象ボス・部位(都度入力)</h3>
+    <div class="formField">
+      <label>ボス属性(選ぶと有利/相性無/不利を自動判定します)</label>
+      <select class="f-bossAttribute">
+        <option value="">未設定(3パターンとも表示)</option>
+        <option value="火">火</option><option value="水">水</option><option value="風">風</option><option value="光">光</option><option value="闇">闇</option>
+      </select>
+    </div>
     <div class="f-partsArea"></div>
     <button class="small f-addPart" type="button">+ 部位を追加</button>
 
@@ -896,7 +944,7 @@ function addSlot(snapshot) {
     <div class="f-critWarning"></div>
     <div class="f-resultArea"></div>
     <div class="rowFields" style="margin-top:8px;">
-      <div class="formField"><label>保存ラベル</label><input type="text" class="f-saveLabel" placeholder="例: ○○ボス 頭狙い編成"></div>
+      <div class="formField"><label>保存ラベル</label><input type="text" class="f-saveLabel" placeholder="例：火弱点モンチェ3ターン目"></div>
       <div class="formField" style="align-self:end;"><button class="f-saveResultBtn" type="button">この結果を保存する</button></div>
     </div>
     <div class="f-saveStatus status"></div>
@@ -914,9 +962,12 @@ document.getElementById('addSlotBtn').addEventListener('click', () => addSlot())
 
 function populateSlotCharSelect(el) {
   const sel = el.querySelector('.f-slotChar');
-  const damageChars = charactersCache.filter(c => (c.skills || []).some(s => s.dealsDamage));
+  const attrFilter = el.querySelector('.f-slotAttrFilter').value;
+  const damageChars = charactersCache.filter(c =>
+    (c.skills || []).some(s => s.dealsDamage) && (!attrFilter || c.attribute === attrFilter)
+  );
   sel.innerHTML = '<option value="">選択してください</option>' +
-    damageChars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    damageChars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}(${escapeHtml(c.attribute || '-')})</option>`).join('');
 }
 
 function renderSlotBuffList(el) {
@@ -950,6 +1001,7 @@ function renderSlotParts(el) {
 
 function bindSlotEvents(el) {
   el.querySelector('.f-removeSlot').addEventListener('click', () => el.remove());
+  el.querySelector('.f-slotAttrFilter').addEventListener('change', () => populateSlotCharSelect(el));
   el.querySelector('.f-slotChar').addEventListener('change', () => populateSlotSkillSelect(el));
   el.querySelector('.f-slotSkill').addEventListener('change', () => {
     renderReferenceInputs(el);
@@ -1083,6 +1135,7 @@ function runSlotCalc(el) {
   });
   inputStats.critRate = Number(el.querySelector('.f-critRate').value) || 0;
   inputStats.critDamage = Number(el.querySelector('.f-critDamage').value) || 0;
+  inputStats.elementDamage = Number(el.querySelector('.f-elementDamage').value) || 0;
 
   const bossHpInput = el.querySelector('.f-bossHP');
   const boss = { totalHP: bossHpInput ? Number(bossHpInput.value) || 0 : 0 };
@@ -1120,20 +1173,32 @@ function runSlotCalc(el) {
   };
 
   const results = el._parts.map(part => {
-    const r = calcDamage(cur.skill, level, inputStats, battleBuffs, boss, part);
-    return { partName: part.name, ...r };
+    const modes = calcDamageAllModes(cur.skill, level, inputStats, battleBuffs, boss, part);
+    return { partName: part.name, ...modes };
   });
 
-  const totalCritRate = results.length ? results[0].totalCritRate : 0;
+  const totalCritRate = results.length ? results[0].advantage.totalCritRate : 0;
   if (totalCritRate < 100) {
     warnArea.innerHTML = `<div class="critWarning">⚠ クリ率${totalCritRate}%(100%未満のためダメージにブレが発生します。クリティカルマラソン推奨)</div>`;
   } else {
     warnArea.innerHTML = `<div class="critOk">クリ率${totalCritRate}%(100%到達済み)</div>`;
   }
 
-  resultArea.innerHTML = `<div class="detail">攻撃回数: ${level.maxHits}回</div><div class="table-wrap"><table>
-    <tr><th>部位</th><th>一般ダメージ</th><th>固定ダメージ</th><th>純粋ダメージ</th></tr>
-    ${results.map(r => `<tr><td>${escapeHtml(r.partName)}</td><td>${r.general.toLocaleString()}</td><td>${r.fixed.toLocaleString()}</td><td>${r.pure.toLocaleString()}</td></tr>`).join('')}
+  const bossAttribute = el.querySelector('.f-bossAttribute').value;
+  const autoMode = getElementMode(cur.character.attribute, bossAttribute);
+  const autoNote = autoMode
+    ? `<div class="detail">自動判定: ${escapeHtml(cur.character.attribute)}(自分) × ${escapeHtml(bossAttribute)}(ボス) → <strong>${ELEMENT_MODE_LABEL[autoMode]}</strong>(該当列をハイライト)</div>`
+    : `<div class="detail">ボス属性が未設定のため、3パターンとも表示しています。</div>`;
+  const hl = (mode) => mode === autoMode ? ' style="background:rgba(216,179,93,0.25);"' : '';
+
+  resultArea.innerHTML = `${autoNote}<div class="detail">攻撃回数: ${level.maxHits}回 / 各セルは「一般 / 固定 / 純粋」ダメージの順</div><div class="table-wrap"><table>
+    <tr><th rowspan="2">部位</th><th colspan="3"${hl('advantage')}>有利属性</th><th colspan="3"${hl('neutral')}>属性相性無</th><th colspan="3"${hl('disadvantage')}>不利属性</th></tr>
+    <tr><th${hl('advantage')}>一般</th><th${hl('advantage')}>固定</th><th${hl('advantage')}>純粋</th><th${hl('neutral')}>一般</th><th${hl('neutral')}>固定</th><th${hl('neutral')}>純粋</th><th${hl('disadvantage')}>一般</th><th${hl('disadvantage')}>固定</th><th${hl('disadvantage')}>純粋</th></tr>
+    ${results.map(r => `<tr><td>${escapeHtml(r.partName)}</td>
+      <td${hl('advantage')}>${r.advantage.general.toLocaleString()}</td><td${hl('advantage')}>${r.advantage.fixed.toLocaleString()}</td><td${hl('advantage')}>${r.advantage.pure.toLocaleString()}</td>
+      <td${hl('neutral')}>${r.neutral.general.toLocaleString()}</td><td${hl('neutral')}>${r.neutral.fixed.toLocaleString()}</td><td${hl('neutral')}>${r.neutral.pure.toLocaleString()}</td>
+      <td${hl('disadvantage')}>${r.disadvantage.general.toLocaleString()}</td><td${hl('disadvantage')}>${r.disadvantage.fixed.toLocaleString()}</td><td${hl('disadvantage')}>${r.disadvantage.pure.toLocaleString()}</td>
+    </tr>`).join('')}
   </table></div>`;
 
   el._lastResult = { results, level, totalCritRate };
@@ -1188,8 +1253,10 @@ function buildSnapshot(el, cur) {
     potentialIdxs: getSelectedPotentialIdxs(el),
     inputStats,
     bossHP: bossHpInput ? Number(bossHpInput.value) || 0 : null,
+    bossAttribute: el.querySelector('.f-bossAttribute').value,
     critRate: Number(el.querySelector('.f-critRate').value) || 0,
     critDamage: Number(el.querySelector('.f-critDamage').value) || 0,
+    elementDamage: Number(el.querySelector('.f-elementDamage').value) || 0,
     selectedBuffs,
     bossBuff: {
       attackBuffPercent: Number(el.querySelector('.f-bossBuffAttack').value) || 0,
@@ -1226,12 +1293,14 @@ function applySnapshotToSlot(el, snap) {
   if (bossHpInput && snap.bossHP != null) bossHpInput.value = snap.bossHP;
   el.querySelector('.f-critRate').value = snap.critRate;
   el.querySelector('.f-critDamage').value = snap.critDamage;
+  el.querySelector('.f-elementDamage').value = snap.elementDamage || 0;
   el.querySelector('.f-bossBuffAttack').value = snap.bossBuff.attackBuffPercent;
   el.querySelector('.f-bossBuffCrit').value = snap.bossBuff.critRateBuffPercent;
   el.querySelector('.f-bossBuffEnhance').value = snap.bossBuff.enhancePercent;
   el.querySelector('.f-bossBuffElement').value = snap.bossBuff.elementBoostPercent;
   el.querySelector('.f-bossBuffChain').value = snap.bossBuff.chainDamageIncreasePercent;
   el.querySelector('.f-bossBuffChainEnhance').value = snap.bossBuff.chainEnhance || 0;
+  el.querySelector('.f-bossAttribute').value = snap.bossAttribute || '';
   el._parts = (snap.parts || []).map(p => ({ ...p, _uid: uid() }));
   renderSlotParts(el);
   (snap.selectedBuffs || []).forEach(sb => {
@@ -1286,11 +1355,11 @@ function renderResults(list) {
 
   area.innerHTML = filtered.map(r => {
     const canDelete = (route === 'main' && r.savedBy === operatorName) || isAdmin;
-    const best = (r.result || []).reduce((max, cur) => cur.general > (max?.general || 0) ? cur : max, null);
+    const best = (r.result || []).reduce((max, cur) => cur.advantage.general > (max?.advantage.general || 0) ? cur : max, null);
     return `<div class="resultCard">
       <div><strong>${escapeHtml(r.label)}</strong>　<span class="detail">${escapeHtml(r.characterName)} - ${escapeHtml(r.skillName)}</span></div>
       <div class="detail">保存者: ${escapeHtml(r.savedBy)} / ${new Date(r.savedAt).toLocaleString('ja-JP')}</div>
-      ${best ? `<div class="detail">最大一般ダメージ部位: ${escapeHtml(best.partName)} (${best.general.toLocaleString()})</div>` : ''}
+      ${best ? `<div class="detail">最大一般ダメージ部位(有利属性時): ${escapeHtml(best.partName)} (${best.advantage.general.toLocaleString()})</div>` : ''}
       <div style="margin-top:6px;">
         <button class="small f-loadResult" data-result-id="${r.id}">これを元に計算する</button>
         ${canDelete ? `<button class="small danger f-deleteResult" data-result-id="${r.id}">削除</button>` : ''}

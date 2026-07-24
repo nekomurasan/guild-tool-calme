@@ -64,7 +64,7 @@
 
     <!-- 計算タブ -->
     <div id="calc" class="tabPanel">
-      <div class="note">キャラ・スキル・凸/バーストを選び、ステータスとバフ、対象部位を入力して計算します。複数のスロットを並べて別スキルと比較できます。</div>
+      <div class="note">属性・キャラ・スキル/強化段階を選び、ステータスとバフ、攻撃範囲対象部位を入力して計算します。複数のスロットを並べて別スキルやターンごとに比較できます。</div>
       <div id="slotsArea"></div>
       <button class="primary" id="addSlotBtn">+ 計算スロットを追加</button>
     </div>
@@ -80,9 +80,21 @@
       </div>
       <div class="card" id="charEditCard">
         <h2 id="charEditTitle">キャラクターを新規登録</h2>
-        <div class="formField">
-          <label>キャラクター名</label>
-          <input type="text" id="charName" placeholder="例: シェラザード">
+        <div class="rowFields">
+          <div class="formField">
+            <label>キャラクター名</label>
+            <input type="text" id="charName" placeholder="例: シェラザード">
+          </div>
+          <div class="formField">
+            <label>属性</label>
+            <select id="charAttribute">
+              <option value="火">火</option>
+              <option value="水">水</option>
+              <option value="風">風</option>
+              <option value="光">光</option>
+              <option value="闇">闇</option>
+            </select>
+          </div>
         </div>
         <div id="skillsArea"></div>
         <button id="addSkillBtn">+ スキルを追加</button>
