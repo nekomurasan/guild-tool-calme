@@ -332,7 +332,7 @@ function renderSkillsArea() {
 function statOptionsHtml(selected) {
   const opts = [
     ['attack', '攻撃力'], ['magicAttack', '魔法力'], ['selfMaxHP', '自身最大HP'],
-    ['energyGuard', 'エナジーガード'], ['enemyTotalHP', '敵全体HP(5万上限)']
+    ['energyGuard', 'エナジーガード(HPから自動算出)'], ['enemyTotalHP', '敵全体HP(5万上限)']
   ];
   return opts.map(([v, l]) => `<option value="${v}" ${selected === v ? 'selected' : ''}>${l}</option>`).join('');
 }
@@ -389,11 +389,18 @@ function skillBlockHtml(s) {
 }
 
 function formulaRowHtml(t, i) {
+  const isEG = t.stat === 'energyGuard';
+  const egFields = isEG ? `
+    <input type="number" class="f-formulaEgHpCap" placeholder="HP上限(無ければ空)" value="${t.egHpCap == null ? '' : t.egHpCap}">
+    <input type="number" class="f-formulaEgRatio" placeholder="HP→EG変換率(%)" value="${t.ratioPercent || 0}">
+    <input type="number" class="f-formulaEgFlat" placeholder="EG固定加算値" value="${t.flatBonus || 0}">` : '';
   return `<div class="formulaRow" data-formula-idx="${i}">
     <select class="f-formulaStat">${statOptionsHtml(t.stat)}</select>
     <input type="number" class="f-formulaCap" placeholder="上限(無ければ空)" value="${t.cap == null ? '' : t.cap}">
     <input type="number" class="f-formulaCoef" placeholder="係数(%)" value="${t.coefficient}">
     <button class="small danger f-removeFormula" type="button">×</button>
+    ${egFields}
+    ${isEG ? '<div class="detail">エナジーガードは手入力せず、自身の最大HP入力値から「HP→EG変換率%」「EG固定加算値」で自動算出されます(HP上限は5万キャップ等がある場合に指定)</div>' : ''}
   </div>`;
 }
 
@@ -512,9 +519,18 @@ function bindSkillBlockEvents(s) {
   });
   block.querySelectorAll('.formulaRow').forEach(row => {
     const idx = Number(row.dataset.formulaIdx);
-    row.querySelector('.f-formulaStat').addEventListener('change', e => s.referenceFormula[idx].stat = e.target.value);
+    row.querySelector('.f-formulaStat').addEventListener('change', e => {
+      s.referenceFormula[idx].stat = e.target.value;
+      renderSkillsArea(); // エナジーガード専用欄の表示/非表示を切り替えるため再描画
+    });
     row.querySelector('.f-formulaCap').addEventListener('input', e => s.referenceFormula[idx].cap = e.target.value === '' ? null : Number(e.target.value));
     row.querySelector('.f-formulaCoef').addEventListener('input', e => s.referenceFormula[idx].coefficient = Number(e.target.value) || 0);
+    const egHpCapInp = row.querySelector('.f-formulaEgHpCap');
+    if (egHpCapInp) egHpCapInp.addEventListener('input', e => s.referenceFormula[idx].egHpCap = e.target.value === '' ? null : Number(e.target.value));
+    const egRatioInp = row.querySelector('.f-formulaEgRatio');
+    if (egRatioInp) egRatioInp.addEventListener('input', e => s.referenceFormula[idx].ratioPercent = Number(e.target.value) || 0);
+    const egFlatInp = row.querySelector('.f-formulaEgFlat');
+    if (egFlatInp) egFlatInp.addEventListener('input', e => s.referenceFormula[idx].flatBonus = Number(e.target.value) || 0);
     row.querySelector('.f-removeFormula').addEventListener('click', () => {
       s.referenceFormula.splice(idx, 1);
       renderSkillsArea();
@@ -757,13 +773,19 @@ function potentialHasNumericEffect(p) {
   return allyFields.some(f => (p.allyBuffAdd?.[f] || 0) !== 0);
 }
 
-function getStatValue(stat, inputStats, boss) {
-  if (stat === 'enemyTotalHP') return Math.min(boss ? (Number(boss.totalHP) || 0) : 0, 50000);
-  return Number(inputStats[stat]) || 0;
+function getStatValue(term, inputStats, boss) {
+  if (term.stat === 'enemyTotalHP') return Math.min(boss ? (Number(boss.totalHP) || 0) : 0, 50000);
+  if (term.stat === 'energyGuard') {
+    // エナジーガードは手入力せず、自身の最大HP(バフ後入力値)から「HP→EG変換率%」「EG固定加算値」で自動算出する
+    const hp = Number(inputStats.selfMaxHP) || 0;
+    const cappedHp = term.egHpCap != null ? Math.min(hp, term.egHpCap) : hp;
+    return Math.floor(cappedHp * (term.ratioPercent || 0) / 100) + (term.flatBonus || 0);
+  }
+  return Number(inputStats[term.stat]) || 0;
 }
 function getBaseValue(referenceFormula, inputStats, boss) {
   return referenceFormula.reduce((sum, term) => {
-    const raw = getStatValue(term.stat, inputStats, boss);
+    const raw = getStatValue(term, inputStats, boss);
     const capped = term.cap != null ? Math.min(raw, term.cap) : raw;
     return sum + Math.floor(capped * term.coefficient / 100);
   }, 0);
@@ -826,10 +848,12 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
 
     const buff = manual.attack + allySum.attackBuffPercent + getValue(level.selfBuff?.attackBuffPercent || [], chainCount);
     const mult = getValue(level.skillMultiplier, chainCount);
-    const defense = isMagic ? getValue(part.magicResist, chainCount) : getValue(part.defense, chainCount);
+    const rawDefense = isMagic ? getValue(part.magicResist, chainCount) : getValue(part.defense, chainCount);
+    const defenseReduction = getValue(part.defenseReduction, chainCount); // 防御軽減デバフ: 防御/魔法抵抗そのものを削る
+    const defense = rawDefense * (1 - defenseReduction / 100);
     const barrier = getValue(part.barrier, chainCount);
     const enhance = manual.enhance + allySum.enhancePercent + getValue(level.enhance, chainCount);
-    const vulnerability = getValue(part.vulnerability, chainCount);
+    const vulnerability = isMagic ? getValue(part.magicVulnerability, chainCount) : getValue(part.physicalVulnerability, chainCount);
     const elementVuln = getValue(part.elementVulnerability, chainCount); // 属性脆弱: 常に有効
     const elementBoostRaw = manual.elementBoost + allySum.elementBoostPercent + getValue(level.elementBoost, chainCount);
     // 属性強化バフ・属性ダメージ%は「有利属性」の時だけ有効
@@ -896,7 +920,9 @@ function blankPart() {
   return {
     _uid: uid(), name: '新しい部位', weakSpot: 100, startingChainCount: 0,
     defense: [{ from: 1, value: 0 }], magicResist: [{ from: 1, value: 0 }],
-    vulnerability: [{ from: 1, value: 0 }], barrier: [{ from: 1, value: 0 }],
+    defenseReduction: [{ from: 1, value: 0 }],
+    physicalVulnerability: [{ from: 1, value: 0 }], magicVulnerability: [{ from: 1, value: 0 }],
+    barrier: [{ from: 1, value: 0 }],
     elementVulnerability: [{ from: 1, value: 0 }], isMainTarget: false
   };
 }
@@ -913,11 +939,13 @@ function partBlockHtml(p, radioGroupName) {
       <label class="checkLabel"><input type="radio" name="${radioGroupName}" class="f-isMainTarget" ${p.isMainTarget ? 'checked' : ''}> メインターゲット</label>
       <button class="small danger f-removePart" type="button">部位を削除</button>
     </div>
-    <div class="gridHint">各項目は「1:30,4:0」形式で「n回目の攻撃から値が変わる」を表現できます(バリアが途中で割れる等)</div>
+    <div class="gridHint">各項目は「6:70」形式で「チェイン数6以上貯まっている状態の攻撃から70%に変わる」を表現できます(バリアが途中で割れる等)</div>
     <div class="rowFields">
       <div class="formField"><label>物理防御%</label><input type="text" class="f-defense" value="${serializeIntervals(p.defense)}"></div>
       <div class="formField"><label>魔法抵抗%</label><input type="text" class="f-magicResist" value="${serializeIntervals(p.magicResist)}"></div>
-      <div class="formField"><label>脆弱%</label><input type="text" class="f-vulnerability" value="${serializeIntervals(p.vulnerability)}"></div>
+      <div class="formField"><label>防御軽減デバフ%(防御/魔法抵抗を削る)</label><input type="text" class="f-defenseReduction" value="${serializeIntervals(p.defenseReduction)}"></div>
+      <div class="formField"><label>物理脆弱%</label><input type="text" class="f-physicalVulnerability" value="${serializeIntervals(p.physicalVulnerability)}"></div>
+      <div class="formField"><label>魔法脆弱%</label><input type="text" class="f-magicVulnerability" value="${serializeIntervals(p.magicVulnerability)}"></div>
       <div class="formField"><label>バリア%</label><input type="text" class="f-barrier" value="${serializeIntervals(p.barrier)}"></div>
       <div class="formField"><label>属性脆弱%</label><input type="text" class="f-elementVulnerability" value="${serializeIntervals(p.elementVulnerability)}"></div>
     </div>
@@ -941,7 +969,9 @@ function bindPartBlockEvents(p, partList, rerender) {
   });
   block.querySelector('.f-defense').addEventListener('input', e => p.defense = parseIntervals(e.target.value));
   block.querySelector('.f-magicResist').addEventListener('input', e => p.magicResist = parseIntervals(e.target.value));
-  block.querySelector('.f-vulnerability').addEventListener('input', e => p.vulnerability = parseIntervals(e.target.value));
+  block.querySelector('.f-defenseReduction').addEventListener('input', e => p.defenseReduction = parseIntervals(e.target.value));
+  block.querySelector('.f-physicalVulnerability').addEventListener('input', e => p.physicalVulnerability = parseIntervals(e.target.value));
+  block.querySelector('.f-magicVulnerability').addEventListener('input', e => p.magicVulnerability = parseIntervals(e.target.value));
   block.querySelector('.f-barrier').addEventListener('input', e => p.barrier = parseIntervals(e.target.value));
   block.querySelector('.f-elementVulnerability').addEventListener('input', e => p.elementVulnerability = parseIntervals(e.target.value));
 }
@@ -1176,7 +1206,10 @@ function renderReferenceInputs(el) {
   const wrap = el.querySelector('.f-referenceInputs');
   const cur = currentSlotSkill(el);
   if (!cur || !cur.skill.referenceFormula) { wrap.innerHTML = ''; return; }
-  const stats = [...new Set(cur.skill.referenceFormula.map(t => t.stat))];
+  let stats = [...new Set(cur.skill.referenceFormula.map(t => t.stat))];
+  // エナジーガードは自身の最大HPから自動算出するため、手入力欄は出さず、代わりに自身最大HP欄を必ず出す
+  if (stats.includes('energyGuard') && !stats.includes('selfMaxHP')) stats.push('selfMaxHP');
+  stats = stats.filter(s => s !== 'energyGuard');
   wrap.innerHTML = stats.map(s => {
     if (s === 'enemyTotalHP') {
       return `<div class="formField"><label>ボスHP(敵全体・5万上限)</label>
