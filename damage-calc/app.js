@@ -333,7 +333,9 @@ function renderSkillsArea() {
 function statOptionsHtml(selected) {
   const opts = [
     ['attack', '攻撃力'], ['magicAttack', '魔法力'], ['selfMaxHP', '自身最大HP'],
-    ['energyGuard', 'エナジーガード(HPから自動算出)'], ['enemyTotalHP', '敵全体HP(5万上限)']
+    ['energyGuard', 'エナジーガード(HPから自動算出)'], ['enemyTotalHP', '敵全体HP(5万上限)'],
+    ['specialConditionAttack', '特殊条件攻撃(条件成立時に参照する専用値)'],
+    ['specialConditionMagic', '特殊条件魔法(条件成立時に参照する専用値)']
   ];
   return opts.map(([v, l]) => `<option value="${v}" ${selected === v ? 'selected' : ''}>${l}</option>`).join('');
 }
@@ -842,13 +844,14 @@ function sumAllyBuffsAtChain(selectedAllySources, skill, chainCount) {
 //   「n:値」の n は「攻撃回数」ではなく「このヒットの時点で既に貯まっているチェイン数」で判定する。
 //   (例: 6:70 と設定した場合、6チェイン以上貯まった状態で行った攻撃から70%になる。
 //    このヒット自体が生み出すチェインの増加分は、このヒットの判定には含まれない)
-function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMode) {
+function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMode, attackerAttribute) {
   // エナジーガード付与バフ(自己・配布・ボスから貰えるバフの手動値)を合算し、EG自動算出に上乗せする
   const allyEnergyGuardBonusTotal = battleBuffs.allySources.reduce((s, a) => s + (a.energyGuardBonus || 0), 0);
   const egBonus = (level.selfEnergyGuardBonus || 0) + allyEnergyGuardBonusTotal + (battleBuffs.manual.energyGuardBonus || 0);
   const base = getBaseValue(skill.referenceFormula, inputStats, boss, egBonus);
   const isMagic = skill.damageType === 'magic';
   const manual = battleBuffs.manual;
+  const vulnField = ATTRIBUTE_VULN_FIELD[attackerAttribute]; // 攻撃キャラの属性に対応する脆弱フィールド名
 
   // チェイン強化: 1回の攻撃で本来+1のところ、+(1+チェイン強化)チェイン貯まるようになる
   const allyChainEnhanceTotal = battleBuffs.allySources.reduce((s, a) => s + (a.chainEnhance || 0), 0);
@@ -881,7 +884,7 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
     const barrier = getValue(part.barrier, chainCount);
     const enhance = manual.enhance + allySum.enhancePercent + getValue(level.enhance, chainCount);
     const vulnerability = isMagic ? getValue(part.magicVulnerability, chainCount) : getValue(part.physicalVulnerability, chainCount);
-    const elementVuln = getValue(part.elementVulnerability, chainCount); // 属性脆弱: 常に有効
+    const elementVuln = vulnField ? getValue(part[vulnField], chainCount) : 0; // 属性脆弱: 攻撃キャラの属性に対応するものが常に有効
     const elementBoostRaw = manual.elementBoost + allySum.elementBoostPercent + getValue(level.elementBoost, chainCount);
     // 属性強化バフ・属性ダメージ%は「有利属性」の時だけ有効
     const elementBoost = elementMode === 'advantage' ? (elementBoostRaw + elementDamageStat) : 0;
@@ -919,11 +922,11 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
 }
 
 // 有利属性・属性相性無・不利属性の3パターンをまとめて計算する
-function calcDamageAllModes(skill, level, inputStats, battleBuffs, boss, part) {
+function calcDamageAllModes(skill, level, inputStats, battleBuffs, boss, part, attackerAttribute) {
   return {
-    advantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'advantage'),
-    neutral: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'neutral'),
-    disadvantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'disadvantage')
+    advantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'advantage', attackerAttribute),
+    neutral: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'neutral', attackerAttribute),
+    disadvantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'disadvantage', attackerAttribute)
   };
 }
 
@@ -950,9 +953,14 @@ function blankPart() {
     defenseReduction: [{ from: 1, value: 0 }],
     physicalVulnerability: [{ from: 1, value: 0 }], magicVulnerability: [{ from: 1, value: 0 }],
     barrier: [{ from: 1, value: 0 }],
-    elementVulnerability: [{ from: 1, value: 0 }], isMainTarget: false
+    fireVulnerability: [{ from: 1, value: 0 }], waterVulnerability: [{ from: 1, value: 0 }],
+    windVulnerability: [{ from: 1, value: 0 }], lightVulnerability: [{ from: 1, value: 0 }], darkVulnerability: [{ from: 1, value: 0 }],
+    isMainTarget: false
   };
 }
+
+// キャラの属性(火/水/風/光/闇)から、ボス部位のどの属性脆弱フィールドを見るかを決める
+const ATTRIBUTE_VULN_FIELD = { '火': 'fireVulnerability', '水': 'waterVulnerability', '風': 'windVulnerability', '光': 'lightVulnerability', '闇': 'darkVulnerability' };
 
 function partBlockHtml(p, radioGroupName) {
   return `
@@ -974,7 +982,14 @@ function partBlockHtml(p, radioGroupName) {
       <div class="formField"><label>物理脆弱%</label><input type="text" class="f-physicalVulnerability" value="${serializeIntervals(p.physicalVulnerability)}"></div>
       <div class="formField"><label>魔法脆弱%</label><input type="text" class="f-magicVulnerability" value="${serializeIntervals(p.magicVulnerability)}"></div>
       <div class="formField"><label>バリア%</label><input type="text" class="f-barrier" value="${serializeIntervals(p.barrier)}"></div>
-      <div class="formField"><label>属性脆弱%</label><input type="text" class="f-elementVulnerability" value="${serializeIntervals(p.elementVulnerability)}"></div>
+    </div>
+    <div class="detail">属性脆弱(攻撃キャラの属性に応じて、該当する1つだけが自動で適用されます)</div>
+    <div class="rowFields">
+      <div class="formField"><label>火脆弱%</label><input type="text" class="f-fireVulnerability" value="${serializeIntervals(p.fireVulnerability)}"></div>
+      <div class="formField"><label>水脆弱%</label><input type="text" class="f-waterVulnerability" value="${serializeIntervals(p.waterVulnerability)}"></div>
+      <div class="formField"><label>風脆弱%</label><input type="text" class="f-windVulnerability" value="${serializeIntervals(p.windVulnerability)}"></div>
+      <div class="formField"><label>光脆弱%</label><input type="text" class="f-lightVulnerability" value="${serializeIntervals(p.lightVulnerability)}"></div>
+      <div class="formField"><label>闇脆弱%</label><input type="text" class="f-darkVulnerability" value="${serializeIntervals(p.darkVulnerability)}"></div>
     </div>
   </div>`;
 }
@@ -1000,7 +1015,11 @@ function bindPartBlockEvents(p, partList, rerender) {
   block.querySelector('.f-physicalVulnerability').addEventListener('input', e => p.physicalVulnerability = parseIntervals(e.target.value));
   block.querySelector('.f-magicVulnerability').addEventListener('input', e => p.magicVulnerability = parseIntervals(e.target.value));
   block.querySelector('.f-barrier').addEventListener('input', e => p.barrier = parseIntervals(e.target.value));
-  block.querySelector('.f-elementVulnerability').addEventListener('input', e => p.elementVulnerability = parseIntervals(e.target.value));
+  block.querySelector('.f-fireVulnerability').addEventListener('input', e => p.fireVulnerability = parseIntervals(e.target.value));
+  block.querySelector('.f-waterVulnerability').addEventListener('input', e => p.waterVulnerability = parseIntervals(e.target.value));
+  block.querySelector('.f-windVulnerability').addEventListener('input', e => p.windVulnerability = parseIntervals(e.target.value));
+  block.querySelector('.f-lightVulnerability').addEventListener('input', e => p.lightVulnerability = parseIntervals(e.target.value));
+  block.querySelector('.f-darkVulnerability').addEventListener('input', e => p.darkVulnerability = parseIntervals(e.target.value));
 }
 
 // ==================================================================
@@ -1009,7 +1028,10 @@ function bindPartBlockEvents(p, partList, rerender) {
 let slotCounter = 0;
 
 function statInputLabel(stat) {
-  return { attack: '攻撃力', magicAttack: '魔法力', selfMaxHP: '自身最大HP', energyGuard: 'エナジーガード' }[stat] || stat;
+  return {
+    attack: '攻撃力', magicAttack: '魔法力', selfMaxHP: '自身最大HP', energyGuard: 'エナジーガード',
+    specialConditionAttack: '特殊条件攻撃', specialConditionMagic: '特殊条件魔法'
+  }[stat] || stat;
 }
 
 function addSlot(snapshot) {
@@ -1304,7 +1326,7 @@ function runSlotCalc(el) {
   const battleBuffs = { allySources, manual };
 
   const results = el._parts.map(part => {
-    const modes = calcDamageAllModes(cur.skill, level, inputStats, battleBuffs, boss, part);
+    const modes = calcDamageAllModes(cur.skill, level, inputStats, battleBuffs, boss, part, cur.character.attribute);
     return { partName: part.name, ...modes };
   });
 
