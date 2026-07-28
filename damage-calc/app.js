@@ -299,6 +299,19 @@ function blankSkill() {
     isDebuffApplyAttack: false, // このスキル自身がボスにデバフを付与する。2撃目以降だけ有効になる
     isSummonDamage: false, // 召喚獣ダメージ(召喚獣脆弱が有効になる)
     lockOnBonusPercent: 0, // ボス部位に「ロックオン」がついている時だけ加算される倍率(%)
+    hitCountBonusPercent: 0, // 敵に当たる数(登録した部位数)1つあたりのダメージ増減%(マイナス指定で減少にも対応)
+    buffCountBonusPercent: 0, // 自分にかかっているバフ数1つあたりのダメージ増加%(計算時に手動でバフ数を入力)
+    spCostBonusPercent: 0, // 消費したSP1つあたりのダメージ増加%(計算時に手動で消費SPを入力)
+    chainMultipleOf: 0, // 敵に適用されるチェインがこの倍数の時だけボーナスが乗る(0=無効)
+    chainMultipleBonusPercent: 0, // 上記条件を満たした時のダメージ増加%
+    selfStackBuffEnabled: false, // スタック型自己バフ(攻撃/チェインを溜める度に重複する自己バフ。加速など)
+    selfStackPerStackAttackPercent: 0, // 1スタックあたりの自己攻撃バフ%
+    selfStackMax: 0, // 最大スタック数
+    selfStackThreshold: 0, // このスタック数以上で追加効果が発動(0=無効)
+    selfStackThresholdChainIncreaseBonus: 0, // 閾値到達時に追加されるチェインダメ増加%
+    // デバフ付与攻撃(isDebuffApplyAttack)の時のみ使用: このスキルが2撃目以降に付与する固定のデバフ量
+    debuffVulnerability: 0, debuffPhysicalVulnerability: 0, debuffMagicVulnerability: 0,
+    debuffDefenseReduction: 0, debuffChainDamageIncrease: 0, debuffSummonVulnerability: 0,
     copiesLevels: [0, 1, 2, 3, 4, 5].map(blankLevel),
     burstBonus: [0, 1, 2, 3].map(blankBurst),
     potentials: [0, 1, 2].map(blankPotential)
@@ -383,9 +396,31 @@ function skillBlockHtml(s) {
       </div>
       <label class="checkLabel"><input type="checkbox" class="f-isBuffRemoval" ${s.isBuffRemovalAttack ? 'checked' : ''}> バフ解除攻撃(1撃目はボスのバリア/防御力バフ/魔法抵抗バフが有効、2撃目以降は解除される。バリアのみ解除したい場合は他の欄を0のままでOK)</label>
       <label class="checkLabel"><input type="checkbox" class="f-isDebuffApply" ${s.isDebuffApplyAttack ? 'checked' : ''}> デバフ付与攻撃(このスキル自身がボスにデバフを付与。2撃目以降だけ有効になる)</label>
+      <div class="rowFields">
+        <div class="formField"><label>脆弱%付与(汎用)</label><input type="number" class="f-debuffVulnerability" value="${s.debuffVulnerability || 0}"></div>
+        <div class="formField"><label>物理脆弱%付与</label><input type="number" class="f-debuffPhysicalVulnerability" value="${s.debuffPhysicalVulnerability || 0}"></div>
+        <div class="formField"><label>魔法脆弱%付与</label><input type="number" class="f-debuffMagicVulnerability" value="${s.debuffMagicVulnerability || 0}"></div>
+        <div class="formField"><label>防御軽減%付与</label><input type="number" class="f-debuffDefenseReduction" value="${s.debuffDefenseReduction || 0}"></div>
+        <div class="formField"><label>受けるチェインダメージ増加%付与</label><input type="number" class="f-debuffChainDamageIncrease" value="${s.debuffChainDamageIncrease || 0}"></div>
+        <div class="formField"><label>召喚獣脆弱%付与</label><input type="number" class="f-debuffSummonVulnerability" value="${s.debuffSummonVulnerability || 0}"></div>
+      </div>
       <label class="checkLabel"><input type="checkbox" class="f-isSummonDamage" ${s.isSummonDamage ? 'checked' : ''}> 召喚獣ダメージ(召喚獣脆弱が有効になる)</label>
       <div class="formField"><label>ロックオン時ボーナス倍率(%)(ボス部位に「ロックオン」がついている時だけ加算)</label>
         <input type="number" class="f-lockOnBonus" value="${s.lockOnBonusPercent || 0}">
+      </div>
+      <div class="rowFields">
+        <div class="formField"><label>命中数ボーナス%(部位数1つあたり。マイナスで減少)</label><input type="number" class="f-hitCountBonus" value="${s.hitCountBonusPercent || 0}"></div>
+        <div class="formField"><label>自己バフ数ボーナス%(バフ1つあたり)</label><input type="number" class="f-buffCountBonus" value="${s.buffCountBonusPercent || 0}"></div>
+        <div class="formField"><label>消費SPボーナス%(SP1あたり)</label><input type="number" class="f-spCostBonus" value="${s.spCostBonusPercent || 0}"></div>
+        <div class="formField"><label>チェイン倍数条件(0=無効)</label><input type="number" class="f-chainMultipleOf" value="${s.chainMultipleOf || 0}" placeholder="例:3"></div>
+        <div class="formField"><label>チェイン倍数達成時ボーナス%</label><input type="number" class="f-chainMultipleBonus" value="${s.chainMultipleBonusPercent || 0}"></div>
+      </div>
+      <label class="checkLabel"><input type="checkbox" class="f-selfStackEnabled" ${s.selfStackBuffEnabled ? 'checked' : ''}> スタック型自己バフ(攻撃/チェインの度に重複する自己攻撃バフ。加速など)</label>
+      <div class="rowFields">
+        <div class="formField"><label>1スタックあたり自己攻撃バフ%</label><input type="number" class="f-selfStackPerStack" value="${s.selfStackPerStackAttackPercent || 0}"></div>
+        <div class="formField"><label>最大スタック数</label><input type="number" class="f-selfStackMax" value="${s.selfStackMax || 0}"></div>
+        <div class="formField"><label>閾値スタック数(0=無効)</label><input type="number" class="f-selfStackThreshold" value="${s.selfStackThreshold || 0}"></div>
+        <div class="formField"><label>閾値到達時チェインダメ増加%</label><input type="number" class="f-selfStackThresholdBonus" value="${s.selfStackThresholdChainIncreaseBonus || 0}"></div>
       </div>
       <label>参照ステータス(基準値の合成式)</label>
       <div class="formulaRows">${(s.referenceFormula || []).map((t, i) => formulaRowHtml(t, i)).join('')}</div>
@@ -564,8 +599,24 @@ function bindSkillBlockEvents(s) {
   block.querySelector('.f-damageOutputType').addEventListener('change', e => s.damageOutputType = e.target.value);
   block.querySelector('.f-isBuffRemoval').addEventListener('change', e => s.isBuffRemovalAttack = e.target.checked);
   block.querySelector('.f-isDebuffApply').addEventListener('change', e => s.isDebuffApplyAttack = e.target.checked);
+  block.querySelector('.f-debuffVulnerability').addEventListener('input', e => s.debuffVulnerability = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffPhysicalVulnerability').addEventListener('input', e => s.debuffPhysicalVulnerability = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffMagicVulnerability').addEventListener('input', e => s.debuffMagicVulnerability = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffDefenseReduction').addEventListener('input', e => s.debuffDefenseReduction = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffChainDamageIncrease').addEventListener('input', e => s.debuffChainDamageIncrease = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffSummonVulnerability').addEventListener('input', e => s.debuffSummonVulnerability = Number(e.target.value) || 0);
   block.querySelector('.f-isSummonDamage').addEventListener('change', e => s.isSummonDamage = e.target.checked);
   block.querySelector('.f-lockOnBonus').addEventListener('input', e => s.lockOnBonusPercent = Number(e.target.value) || 0);
+  block.querySelector('.f-hitCountBonus').addEventListener('input', e => s.hitCountBonusPercent = Number(e.target.value) || 0);
+  block.querySelector('.f-buffCountBonus').addEventListener('input', e => s.buffCountBonusPercent = Number(e.target.value) || 0);
+  block.querySelector('.f-spCostBonus').addEventListener('input', e => s.spCostBonusPercent = Number(e.target.value) || 0);
+  block.querySelector('.f-chainMultipleOf').addEventListener('input', e => s.chainMultipleOf = Number(e.target.value) || 0);
+  block.querySelector('.f-chainMultipleBonus').addEventListener('input', e => s.chainMultipleBonusPercent = Number(e.target.value) || 0);
+  block.querySelector('.f-selfStackEnabled').addEventListener('change', e => s.selfStackBuffEnabled = e.target.checked);
+  block.querySelector('.f-selfStackPerStack').addEventListener('input', e => s.selfStackPerStackAttackPercent = Number(e.target.value) || 0);
+  block.querySelector('.f-selfStackMax').addEventListener('input', e => s.selfStackMax = Number(e.target.value) || 0);
+  block.querySelector('.f-selfStackThreshold').addEventListener('input', e => s.selfStackThreshold = Number(e.target.value) || 0);
+  block.querySelector('.f-selfStackThresholdBonus').addEventListener('input', e => s.selfStackThresholdChainIncreaseBonus = Number(e.target.value) || 0);
 
   block.querySelector('.f-addFormula').addEventListener('click', () => {
     s.referenceFormula.push({ stat: 'attack', cap: null, coefficient: 100 });
@@ -917,7 +968,7 @@ function sumAllyBuffsAtChain(selectedAllySources, skill, chainCount) {
 //   「n:値」の n は「攻撃回数」ではなく「このヒットの時点で既に貯まっているチェイン数」で判定する。
 //   (例: 6:70 と設定した場合、6チェイン以上貯まった状態で行った攻撃から70%になる。
 //    このヒット自体が生み出すチェインの増加分は、このヒットの判定には含まれない)
-function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMode, attackerAttribute) {
+function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMode, attackerAttribute, targetCount) {
   // エナジーガード付与バフ(自己・配布・ボスから貰えるバフの手動値)を合算し、EG自動算出に上乗せする
   const allyEnergyGuardBonusTotal = battleBuffs.allySources.reduce((s, a) => s + (a.energyGuardBonus || 0), 0);
   const egBonus = (level.selfEnergyGuardBonus || 0) + allyEnergyGuardBonusTotal + (battleBuffs.manual.energyGuardBonus || 0);
@@ -934,6 +985,13 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
   const elementDamageStat = Number(inputStats.elementDamage) || 0;
   const resistanceMult = elementMode === 'disadvantage' ? 0.5 : 1; // 不利属性: 属性耐性により半減
 
+  // 命中数(対象数)ボーナス: 登録した部位数を「敵に当たる数」とみなす
+  const hitCountMult = 1 + (skill.hitCountBonusPercent || 0) * (targetCount || 1) / 100;
+  // 自己バフ数・消費SP依存ボーナス(計算時の手動入力値を使用)
+  const buffCountMult = 1 + (skill.buffCountBonusPercent || 0) * (Number(inputStats.buffCount) || 0) / 100;
+  const spCostMult = 1 + (skill.spCostBonusPercent || 0) * (Number(inputStats.spCost) || 0) / 100;
+  const conditionalMult = hitCountMult * buffCountMult * spCostMult;
+
   let general = 0, fixed = 0, pure = 0;
   let firstHitCritRate = 0;
 
@@ -942,6 +1000,21 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
     // (このヒット自体で貯まる分は、このヒットのバフには反映されない=次のヒットから反映)
     const chainCount = (part.startingChainCount || 0) + (hit - 1) * chainIncrementPerHit;
 
+    // チェイン倍数条件ボーナス(例: チェインが3の倍数の時だけダメージ上昇)
+    const chainMultipleMet = skill.chainMultipleOf > 0 && chainCount > 0 && Math.floor(chainCount) % skill.chainMultipleOf === 0;
+    const chainMultipleMult = chainMultipleMet ? (1 + (skill.chainMultipleBonusPercent || 0) / 100) : 1;
+
+    // スタック型自己バフ(加速など): 攻撃の度に+1スタック、最大値まで積み上がる
+    let stackAttackBonus = 0, stackChainIncBonus = 0;
+    if (skill.selfStackBuffEnabled) {
+      const startStacks = Number(inputStats.startStacks) || 0;
+      const currentStacks = skill.selfStackMax > 0 ? Math.min(skill.selfStackMax, startStacks + (hit - 1)) : (startStacks + (hit - 1));
+      stackAttackBonus = (skill.selfStackPerStackAttackPercent || 0) * currentStacks;
+      if (skill.selfStackThreshold > 0 && currentStacks >= skill.selfStackThreshold) {
+        stackChainIncBonus = skill.selfStackThresholdChainIncreaseBonus || 0;
+      }
+    }
+
     const allySum = sumAllyBuffsAtChain(battleBuffs.allySources, skill, chainCount);
 
     const totalCritRate = (Number(inputStats.critRate) || 0) + manual.critRate + allySum.critRateBuffPercent + getValue(level.selfBuff?.critRateBuffPercent || [], chainCount);
@@ -949,7 +1022,7 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
     const critDmg = (Number(inputStats.critDamage) || 0) + overCap * 6 + manual.critDamage + allySum.critDamageBuffPercent + getValue(level.selfBuff?.critDamageBuffPercent || [], chainCount);
     if (hit === 1) firstHitCritRate = totalCritRate;
 
-    const buff = manual.attack + allySum.attackBuffPercent + getValue(level.selfBuff?.attackBuffPercent || [], chainCount);
+    const buff = manual.attack + allySum.attackBuffPercent + getValue(level.selfBuff?.attackBuffPercent || [], chainCount) + stackAttackBonus;
     const mult = getValue(level.skillMultiplier, chainCount);
     // バフ解除攻撃: ボスのバリア/防御力バフ/魔法抵抗バフは1撃目だけ有効(2撃目以降は解除された扱い)
     // デバフ付与攻撃: このスキル自身が付与するデバフは2撃目以降だけ有効
@@ -958,27 +1031,28 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
     const debuffApplyActive = skill.isDebuffApplyAttack && !isFirstHit;
     const rawDefenseBuff = buffRemovalActive ? (isMagic ? (part.magicResistBuffPercent || 0) : (part.defenseBuffPercent || 0)) : 0;
     const rawDefense = (isMagic ? getValue(part.magicResist, chainCount) : getValue(part.defense, chainCount)) + rawDefenseBuff;
-    const defenseReductionDebuff = debuffApplyActive ? (part.defenseReductionDebuffAdd || 0) : 0;
-    const defenseReduction = getValue(part.defenseReduction, chainCount) + defenseReductionDebuff; // 防御軽減デバフ: 防御/魔法抵抗そのものを削る
+    const defenseReductionDebuff = debuffApplyActive ? (skill.debuffDefenseReduction || 0) : 0;
+    const defenseReduction = Math.min(100, getValue(part.defenseReduction, chainCount) + defenseReductionDebuff); // 防御軽減デバフ: 防御/魔法抵抗そのものを削る(マイナスにはならない)
     const defense = rawDefense * (1 - defenseReduction / 100);
     const barrierBuff = buffRemovalActive ? (part.barrierBuffPercent || 0) : 0;
     const barrier = getValue(part.barrier, chainCount) + barrierBuff;
     const enhance = manual.enhance + allySum.enhancePercent + getValue(level.enhance, chainCount);
     const typeSpecificVuln = isMagic ? getValue(part.magicVulnerability, chainCount) : getValue(part.physicalVulnerability, chainCount);
-    const typeSpecificVulnDebuff = debuffApplyActive ? (isMagic ? (part.magicVulnerabilityDebuffAdd || 0) : (part.physicalVulnerabilityDebuffAdd || 0)) : 0;
-    const genericVuln = getValue(part.vulnerability, chainCount) + (debuffApplyActive ? (part.vulnerabilityDebuffAdd || 0) : 0); // 汎用脆弱: 物理/魔法どちらにも常時有効
-    const summonVuln = skill.isSummonDamage ? (getValue(part.summonVulnerability, chainCount) + (debuffApplyActive ? (part.summonVulnerabilityDebuffAdd || 0) : 0)) : 0;
+    const typeSpecificVulnDebuff = debuffApplyActive ? (isMagic ? (skill.debuffMagicVulnerability || 0) : (skill.debuffPhysicalVulnerability || 0)) : 0;
+    const genericVuln = getValue(part.vulnerability, chainCount) + (debuffApplyActive ? (skill.debuffVulnerability || 0) : 0); // 汎用脆弱: 物理/魔法どちらにも常時有効
+    const summonVuln = skill.isSummonDamage ? (getValue(part.summonVulnerability, chainCount) + (debuffApplyActive ? (skill.debuffSummonVulnerability || 0) : 0)) : 0;
     const vulnerability = typeSpecificVuln + typeSpecificVulnDebuff + genericVuln + summonVuln;
     const elementVuln = vulnField ? getValue(part[vulnField], chainCount) : 0; // 属性脆弱: 攻撃キャラの属性に対応するものが常に有効
     const elementBoostRaw = manual.elementBoost + allySum.elementBoostPercent + getValue(level.elementBoost, chainCount);
     // 属性強化バフ・属性ダメージ%は「有利属性」の時だけ有効
     const elementBoost = elementMode === 'advantage' ? (elementBoostRaw + elementDamageStat) : 0;
-    const receivedChainInc = getValue(part.receivedChainDamageIncrease, chainCount) + (debuffApplyActive ? (part.chainDamageIncreaseDebuffAdd || 0) : 0); // 受けるチェインダメージ増加: 常時有効
-    const chainAdd = manual.chainIncrease + allySum.chainDamageIncreasePercent + getValue(level.chainDamageIncrease, chainCount) + receivedChainInc;
+    const receivedChainInc = getValue(part.receivedChainDamageIncrease, chainCount) + (debuffApplyActive ? (skill.debuffChainDamageIncrease || 0) : 0); // 受けるチェインダメージ増加: 常時有効
+    const chainAdd = manual.chainIncrease + allySum.chainDamageIncreasePercent + getValue(level.chainDamageIncrease, chainCount) + receivedChainInc + stackChainIncBonus;
     const weakSpot = part.weakSpot;
     const mainTargetMult = part.isMainTarget ? (1 + (skill.mainTargetBonus || 0) / 100) : 1;
     const lockOnMult = part.hasLockOn ? (1 + (skill.lockOnBonusPercent || 0) / 100) : 1;
     const otherMult = 1 + (level.otherAdjustment || 0) / 100;
+    const hitMult = mainTargetMult * lockOnMult * otherMult * resistanceMult * conditionalMult * chainMultipleMult;
 
     let step2 = roundDown(base * (1 + buff / 100));
     step2 = roundDown(step2 * mult / 100);
@@ -988,20 +1062,20 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
     g = roundDown(g * (1 - barrier / 100) * (1 + (enhance + vulnerability + elementVuln) / 100));
     g = roundDown(g * (1 + elementBoost / 100));
     g = g * (1 + (10 + chainAdd) / 100 * chainCount);
-    g = roundDown(g * weakSpot / 100 * mainTargetMult * lockOnMult * otherMult * resistanceMult);
+    g = roundDown(g * weakSpot / 100 * hitMult);
     general += roundDown(g);
 
     let f = roundDown(step2 * (1 + enhance / 100));
     f = roundDown(f * (1 + elementBoost / 100));
     f = f * (1 + (10 + chainAdd) / 100 * chainCount);
-    f = roundDown(f * weakSpot / 100 * mainTargetMult * lockOnMult * otherMult * resistanceMult);
+    f = roundDown(f * weakSpot / 100 * hitMult);
     fixed += roundDown(f);
 
     let p2 = roundDown(step2 * (1 + (enhance + vulnerability + elementVuln) / 100));
     p2 = roundDown(p2 * (1 + elementBoost / 100));
     p2 = p2 * (1 + critDmg / 100);
     p2 = p2 * (1 + (10 + chainAdd) / 100 * chainCount);
-    p2 = roundDown(p2 * weakSpot / 100 * mainTargetMult * lockOnMult * otherMult * resistanceMult);
+    p2 = roundDown(p2 * weakSpot / 100 * hitMult);
     pure += roundDown(p2);
   }
 
@@ -1009,11 +1083,11 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
 }
 
 // 有利属性・属性相性無・不利属性の3パターンをまとめて計算する
-function calcDamageAllModes(skill, level, inputStats, battleBuffs, boss, part, attackerAttribute) {
+function calcDamageAllModes(skill, level, inputStats, battleBuffs, boss, part, attackerAttribute, targetCount) {
   return {
-    advantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'advantage', attackerAttribute),
-    neutral: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'neutral', attackerAttribute),
-    disadvantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'disadvantage', attackerAttribute)
+    advantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'advantage', attackerAttribute, targetCount),
+    neutral: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'neutral', attackerAttribute, targetCount),
+    disadvantage: calcDamage(skill, level, inputStats, battleBuffs, boss, part, 'disadvantage', attackerAttribute, targetCount)
   };
 }
 
@@ -1047,17 +1121,14 @@ function blankPart() {
     windVulnerability: [{ from: 1, value: 0 }], lightVulnerability: [{ from: 1, value: 0 }], darkVulnerability: [{ from: 1, value: 0 }],
     isMainTarget: false,
     hasLockOn: false, // ロックオン済みフラグ
-    barrierBuffPercent: 0, defenseBuffPercent: 0, magicResistBuffPercent: 0, // バフ解除攻撃の時のみ使用: 1撃目だけ有効、2撃目以降は解除される
-    // デバフ付与攻撃の時のみ使用: 2撃目以降だけ加算される(このスキル自身が新しく付与するデバフ分)
-    vulnerabilityDebuffAdd: 0, physicalVulnerabilityDebuffAdd: 0, magicVulnerabilityDebuffAdd: 0,
-    defenseReductionDebuffAdd: 0, chainDamageIncreaseDebuffAdd: 0, summonVulnerabilityDebuffAdd: 0
+    barrierBuffPercent: 0, defenseBuffPercent: 0, magicResistBuffPercent: 0 // バフ解除攻撃の時のみ使用: 1撃目だけ有効、2撃目以降は解除される
   };
 }
 
 // キャラの属性(火/水/風/光/闇)から、ボス部位のどの属性脆弱フィールドを見るかを決める
 const ATTRIBUTE_VULN_FIELD = { '火': 'fireVulnerability', '水': 'waterVulnerability', '風': 'windVulnerability', '光': 'lightVulnerability', '闇': 'darkVulnerability' };
 
-function partBlockHtml(p, radioGroupName, showBuffRemovalFields, showDebuffApplyFields) {
+function partBlockHtml(p, radioGroupName, showBuffRemovalFields) {
   return `
   <div class="partBlock" data-part="${p._uid}">
     <div class="partHead">
@@ -1096,16 +1167,6 @@ function partBlockHtml(p, radioGroupName, showBuffRemovalFields, showDebuffApply
       <div class="formField"><label>バリアバフ%(解除対象)</label><input type="number" class="f-barrierBuffPercent" value="${p.barrierBuffPercent || 0}"></div>
       <div class="formField"><label>防御力バフ%(解除対象)</label><input type="number" class="f-defenseBuffPercent" value="${p.defenseBuffPercent || 0}"></div>
       <div class="formField"><label>魔法抵抗バフ%(解除対象)</label><input type="number" class="f-magicResistBuffPercent" value="${p.magicResistBuffPercent || 0}"></div>
-    </div>` : ''}
-    ${showDebuffApplyFields ? `
-    <div class="detail">デバフ付与攻撃選択中: このスキル自身が新しく付与するデバフ量を入力してください(2撃目以降だけ有効になります)</div>
-    <div class="rowFields">
-      <div class="formField"><label>脆弱%付与(汎用)</label><input type="number" class="f-vulnerabilityDebuffAdd" value="${p.vulnerabilityDebuffAdd || 0}"></div>
-      <div class="formField"><label>物理脆弱%付与</label><input type="number" class="f-physicalVulnerabilityDebuffAdd" value="${p.physicalVulnerabilityDebuffAdd || 0}"></div>
-      <div class="formField"><label>魔法脆弱%付与</label><input type="number" class="f-magicVulnerabilityDebuffAdd" value="${p.magicVulnerabilityDebuffAdd || 0}"></div>
-      <div class="formField"><label>防御軽減%付与</label><input type="number" class="f-defenseReductionDebuffAdd" value="${p.defenseReductionDebuffAdd || 0}"></div>
-      <div class="formField"><label>受けるチェインダメージ増加%付与</label><input type="number" class="f-chainDamageIncreaseDebuffAdd" value="${p.chainDamageIncreaseDebuffAdd || 0}"></div>
-      <div class="formField"><label>召喚獣脆弱%付与</label><input type="number" class="f-summonVulnerabilityDebuffAdd" value="${p.summonVulnerabilityDebuffAdd || 0}"></div>
     </div>` : ''}
   </div>`;
 }
@@ -1146,18 +1207,6 @@ function bindPartBlockEvents(p, partList, rerender) {
   if (defenseBuffInp) defenseBuffInp.addEventListener('input', e => p.defenseBuffPercent = Number(e.target.value) || 0);
   const magicResistBuffInp = block.querySelector('.f-magicResistBuffPercent');
   if (magicResistBuffInp) magicResistBuffInp.addEventListener('input', e => p.magicResistBuffPercent = Number(e.target.value) || 0);
-  const vulnDebuffInp = block.querySelector('.f-vulnerabilityDebuffAdd');
-  if (vulnDebuffInp) vulnDebuffInp.addEventListener('input', e => p.vulnerabilityDebuffAdd = Number(e.target.value) || 0);
-  const physVulnDebuffInp = block.querySelector('.f-physicalVulnerabilityDebuffAdd');
-  if (physVulnDebuffInp) physVulnDebuffInp.addEventListener('input', e => p.physicalVulnerabilityDebuffAdd = Number(e.target.value) || 0);
-  const magVulnDebuffInp = block.querySelector('.f-magicVulnerabilityDebuffAdd');
-  if (magVulnDebuffInp) magVulnDebuffInp.addEventListener('input', e => p.magicVulnerabilityDebuffAdd = Number(e.target.value) || 0);
-  const defRedDebuffInp = block.querySelector('.f-defenseReductionDebuffAdd');
-  if (defRedDebuffInp) defRedDebuffInp.addEventListener('input', e => p.defenseReductionDebuffAdd = Number(e.target.value) || 0);
-  const chainIncDebuffInp = block.querySelector('.f-chainDamageIncreaseDebuffAdd');
-  if (chainIncDebuffInp) chainIncDebuffInp.addEventListener('input', e => p.chainDamageIncreaseDebuffAdd = Number(e.target.value) || 0);
-  const summonVulnDebuffInp = block.querySelector('.f-summonVulnerabilityDebuffAdd');
-  if (summonVulnDebuffInp) summonVulnDebuffInp.addEventListener('input', e => p.summonVulnerabilityDebuffAdd = Number(e.target.value) || 0);
 }
 
 // ==================================================================
@@ -1202,6 +1251,7 @@ function addSlot(snapshot) {
       <div class="formField"><label>クリダメ(ステータス画面値・%)</label><input type="number" class="f-critDamage" value="0"></div>
       <div class="formField"><label>属性ダメージ(ステータス画面値・%)</label><input type="number" class="f-elementDamage" value="0"></div>
     </div>
+    <div class="f-conditionalInputs rowFields"></div>
 
     <h3>バフキャラ選択</h3>
     <div class="f-buffList buffList"><div class="empty">配布バフを持つスキルがまだ登録されていません。</div></div>
@@ -1292,8 +1342,7 @@ function renderSlotParts(el) {
   const radioGroupName = 'mainTarget-' + el.id;
   const cur = currentSlotSkill(el);
   const showBuffRemovalFields = !!(cur && cur.skill.isBuffRemovalAttack);
-  const showDebuffApplyFields = !!(cur && cur.skill.isDebuffApplyAttack);
-  wrap.innerHTML = el._parts.map(p => partBlockHtml(p, radioGroupName, showBuffRemovalFields, showDebuffApplyFields)).join('');
+  wrap.innerHTML = el._parts.map(p => partBlockHtml(p, radioGroupName, showBuffRemovalFields)).join('');
   el._parts.forEach(p => bindPartBlockEvents(p, el._parts, () => renderSlotParts(el)));
 }
 
@@ -1306,6 +1355,7 @@ function bindSlotEvents(el) {
     renderPotentialsArea(el);
     renderSkillInfo(el);
     renderSlotParts(el);
+    renderConditionalInputs(el);
   });
   el.querySelector('.f-slotCopies').addEventListener('change', () => renderSkillInfo(el));
   el.querySelector('.f-slotBurst').addEventListener('change', () => renderSkillInfo(el));
@@ -1391,6 +1441,7 @@ function populateSlotSkillSelect(el) {
     renderPotentialsArea(el);
     renderSkillInfo(el);
     renderSlotParts(el);
+    renderConditionalInputs(el);
     return;
   }
   sel.innerHTML = c.skills.map((s, i) => s.dealsDamage ? `<option value="${i}">${escapeHtml(s.skillName)}</option>` : '').join('');
@@ -1398,6 +1449,7 @@ function populateSlotSkillSelect(el) {
   renderPotentialsArea(el);
   renderSkillInfo(el);
   renderSlotParts(el);
+  renderConditionalInputs(el);
 }
 
 function renderReferenceInputs(el) {
@@ -1423,6 +1475,25 @@ function renderReferenceInputs(el) {
   if (capBtn) capBtn.addEventListener('click', () => { wrap.querySelector('.f-bossHP').value = 50000; });
 }
 
+// スキルの特殊条件(バフ数依存/消費SP依存/スタック型自己バフ)に応じて、必要な入力欄だけ表示する
+function renderConditionalInputs(el) {
+  const wrap = el.querySelector('.f-conditionalInputs');
+  const cur = currentSlotSkill(el);
+  if (!cur) { wrap.innerHTML = ''; return; }
+  const s = cur.skill;
+  let html = '';
+  if (s.buffCountBonusPercent) {
+    html += `<div class="formField"><label>自己バフ数(現在かかっているバフの数)</label><input type="number" class="f-buffCount" value="0"></div>`;
+  }
+  if (s.spCostBonusPercent) {
+    html += `<div class="formField"><label>消費SP(このスキルの消費SP数)</label><input type="number" class="f-spCost" value="0"></div>`;
+  }
+  if (s.selfStackBuffEnabled) {
+    html += `<div class="formField"><label>開始スタック数(攻撃前に既に貯まっている重複数)</label><input type="number" class="f-startStacks" value="0"></div>`;
+  }
+  wrap.innerHTML = html;
+}
+
 function runSlotCalc(el) {
   const cur = currentSlotSkill(el);
   const resultArea = el.querySelector('.f-resultArea');
@@ -1443,6 +1514,12 @@ function runSlotCalc(el) {
   inputStats.critRate = Number(el.querySelector('.f-critRate').value) || 0;
   inputStats.critDamage = Number(el.querySelector('.f-critDamage').value) || 0;
   inputStats.elementDamage = Number(el.querySelector('.f-elementDamage').value) || 0;
+  const buffCountInp = el.querySelector('.f-buffCount');
+  inputStats.buffCount = buffCountInp ? Number(buffCountInp.value) || 0 : 0;
+  const spCostInp = el.querySelector('.f-spCost');
+  inputStats.spCost = spCostInp ? Number(spCostInp.value) || 0 : 0;
+  const startStacksInp = el.querySelector('.f-startStacks');
+  inputStats.startStacks = startStacksInp ? Number(startStacksInp.value) || 0 : 0;
 
   const bossHpInput = el.querySelector('.f-bossHP');
   const boss = { totalHP: bossHpInput ? Number(bossHpInput.value) || 0 : 0 };
@@ -1483,7 +1560,7 @@ function runSlotCalc(el) {
   const battleBuffs = { allySources, manual };
 
   const results = el._parts.map(part => {
-    const modes = calcDamageAllModes(cur.skill, level, inputStats, battleBuffs, boss, part, cur.character.attribute);
+    const modes = calcDamageAllModes(cur.skill, level, inputStats, battleBuffs, boss, part, cur.character.attribute, el._parts.length);
     return { partName: part.name, ...modes };
   });
 
@@ -1583,6 +1660,9 @@ function buildSnapshot(el, cur) {
     critRate: Number(el.querySelector('.f-critRate').value) || 0,
     critDamage: Number(el.querySelector('.f-critDamage').value) || 0,
     elementDamage: Number(el.querySelector('.f-elementDamage').value) || 0,
+    buffCount: el.querySelector('.f-buffCount') ? Number(el.querySelector('.f-buffCount').value) || 0 : null,
+    spCost: el.querySelector('.f-spCost') ? Number(el.querySelector('.f-spCost').value) || 0 : null,
+    startStacks: el.querySelector('.f-startStacks') ? Number(el.querySelector('.f-startStacks').value) || 0 : null,
     selectedBuffs,
     bossBuff: {
       attackBuffPercent: Number(el.querySelector('.f-bossBuffAttack').value) || 0,
@@ -1622,6 +1702,10 @@ function applySnapshotToSlot(el, snap) {
   el.querySelector('.f-critRate').value = snap.critRate;
   el.querySelector('.f-critDamage').value = snap.critDamage;
   el.querySelector('.f-elementDamage').value = snap.elementDamage || 0;
+  renderConditionalInputs(el);
+  if (snap.buffCount != null) { const inp = el.querySelector('.f-buffCount'); if (inp) inp.value = snap.buffCount; }
+  if (snap.spCost != null) { const inp = el.querySelector('.f-spCost'); if (inp) inp.value = snap.spCost; }
+  if (snap.startStacks != null) { const inp = el.querySelector('.f-startStacks'); if (inp) inp.value = snap.startStacks; }
   el.querySelector('.f-bossBuffAttack').value = snap.bossBuff.attackBuffPercent;
   el.querySelector('.f-bossBuffCrit').value = snap.bossBuff.critRateBuffPercent;
   el.querySelector('.f-bossBuffCritDamage').value = snap.bossBuff.critDamageBuffPercent || 0;
