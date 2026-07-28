@@ -105,6 +105,7 @@ th { background: #314051; color: var(--gold); border-bottom: 2px solid var(--gol
 .hlCol { background: rgba(216,179,93,0.10); }
 th.hlCol { background: rgba(216,179,93,0.22); }
 .totalRow td { font-weight: 700; background: var(--bg-card-alt); border-top: 2px solid var(--gold); }
+.totalRow td.hlCol { background: rgba(216,179,93,0.28); }
 
 .status { font-size: 13px; margin-top: 6px; }
 .status.ok { color: var(--ok); }
