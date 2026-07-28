@@ -295,6 +295,7 @@ function blankSkill() {
     referenceFormula: [{ stat: 'attack', cap: null, coefficient: 100 }],
     mainTargetBonus: 0,
     allyEnergyGuardRefStat: '', // ''=無し / 'magicAttack' / 'selfMaxHP'
+    isBuffRemovalAttack: false, // 1撃目はボスのバリア/防御力バフ/魔法抵抗バフが有効、2撃目以降は解除される
     copiesLevels: [0, 1, 2, 3, 4, 5].map(blankLevel),
     burstBonus: [0, 1, 2, 3].map(blankBurst),
     potentials: [0, 1, 2].map(blankPotential)
@@ -377,6 +378,7 @@ function skillBlockHtml(s) {
           </select>
         </div>
       </div>
+      <label class="checkLabel"><input type="checkbox" class="f-isBuffRemoval" ${s.isBuffRemovalAttack ? 'checked' : ''}> バフ解除攻撃(1撃目はボスのバリア/防御力バフ/魔法抵抗バフが有効、2撃目以降は解除される)</label>
       <label>参照ステータス(基準値の合成式)</label>
       <div class="formulaRows">${(s.referenceFormula || []).map((t, i) => formulaRowHtml(t, i)).join('')}</div>
       <button class="small f-addFormula" type="button">+ 参照項目を追加</button>
@@ -552,6 +554,7 @@ function bindSkillBlockEvents(s) {
   block.querySelector('.f-damageType').addEventListener('change', e => s.damageType = e.target.value);
   block.querySelector('.f-mainTargetBonus').addEventListener('input', e => s.mainTargetBonus = Number(e.target.value) || 0);
   block.querySelector('.f-damageOutputType').addEventListener('change', e => s.damageOutputType = e.target.value);
+  block.querySelector('.f-isBuffRemoval').addEventListener('change', e => s.isBuffRemovalAttack = e.target.checked);
 
   block.querySelector('.f-addFormula').addEventListener('click', () => {
     s.referenceFormula.push({ stat: 'attack', cap: null, coefficient: 100 });
@@ -937,10 +940,15 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
 
     const buff = manual.attack + allySum.attackBuffPercent + getValue(level.selfBuff?.attackBuffPercent || [], chainCount);
     const mult = getValue(level.skillMultiplier, chainCount);
-    const rawDefense = isMagic ? getValue(part.magicResist, chainCount) : getValue(part.defense, chainCount);
+    // バフ解除攻撃: ボスのバリア/防御力バフ/魔法抵抗バフは1撃目だけ有効(2撃目以降は解除された扱い)
+    const isFirstHit = hit === 1;
+    const buffRemovalActive = skill.isBuffRemovalAttack && isFirstHit;
+    const rawDefenseBuff = buffRemovalActive ? (isMagic ? (part.magicResistBuffPercent || 0) : (part.defenseBuffPercent || 0)) : 0;
+    const rawDefense = (isMagic ? getValue(part.magicResist, chainCount) : getValue(part.defense, chainCount)) + rawDefenseBuff;
     const defenseReduction = getValue(part.defenseReduction, chainCount); // 防御軽減デバフ: 防御/魔法抵抗そのものを削る
     const defense = rawDefense * (1 - defenseReduction / 100);
-    const barrier = getValue(part.barrier, chainCount);
+    const barrierBuff = buffRemovalActive ? (part.barrierBuffPercent || 0) : 0;
+    const barrier = getValue(part.barrier, chainCount) + barrierBuff;
     const enhance = manual.enhance + allySum.enhancePercent + getValue(level.enhance, chainCount);
     const vulnerability = isMagic ? getValue(part.magicVulnerability, chainCount) : getValue(part.physicalVulnerability, chainCount);
     const elementVuln = vulnField ? getValue(part[vulnField], chainCount) : 0; // 属性脆弱: 攻撃キャラの属性に対応するものが常に有効
@@ -1014,14 +1022,15 @@ function blankPart() {
     barrier: [{ from: 1, value: 0 }],
     fireVulnerability: [{ from: 1, value: 0 }], waterVulnerability: [{ from: 1, value: 0 }],
     windVulnerability: [{ from: 1, value: 0 }], lightVulnerability: [{ from: 1, value: 0 }], darkVulnerability: [{ from: 1, value: 0 }],
-    isMainTarget: false
+    isMainTarget: false,
+    barrierBuffPercent: 0, defenseBuffPercent: 0, magicResistBuffPercent: 0 // バフ解除攻撃の時のみ使用: 1撃目だけ有効、2撃目以降は解除される
   };
 }
 
 // キャラの属性(火/水/風/光/闇)から、ボス部位のどの属性脆弱フィールドを見るかを決める
 const ATTRIBUTE_VULN_FIELD = { '火': 'fireVulnerability', '水': 'waterVulnerability', '風': 'windVulnerability', '光': 'lightVulnerability', '闇': 'darkVulnerability' };
 
-function partBlockHtml(p, radioGroupName) {
+function partBlockHtml(p, radioGroupName, showBuffRemovalFields) {
   return `
   <div class="partBlock" data-part="${p._uid}">
     <div class="partHead">
@@ -1050,6 +1059,13 @@ function partBlockHtml(p, radioGroupName) {
       <div class="formField"><label>光脆弱%</label><input type="text" class="f-lightVulnerability" value="${serializeIntervals(p.lightVulnerability)}"></div>
       <div class="formField"><label>闇脆弱%</label><input type="text" class="f-darkVulnerability" value="${serializeIntervals(p.darkVulnerability)}"></div>
     </div>
+    ${showBuffRemovalFields ? `
+    <div class="detail">バフ解除攻撃選択中: 現在ボスにかかっているバフを入力してください(1撃目だけ有効、2撃目以降は解除された扱いになります)</div>
+    <div class="rowFields">
+      <div class="formField"><label>バリアバフ%(解除対象)</label><input type="number" class="f-barrierBuffPercent" value="${p.barrierBuffPercent || 0}"></div>
+      <div class="formField"><label>防御力バフ%(解除対象)</label><input type="number" class="f-defenseBuffPercent" value="${p.defenseBuffPercent || 0}"></div>
+      <div class="formField"><label>魔法抵抗バフ%(解除対象)</label><input type="number" class="f-magicResistBuffPercent" value="${p.magicResistBuffPercent || 0}"></div>
+    </div>` : ''}
   </div>`;
 }
 
@@ -1079,6 +1095,12 @@ function bindPartBlockEvents(p, partList, rerender) {
   block.querySelector('.f-windVulnerability').addEventListener('input', e => p.windVulnerability = parseIntervals(e.target.value));
   block.querySelector('.f-lightVulnerability').addEventListener('input', e => p.lightVulnerability = parseIntervals(e.target.value));
   block.querySelector('.f-darkVulnerability').addEventListener('input', e => p.darkVulnerability = parseIntervals(e.target.value));
+  const barrierBuffInp = block.querySelector('.f-barrierBuffPercent');
+  if (barrierBuffInp) barrierBuffInp.addEventListener('input', e => p.barrierBuffPercent = Number(e.target.value) || 0);
+  const defenseBuffInp = block.querySelector('.f-defenseBuffPercent');
+  if (defenseBuffInp) defenseBuffInp.addEventListener('input', e => p.defenseBuffPercent = Number(e.target.value) || 0);
+  const magicResistBuffInp = block.querySelector('.f-magicResistBuffPercent');
+  if (magicResistBuffInp) magicResistBuffInp.addEventListener('input', e => p.magicResistBuffPercent = Number(e.target.value) || 0);
 }
 
 // ==================================================================
@@ -1211,7 +1233,9 @@ function renderSlotParts(el) {
   const wrap = el.querySelector('.f-partsArea');
   if (!el._parts.length) { wrap.innerHTML = '<div class="empty">部位を追加してください。</div>'; return; }
   const radioGroupName = 'mainTarget-' + el.id;
-  wrap.innerHTML = el._parts.map(p => partBlockHtml(p, radioGroupName)).join('');
+  const cur = currentSlotSkill(el);
+  const showBuffRemovalFields = !!(cur && cur.skill.isBuffRemovalAttack);
+  wrap.innerHTML = el._parts.map(p => partBlockHtml(p, radioGroupName, showBuffRemovalFields)).join('');
   el._parts.forEach(p => bindPartBlockEvents(p, el._parts, () => renderSlotParts(el)));
 }
 
@@ -1223,6 +1247,7 @@ function bindSlotEvents(el) {
     renderReferenceInputs(el);
     renderPotentialsArea(el);
     renderSkillInfo(el);
+    renderSlotParts(el);
   });
   el.querySelector('.f-slotCopies').addEventListener('change', () => renderSkillInfo(el));
   el.querySelector('.f-slotBurst').addEventListener('change', () => renderSkillInfo(el));
@@ -1307,12 +1332,14 @@ function populateSlotSkillSelect(el) {
     renderReferenceInputs(el);
     renderPotentialsArea(el);
     renderSkillInfo(el);
+    renderSlotParts(el);
     return;
   }
   sel.innerHTML = c.skills.map((s, i) => s.dealsDamage ? `<option value="${i}">${escapeHtml(s.skillName)}</option>` : '').join('');
   renderReferenceInputs(el);
   renderPotentialsArea(el);
   renderSkillInfo(el);
+  renderSlotParts(el);
 }
 
 function renderReferenceInputs(el) {
