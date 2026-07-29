@@ -78,6 +78,18 @@
         <h2>登録済みキャラクター一覧(閲覧専用)</h2>
         <div id="charListArea"><div class="empty">読み込み中...</div></div>
       </div>
+      <div class="card" id="charImportCard" style="display:none;">
+        <h2>一括インポート(管理者のみ・新規キャラのみ)</h2>
+        <div class="note">
+          「キャラデータ（仮）」シートの、<b>ヘッダー行を除いたデータ行だけ</b>をタブ区切りのまま貼り付けてください(1行1キャラ分、複数行まとめてもOK)。<br>
+          取り込んだ数値は0〜5凸すべてに同じ値をセットし、5凸ロックを自動でONにします(あとで0〜4凸だけ手動調整できます)。<br>
+          既に同名のキャラが登録済みの場合はスキップされます(上書きはしません)。
+        </div>
+        <textarea id="charImportInput" rows="6" style="width:100%; box-sizing:border-box; font-family:monospace; font-size:12px;" placeholder="エクリプス	ビーチバカンス	闇		400					2"></textarea>
+        <button class="primary" id="charImportBtn" style="margin-top:8px;">インポート実行</button>
+        <div id="charImportStatus" class="status"></div>
+        <div id="charImportLog" style="margin-top:8px;"></div>
+      </div>
       <div class="card" id="charEditCard">
         <h2 id="charEditTitle">キャラクターを新規登録</h2>
         <div class="rowFields">

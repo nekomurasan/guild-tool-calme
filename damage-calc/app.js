@@ -152,6 +152,7 @@ async function enterApp() {
     ? `メインギルドメンバーとしてログイン中(${operatorName}${isAdmin ? ' / 管理者' : ''})`
     : 'サブギルドメンバーとして利用中';
   document.getElementById('charAdminOnlyNote').style.display = isAdmin ? 'none' : 'block';
+  document.getElementById('charImportCard').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('deleteCharBtn').style.display = 'none';
   document.getElementById('saveCharBtn').disabled = !isAdmin;
   document.getElementById('addSkillBtn').disabled = !isAdmin;
@@ -318,6 +319,8 @@ function blankSkill() {
     // デバフ付与攻撃(isDebuffApplyAttack)の時のみ使用: このスキルが2撃目以降に付与する固定のデバフ量
     debuffVulnerability: 0, debuffPhysicalVulnerability: 0, debuffMagicVulnerability: 0,
     debuffDefenseReduction: 0, debuffMagicResistReduction: 0, debuffChainDamageIncrease: 0, debuffSummonVulnerability: 0,
+    // 属性脆弱%付与(デバフ付与攻撃時、2撃目以降だけ有効。攻撃キャラの属性に対応するものだけが使われる)
+    debuffFireVulnerability: 0, debuffWaterVulnerability: 0, debuffWindVulnerability: 0, debuffLightVulnerability: 0, debuffDarkVulnerability: 0,
     copiesLevels: [0, 1, 2, 3, 4, 5].map(blankLevel),
     burstBonus: [0, 1, 2, 3].map(blankBurst),
     potentials: [0, 1, 2].map(blankPotential)
@@ -407,6 +410,11 @@ function skillBlockHtml(s) {
         <div class="formField"><label>魔法抵抗軽減%付与</label><input type="number" class="f-debuffMagicResistReduction" value="${s.debuffMagicResistReduction || 0}"></div>
         <div class="formField"><label>受けるチェインダメ増加%付与</label><input type="number" class="f-debuffChainDamageIncrease" value="${s.debuffChainDamageIncrease || 0}"></div>
         <div class="formField"><label>召喚獣脆弱%付与</label><input type="number" class="f-debuffSummonVulnerability" value="${s.debuffSummonVulnerability || 0}"></div>
+        <div class="formField"><label>火脆弱%付与</label><input type="number" class="f-debuffFireVulnerability" value="${s.debuffFireVulnerability || 0}"></div>
+        <div class="formField"><label>水脆弱%付与</label><input type="number" class="f-debuffWaterVulnerability" value="${s.debuffWaterVulnerability || 0}"></div>
+        <div class="formField"><label>風脆弱%付与</label><input type="number" class="f-debuffWindVulnerability" value="${s.debuffWindVulnerability || 0}"></div>
+        <div class="formField"><label>光脆弱%付与</label><input type="number" class="f-debuffLightVulnerability" value="${s.debuffLightVulnerability || 0}"></div>
+        <div class="formField"><label>闇脆弱%付与</label><input type="number" class="f-debuffDarkVulnerability" value="${s.debuffDarkVulnerability || 0}"></div>
       </div>
       <label class="checkLabel"><input type="checkbox" class="f-isSummonDamage" ${s.isSummonDamage ? 'checked' : ''}> 召喚獣ダメージ(召喚獣脆弱が有効になる)</label>
       <div class="rowFields">
@@ -614,6 +622,11 @@ function bindSkillBlockEvents(s) {
   block.querySelector('.f-debuffMagicResistReduction').addEventListener('input', e => s.debuffMagicResistReduction = Number(e.target.value) || 0);
   block.querySelector('.f-debuffChainDamageIncrease').addEventListener('input', e => s.debuffChainDamageIncrease = Number(e.target.value) || 0);
   block.querySelector('.f-debuffSummonVulnerability').addEventListener('input', e => s.debuffSummonVulnerability = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffFireVulnerability').addEventListener('input', e => s.debuffFireVulnerability = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffWaterVulnerability').addEventListener('input', e => s.debuffWaterVulnerability = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffWindVulnerability').addEventListener('input', e => s.debuffWindVulnerability = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffLightVulnerability').addEventListener('input', e => s.debuffLightVulnerability = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffDarkVulnerability').addEventListener('input', e => s.debuffDarkVulnerability = Number(e.target.value) || 0);
   block.querySelector('.f-isSummonDamage').addEventListener('change', e => s.isSummonDamage = e.target.checked);
   block.querySelector('.f-hitCountBonus').addEventListener('input', e => s.hitCountBonusPercent = Number(e.target.value) || 0);
   block.querySelector('.f-buffCountBonus').addEventListener('input', e => s.buffCountBonusPercent = Number(e.target.value) || 0);
@@ -870,6 +883,129 @@ document.getElementById('deleteCharBtn').addEventListener('click', async () => {
 });
 
 // ==================================================================
+// キャラ一括インポート(「キャラデータ（仮）」シート形式)
+// ==================================================================
+// データ列(D列以降・0始まり)のインデックス定義。ヘッダーを除いたデータ行のうち、
+// 列0=キャラ名, 列1=コスチューム名, 列2=属性, 列3以降がシートのD列(攻撃力)以降に対応する。
+const IMPORT_COL = {
+  attack: 3, magicAttack: 4, hitCount: 9,
+  // 全体バフ(配布バフ) Q,R,S,T,U,V,W,X → index 16-23
+  allyAtk1: 16, allyAtk2: 17, allyMag: 18, allyCrit: 19, allyCritDmg: 20, allyEnhance: 21, allyElement: 22, allyChainEnhance: 23,
+  // 自己バフ Y,Z,AA,AB,AC,AD,AE,AF → index 24-31
+  selfAtk1: 24, selfAtk2: 25, selfCrit: 26, selfCritDmg: 27, selfElement: 28, selfEnhance: 30, selfChainEnhance: 31,
+  // 全体デバフ AG〜AU → index 32-46
+  debuffDefense: 33, debuffPhysVuln: 34, debuffMagicResist: 36, debuffMagicVuln: 37, debuffVuln: 38,
+  debuffChainInc: 42, debuffWindVuln: 44, debuffLightVuln: 45
+};
+
+function num(v) { const n = Number(String(v || '').trim()); return isNaN(n) ? 0 : n; }
+
+function buildImportedSkill(cells, costumeName) {
+  const attack = num(cells[IMPORT_COL.attack]);
+  const magicAttack = num(cells[IMPORT_COL.magicAttack]);
+  const isMagic = magicAttack > 0;
+  const skillMult = isMagic ? magicAttack : attack;
+  const hitCount = num(cells[IMPORT_COL.hitCount]) || 1;
+
+  const allyAttackTotal = num(cells[IMPORT_COL.allyAtk1]) + num(cells[IMPORT_COL.allyAtk2]);
+  const allyMag = num(cells[IMPORT_COL.allyMag]);
+  const grantsAllyBuff = allyAttackTotal !== 0 || allyMag !== 0 || num(cells[IMPORT_COL.allyCrit]) !== 0 ||
+    num(cells[IMPORT_COL.allyCritDmg]) !== 0 || num(cells[IMPORT_COL.allyEnhance]) !== 0 ||
+    num(cells[IMPORT_COL.allyElement]) !== 0 || num(cells[IMPORT_COL.allyChainEnhance]) !== 0;
+
+  const debuffValues = {
+    debuffDefenseReduction: num(cells[IMPORT_COL.debuffDefense]),
+    debuffPhysicalVulnerability: num(cells[IMPORT_COL.debuffPhysVuln]),
+    debuffMagicResistReduction: num(cells[IMPORT_COL.debuffMagicResist]),
+    debuffMagicVulnerability: num(cells[IMPORT_COL.debuffMagicVuln]),
+    debuffVulnerability: num(cells[IMPORT_COL.debuffVuln]),
+    debuffChainDamageIncrease: num(cells[IMPORT_COL.debuffChainInc]),
+    debuffWindVulnerability: num(cells[IMPORT_COL.debuffWindVuln]),
+    debuffLightVulnerability: num(cells[IMPORT_COL.debuffLightVuln])
+  };
+  const isDebuffApplyAttack = Object.values(debuffValues).some(v => v !== 0);
+
+  const skill = blankSkill();
+  skill.skillName = costumeName || '(コスチューム名未設定)';
+  skill.dealsDamage = true;
+  skill.grantsAllyBuff = grantsAllyBuff;
+  skill.damageType = isMagic ? 'magic' : 'physical';
+  skill.referenceFormula = [{ stat: isMagic ? 'magicAttack' : 'attack', cap: null, coefficient: 100 }];
+  skill.isDebuffApplyAttack = isDebuffApplyAttack;
+  if (isDebuffApplyAttack) Object.assign(skill, debuffValues);
+
+  const level = blankLevel(0); // copiesは後で個別にセットする
+  level.maxHits = hitCount;
+  level.skillMultiplier = [{ from: 1, value: skillMult }];
+  level.enhance = [{ from: 1, value: num(cells[IMPORT_COL.selfEnhance]) }];
+  level.elementBoost = [{ from: 1, value: num(cells[IMPORT_COL.selfElement]) }];
+  level.selfBuff.attackBuffPercent = [{ from: 1, value: num(cells[IMPORT_COL.selfAtk1]) + num(cells[IMPORT_COL.selfAtk2]) }];
+  level.selfBuff.critRateBuffPercent = [{ from: 1, value: num(cells[IMPORT_COL.selfCrit]) }];
+  level.selfBuff.critDamageBuffPercent = [{ from: 1, value: num(cells[IMPORT_COL.selfCritDmg]) }];
+  level.selfBuff.chainEnhance = num(cells[IMPORT_COL.selfChainEnhance]);
+  if (grantsAllyBuff) {
+    level.allyBuff.physicalAttackBuffPercent = [{ from: 1, value: allyAttackTotal }];
+    level.allyBuff.magicAttackBuffPercent = [{ from: 1, value: allyMag }];
+    level.allyBuff.critRateBuffPercent = [{ from: 1, value: num(cells[IMPORT_COL.allyCrit]) }];
+    level.allyBuff.critDamageBuffPercent = [{ from: 1, value: num(cells[IMPORT_COL.allyCritDmg]) }];
+    level.allyBuff.enhancePercent = [{ from: 1, value: num(cells[IMPORT_COL.allyEnhance]) }];
+    level.allyBuff.elementBoostPercent = [{ from: 1, value: num(cells[IMPORT_COL.allyElement]) }];
+    level.allyBuff.chainEnhance = num(cells[IMPORT_COL.allyChainEnhance]);
+  }
+
+  // 0〜5凸すべてに同じ値をセットし、5凸ロックを自動でONにする(あとで0〜4凸だけ手動調整できるように)
+  skill.copiesLevels = [0, 1, 2, 3, 4, 5].map(c => ({ ...JSON.parse(JSON.stringify(level)), copies: c }));
+  skill._lock5Copies = true;
+  return skill;
+}
+
+document.getElementById('charImportBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('charImportStatus');
+  const logEl = document.getElementById('charImportLog');
+  if (!isAdmin) { statusEl.className = 'status err'; statusEl.textContent = 'インポートは管理者のみ行えます。'; return; }
+  const raw = document.getElementById('charImportInput').value;
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+  if (!lines.length) { statusEl.className = 'status err'; statusEl.textContent = 'データを貼り付けてください。'; return; }
+
+  statusEl.className = 'status'; statusEl.textContent = 'インポート中...';
+  const logLines = [];
+  // 同じキャラ名が複数行(コスチューム違い)ある場合、まとめて1キャラにする
+  const byName = {};
+  lines.forEach(line => {
+    const cells = line.split('\t');
+    const name = (cells[0] || '').trim();
+    const costume = (cells[1] || '').trim();
+    const attribute = (cells[2] || '').trim();
+    if (!name) return;
+    if (!byName[name]) byName[name] = { attribute, skills: [] };
+    byName[name].skills.push(buildImportedSkill(cells, costume));
+  });
+
+  for (const name of Object.keys(byName)) {
+    if (charactersCache.some(c => c.name === name)) {
+      logLines.push(`⏭️ ${name}: 既に登録済みのためスキップしました`);
+      continue;
+    }
+    try {
+      const cleanSkills = byName[name].skills.map(({ _uid, _lock5Copies, ...rest }) => rest);
+      await setDoc(doc(charactersCol, name), {
+        name, attribute: byName[name].attribute || '火', skills: cleanSkills,
+        registeredBy: operatorName, updatedAt: new Date().toISOString()
+      });
+      logWrite('characterImport', name);
+      logLines.push(`✅ ${name}: ${byName[name].skills.length}件のスキルを登録しました`);
+    } catch (e) {
+      logLines.push(`❌ ${name}: 登録に失敗しました(${e.message})`);
+    }
+  }
+
+  logEl.innerHTML = logLines.map(l => `<div class="detail">${escapeHtml(l)}</div>`).join('');
+  statusEl.className = 'status ok'; statusEl.textContent = 'インポート処理が完了しました。';
+  await loadCharacters();
+  renderCharList();
+});
+
+// ==================================================================
 // 5・7・8・9章: 計算エンジン
 // ==================================================================
 function getEffectiveLevel(skill, copies, burst, selectedPotentialIdxs) {
@@ -1062,7 +1198,9 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
     const genericVuln = getValue(part.vulnerability, chainCount) + (debuffApplyActive ? (skill.debuffVulnerability || 0) : 0); // 汎用脆弱: 物理/魔法どちらにも常時有効
     const summonVuln = skill.isSummonDamage ? (getValue(part.summonVulnerability, chainCount) + (debuffApplyActive ? (skill.debuffSummonVulnerability || 0) : 0)) : 0;
     const vulnerability = typeSpecificVuln + typeSpecificVulnDebuff + genericVuln + summonVuln;
-    const elementVuln = vulnField ? getValue(part[vulnField], chainCount) : 0; // 属性脆弱: 攻撃キャラの属性に対応するものが常に有効
+    const debuffField = ATTRIBUTE_DEBUFF_FIELD[attackerAttribute];
+    const elementVulnDebuff = (debuffApplyActive && debuffField) ? (skill[debuffField] || 0) : 0;
+    const elementVuln = (vulnField ? getValue(part[vulnField], chainCount) : 0) + elementVulnDebuff; // 属性脆弱: 攻撃キャラの属性に対応するものが常に有効(+デバフ付与攻撃の2撃目以降分)
     const elementBoostRaw = manual.elementBoost + allySum.elementBoostPercent + getValue(level.elementBoost, chainCount);
     // 属性強化バフ・属性ダメージ%は「有利属性」の時だけ有効
     const elementBoost = elementMode === 'advantage' ? (elementBoostRaw + elementDamageStat) : 0;
@@ -1145,6 +1283,8 @@ function blankPart() {
 
 // キャラの属性(火/水/風/光/闇)から、ボス部位のどの属性脆弱フィールドを見るかを決める
 const ATTRIBUTE_VULN_FIELD = { '火': 'fireVulnerability', '水': 'waterVulnerability', '風': 'windVulnerability', '光': 'lightVulnerability', '闇': 'darkVulnerability' };
+// デバフ付与攻撃(2撃目以降)で属性脆弱を付与する場合、攻撃キャラの属性に応じてどのスキル項目を見るか
+const ATTRIBUTE_DEBUFF_FIELD = { '火': 'debuffFireVulnerability', '水': 'debuffWaterVulnerability', '風': 'debuffWindVulnerability', '光': 'debuffLightVulnerability', '闇': 'debuffDarkVulnerability' };
 
 function partBlockHtml(p, radioGroupName, showBuffRemovalFields) {
   return `
