@@ -298,7 +298,6 @@ function blankSkill() {
     isBuffRemovalAttack: false, // 1撃目はボスのバリア/防御力バフ/魔法抵抗バフが有効、2撃目以降は解除される(バリアのみ解除したい場合は他を0のままでOK)
     isDebuffApplyAttack: false, // このスキル自身がボスにデバフを付与する。2撃目以降だけ有効になる
     isSummonDamage: false, // 召喚獣ダメージ(召喚獣脆弱が有効になる)
-    lockOnBonusPercent: 0, // ボス部位に「ロックオン」がついている時だけ加算される倍率(%)
     hitCountBonusPercent: 0, // 敵に当たる数(登録した部位数)1つあたりのダメージ増減%(マイナス指定で減少にも対応)
     buffCountBonusPercent: 0, // 自分にかかっているバフ数1つあたりのダメージ増加%(計算時に手動でバフ数を入力)
     spCostBonusPercent: 0, // 消費したSP1つあたりのダメージ増加%(計算時に手動で消費SPを入力)
@@ -311,7 +310,7 @@ function blankSkill() {
     selfStackThresholdChainIncreaseBonus: 0, // 閾値到達時に追加されるチェインダメ増加%
     // デバフ付与攻撃(isDebuffApplyAttack)の時のみ使用: このスキルが2撃目以降に付与する固定のデバフ量
     debuffVulnerability: 0, debuffPhysicalVulnerability: 0, debuffMagicVulnerability: 0,
-    debuffDefenseReduction: 0, debuffChainDamageIncrease: 0, debuffSummonVulnerability: 0,
+    debuffDefenseReduction: 0, debuffMagicResistReduction: 0, debuffChainDamageIncrease: 0, debuffSummonVulnerability: 0,
     copiesLevels: [0, 1, 2, 3, 4, 5].map(blankLevel),
     burstBonus: [0, 1, 2, 3].map(blankBurst),
     potentials: [0, 1, 2].map(blankPotential)
@@ -401,13 +400,11 @@ function skillBlockHtml(s) {
         <div class="formField"><label>物理脆弱%付与</label><input type="number" class="f-debuffPhysicalVulnerability" value="${s.debuffPhysicalVulnerability || 0}"></div>
         <div class="formField"><label>魔法脆弱%付与</label><input type="number" class="f-debuffMagicVulnerability" value="${s.debuffMagicVulnerability || 0}"></div>
         <div class="formField"><label>防御軽減%付与</label><input type="number" class="f-debuffDefenseReduction" value="${s.debuffDefenseReduction || 0}"></div>
-        <div class="formField"><label>受けるチェインダメージ増加%付与</label><input type="number" class="f-debuffChainDamageIncrease" value="${s.debuffChainDamageIncrease || 0}"></div>
+        <div class="formField"><label>魔法抵抗軽減%付与</label><input type="number" class="f-debuffMagicResistReduction" value="${s.debuffMagicResistReduction || 0}"></div>
+        <div class="formField"><label>受けるチェインダメ増加%付与</label><input type="number" class="f-debuffChainDamageIncrease" value="${s.debuffChainDamageIncrease || 0}"></div>
         <div class="formField"><label>召喚獣脆弱%付与</label><input type="number" class="f-debuffSummonVulnerability" value="${s.debuffSummonVulnerability || 0}"></div>
       </div>
       <label class="checkLabel"><input type="checkbox" class="f-isSummonDamage" ${s.isSummonDamage ? 'checked' : ''}> 召喚獣ダメージ(召喚獣脆弱が有効になる)</label>
-      <div class="formField"><label>ロックオン時ボーナス倍率(%)(ボス部位に「ロックオン」がついている時だけ加算)</label>
-        <input type="number" class="f-lockOnBonus" value="${s.lockOnBonusPercent || 0}">
-      </div>
       <div class="rowFields">
         <div class="formField"><label>命中数ボーナス%(部位数1つあたり。マイナスで減少)</label><input type="number" class="f-hitCountBonus" value="${s.hitCountBonusPercent || 0}"></div>
         <div class="formField"><label>自己バフ数ボーナス%(バフ1つあたり)</label><input type="number" class="f-buffCountBonus" value="${s.buffCountBonusPercent || 0}"></div>
@@ -603,10 +600,10 @@ function bindSkillBlockEvents(s) {
   block.querySelector('.f-debuffPhysicalVulnerability').addEventListener('input', e => s.debuffPhysicalVulnerability = Number(e.target.value) || 0);
   block.querySelector('.f-debuffMagicVulnerability').addEventListener('input', e => s.debuffMagicVulnerability = Number(e.target.value) || 0);
   block.querySelector('.f-debuffDefenseReduction').addEventListener('input', e => s.debuffDefenseReduction = Number(e.target.value) || 0);
+  block.querySelector('.f-debuffMagicResistReduction').addEventListener('input', e => s.debuffMagicResistReduction = Number(e.target.value) || 0);
   block.querySelector('.f-debuffChainDamageIncrease').addEventListener('input', e => s.debuffChainDamageIncrease = Number(e.target.value) || 0);
   block.querySelector('.f-debuffSummonVulnerability').addEventListener('input', e => s.debuffSummonVulnerability = Number(e.target.value) || 0);
   block.querySelector('.f-isSummonDamage').addEventListener('change', e => s.isSummonDamage = e.target.checked);
-  block.querySelector('.f-lockOnBonus').addEventListener('input', e => s.lockOnBonusPercent = Number(e.target.value) || 0);
   block.querySelector('.f-hitCountBonus').addEventListener('input', e => s.hitCountBonusPercent = Number(e.target.value) || 0);
   block.querySelector('.f-buffCountBonus').addEventListener('input', e => s.buffCountBonusPercent = Number(e.target.value) || 0);
   block.querySelector('.f-spCostBonus').addEventListener('input', e => s.spCostBonusPercent = Number(e.target.value) || 0);
@@ -1031,8 +1028,9 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
     const debuffApplyActive = skill.isDebuffApplyAttack && !isFirstHit;
     const rawDefenseBuff = buffRemovalActive ? (isMagic ? (part.magicResistBuffPercent || 0) : (part.defenseBuffPercent || 0)) : 0;
     const rawDefense = (isMagic ? getValue(part.magicResist, chainCount) : getValue(part.defense, chainCount)) + rawDefenseBuff;
-    const defenseReductionDebuff = debuffApplyActive ? (skill.debuffDefenseReduction || 0) : 0;
-    const defenseReduction = Math.min(100, getValue(part.defenseReduction, chainCount) + defenseReductionDebuff); // 防御軽減デバフ: 防御/魔法抵抗そのものを削る(マイナスにはならない)
+    const defenseReductionDebuff = debuffApplyActive ? (isMagic ? (skill.debuffMagicResistReduction || 0) : (skill.debuffDefenseReduction || 0)) : 0;
+    const baseDefenseReduction = isMagic ? getValue(part.magicResistReduction, chainCount) : getValue(part.defenseReduction, chainCount);
+    const defenseReduction = Math.min(100, baseDefenseReduction + defenseReductionDebuff); // 防御/魔法抵抗軽減デバフ: それぞれ独立して削る(マイナスにはならない)
     const defense = rawDefense * (1 - defenseReduction / 100);
     const barrierBuff = buffRemovalActive ? (part.barrierBuffPercent || 0) : 0;
     const barrier = getValue(part.barrier, chainCount) + barrierBuff;
@@ -1050,9 +1048,8 @@ function calcDamage(skill, level, inputStats, battleBuffs, boss, part, elementMo
     const chainAdd = manual.chainIncrease + allySum.chainDamageIncreasePercent + getValue(level.chainDamageIncrease, chainCount) + receivedChainInc + stackChainIncBonus;
     const weakSpot = part.weakSpot;
     const mainTargetMult = part.isMainTarget ? (1 + (skill.mainTargetBonus || 0) / 100) : 1;
-    const lockOnMult = part.hasLockOn ? (1 + (skill.lockOnBonusPercent || 0) / 100) : 1;
     const otherMult = 1 + (level.otherAdjustment || 0) / 100;
-    const hitMult = mainTargetMult * lockOnMult * otherMult * resistanceMult * conditionalMult * chainMultipleMult;
+    const hitMult = mainTargetMult * otherMult * resistanceMult * conditionalMult * chainMultipleMult;
 
     let step2 = roundDown(base * (1 + buff / 100));
     step2 = roundDown(step2 * mult / 100);
@@ -1112,6 +1109,7 @@ function blankPart() {
     _uid: uid(), name: '新しい部位', weakSpot: 100, startingChainCount: 0,
     defense: [{ from: 1, value: 0 }], magicResist: [{ from: 1, value: 0 }],
     defenseReduction: [{ from: 1, value: 0 }],
+    magicResistReduction: [{ from: 1, value: 0 }],
     physicalVulnerability: [{ from: 1, value: 0 }], magicVulnerability: [{ from: 1, value: 0 }],
     vulnerability: [{ from: 1, value: 0 }], // 汎用脆弱: 物理/魔法どちらのダメージにも常時有効
     summonVulnerability: [{ from: 1, value: 0 }], // 召喚獣脆弱: 召喚獣ダメージのスキルの時だけ有効
@@ -1120,7 +1118,6 @@ function blankPart() {
     fireVulnerability: [{ from: 1, value: 0 }], waterVulnerability: [{ from: 1, value: 0 }],
     windVulnerability: [{ from: 1, value: 0 }], lightVulnerability: [{ from: 1, value: 0 }], darkVulnerability: [{ from: 1, value: 0 }],
     isMainTarget: false,
-    hasLockOn: false, // ロックオン済みフラグ
     barrierBuffPercent: 0, defenseBuffPercent: 0, magicResistBuffPercent: 0 // バフ解除攻撃の時のみ使用: 1撃目だけ有効、2撃目以降は解除される
   };
 }
@@ -1138,14 +1135,14 @@ function partBlockHtml(p, radioGroupName, showBuffRemovalFields) {
       <label>開始チェイン数</label>
       <input type="number" class="f-startChain" value="${p.startingChainCount || 0}" style="max-width:80px;">
       <label class="checkLabel"><input type="radio" name="${radioGroupName}" class="f-isMainTarget" ${p.isMainTarget ? 'checked' : ''}> メインターゲット</label>
-      <label class="checkLabel"><input type="checkbox" class="f-hasLockOn" ${p.hasLockOn ? 'checked' : ''}> ロックオン済み</label>
       <button class="small danger f-removePart" type="button">部位を削除</button>
     </div>
     <div class="gridHint">各項目は「6:70」形式で「チェイン数6以上貯まっている状態の攻撃から70%に変わる」を表現できます(バリアが途中で割れる等)</div>
     <div class="rowFields">
       <div class="formField"><label>物理防御%</label><input type="text" class="f-defense" value="${serializeIntervals(p.defense)}"></div>
       <div class="formField"><label>魔法抵抗%</label><input type="text" class="f-magicResist" value="${serializeIntervals(p.magicResist)}"></div>
-      <div class="formField"><label>防御軽減デバフ%(防御/魔法抵抗を削る)</label><input type="text" class="f-defenseReduction" value="${serializeIntervals(p.defenseReduction)}"></div>
+      <div class="formField"><label>防御軽減デバフ%(防御力を削る)</label><input type="text" class="f-defenseReduction" value="${serializeIntervals(p.defenseReduction)}"></div>
+      <div class="formField"><label>魔法抵抗軽減デバフ%(魔法抵抗を削る)</label><input type="text" class="f-magicResistReduction" value="${serializeIntervals(p.magicResistReduction)}"></div>
       <div class="formField"><label>脆弱%(汎用・物理魔法どちらにも有効)</label><input type="text" class="f-vulnerability" value="${serializeIntervals(p.vulnerability)}"></div>
       <div class="formField"><label>物理脆弱%</label><input type="text" class="f-physicalVulnerability" value="${serializeIntervals(p.physicalVulnerability)}"></div>
       <div class="formField"><label>魔法脆弱%</label><input type="text" class="f-magicVulnerability" value="${serializeIntervals(p.magicVulnerability)}"></div>
@@ -1181,7 +1178,6 @@ function bindPartBlockEvents(p, partList, rerender) {
     partList.forEach(x => x.isMainTarget = false);
     p.isMainTarget = true;
   });
-  block.querySelector('.f-hasLockOn').addEventListener('change', e => p.hasLockOn = e.target.checked);
   block.querySelector('.f-removePart').addEventListener('click', () => {
     const i = partList.findIndex(x => x._uid === p._uid);
     if (i >= 0) partList.splice(i, 1);
@@ -1190,6 +1186,7 @@ function bindPartBlockEvents(p, partList, rerender) {
   block.querySelector('.f-defense').addEventListener('input', e => p.defense = parseIntervals(e.target.value));
   block.querySelector('.f-magicResist').addEventListener('input', e => p.magicResist = parseIntervals(e.target.value));
   block.querySelector('.f-defenseReduction').addEventListener('input', e => p.defenseReduction = parseIntervals(e.target.value));
+  block.querySelector('.f-magicResistReduction').addEventListener('input', e => p.magicResistReduction = parseIntervals(e.target.value));
   block.querySelector('.f-vulnerability').addEventListener('input', e => p.vulnerability = parseIntervals(e.target.value));
   block.querySelector('.f-physicalVulnerability').addEventListener('input', e => p.physicalVulnerability = parseIntervals(e.target.value));
   block.querySelector('.f-magicVulnerability').addEventListener('input', e => p.magicVulnerability = parseIntervals(e.target.value));
