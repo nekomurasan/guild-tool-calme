@@ -294,7 +294,7 @@ function blankPotential() {
 function blankSkill() {
   return {
     _uid: uid(),
-    _lock5Copies: false, // UI専用の一時フラグ(保存はされない): ONの間は0〜4凸を編集しても5凸は変更されない
+    lock5Copies: false, // ONの間は0〜4凸を編集しても5凸は変更されない(保存され、次回読み込み時にも保持される)
     skillName: '新しいスキル',
     dealsDamage: true,
     grantsAllyBuff: false,
@@ -334,7 +334,7 @@ function loadCharIntoForm(charId) {
   document.getElementById('charEditTitle').textContent = `キャラクターを編集: ${c.name}`;
   document.getElementById('charName').value = c.name;
   document.getElementById('charAttribute').value = c.attribute || '火';
-  skillDraftList = JSON.parse(JSON.stringify(c.skills || [])).map(s => ({ ...s, _uid: uid(), _lock5Copies: false }));
+  skillDraftList = JSON.parse(JSON.stringify(c.skills || [])).map(s => ({ ...s, _uid: uid(), lock5Copies: s.lock5Copies || false }));
   renderSkillsArea();
   document.getElementById('deleteCharBtn').style.display = isAdmin ? 'inline-block' : 'none';
 }
@@ -450,7 +450,7 @@ function skillBlockHtml(s) {
 
     <div class="gridsFields" ${gridsDisplay}>
       <h3>凸(0〜5)ごとの基本値
-        <label class="checkLabel" style="display:inline-flex; margin-left:12px;"><input type="checkbox" class="f-lock5Copies" ${s._lock5Copies ? 'checked' : ''}> 5凸データを保護(インポート等で確定済みの5凸を、0〜4凸の編集から守る)</label>
+        <label class="checkLabel" style="display:inline-flex; margin-left:12px;"><input type="checkbox" class="f-lock5Copies" ${s.lock5Copies ? 'checked' : ''}> 5凸データを保護(インポート等で確定済みの5凸を、0〜4凸の編集から守る)</label>
       </h3>
       <div class="gridHint">
         スキル倍率・増強・属性強化・チェイン増加・自己バフ・配布バフの欄は「チェイン数:数値」という形式で入力します(攻撃回数ではなくチェイン数での判定です)。<br>
@@ -613,7 +613,7 @@ function bindSkillBlockEvents(s) {
   block.querySelector('.f-hasMainTargetOverride').addEventListener('change', e => s.hasMainTargetOverride = e.target.checked);
   block.querySelector('.f-damageOutputType').addEventListener('change', e => s.damageOutputType = e.target.value);
   block.querySelector('.f-isBuffRemoval').addEventListener('change', e => s.isBuffRemovalAttack = e.target.checked);
-  block.querySelector('.f-lock5Copies').addEventListener('change', e => s._lock5Copies = e.target.checked);
+  block.querySelector('.f-lock5Copies').addEventListener('change', e => s.lock5Copies = e.target.checked);
   block.querySelector('.f-isDebuffApply').addEventListener('change', e => s.isDebuffApplyAttack = e.target.checked);
   block.querySelector('.f-debuffVulnerability').addEventListener('input', e => s.debuffVulnerability = Number(e.target.value) || 0);
   block.querySelector('.f-debuffPhysicalVulnerability').addEventListener('input', e => s.debuffPhysicalVulnerability = Number(e.target.value) || 0);
@@ -668,7 +668,7 @@ function bindSkillBlockEvents(s) {
   //   「5凸をロック」がONの間は、5凸(インポート等で確定した完凸データ)だけカスケードをスキップして保護する。
   const cascadeToHigherCopies = (idx, applyFn, syncDom) => {
     for (let j = idx + 1; j < s.copiesLevels.length; j++) {
-      if (s._lock5Copies && s.copiesLevels[j].copies === 5) continue;
+      if (s.lock5Copies && s.copiesLevels[j].copies === 5) continue;
       applyFn(s.copiesLevels[j]);
       const targetRow = block.querySelector(`[data-copies-idx="${j}"]`);
       if (targetRow) syncDom(targetRow);
@@ -852,7 +852,7 @@ document.getElementById('saveCharBtn').addEventListener('click', async () => {
   const attribute = document.getElementById('charAttribute').value;
   if (!name) { statusEl.className = 'status err'; statusEl.textContent = 'キャラクター名を入力してください。'; return; }
   if (!skillDraftList.length) { statusEl.className = 'status err'; statusEl.textContent = 'スキルを最低1つ追加してください。'; return; }
-  const cleanSkills = skillDraftList.map(({ _uid, _lock5Copies, ...rest }) => rest);
+  const cleanSkills = skillDraftList.map(({ _uid, ...rest }) => rest);
   const docId = currentEditCharId || name;
   try {
     await setDoc(doc(charactersCol, docId), {
@@ -955,7 +955,7 @@ function buildImportedSkill(cells, costumeName) {
 
   // 0〜5凸すべてに同じ値をセットし、5凸ロックを自動でONにする(あとで0〜4凸だけ手動調整できるように)
   skill.copiesLevels = [0, 1, 2, 3, 4, 5].map(c => ({ ...JSON.parse(JSON.stringify(level)), copies: c }));
-  skill._lock5Copies = true;
+  skill.lock5Copies = true;
   return skill;
 }
 
@@ -987,7 +987,7 @@ document.getElementById('charImportBtn').addEventListener('click', async () => {
       continue;
     }
     try {
-      const cleanSkills = byName[name].skills.map(({ _uid, _lock5Copies, ...rest }) => rest);
+      const cleanSkills = byName[name].skills.map(({ _uid, ...rest }) => rest);
       await setDoc(doc(charactersCol, name), {
         name, attribute: byName[name].attribute || '火', skills: cleanSkills,
         registeredBy: operatorName, updatedAt: new Date().toISOString()
