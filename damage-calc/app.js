@@ -383,6 +383,8 @@ function skillBlockHtml(s) {
       <input type="text" class="f-skillName" value="${escapeHtml(s.skillName)}" placeholder="スキル名">
       <label class="checkLabel"><input type="checkbox" class="f-dealsDamage" ${s.dealsDamage ? 'checked' : ''}> ダメージを与える</label>
       <label class="checkLabel"><input type="checkbox" class="f-grantsAllyBuff" ${s.grantsAllyBuff ? 'checked' : ''}> 味方にバフを配る</label>
+      <button class="small f-moveSkillUp" type="button" title="上に移動">↑</button>
+      <button class="small f-moveSkillDown" type="button" title="下に移動">↓</button>
       <button class="small danger f-removeSkill" type="button">スキルを削除</button>
     </div>
 
@@ -610,6 +612,20 @@ function bindSkillBlockEvents(s) {
     block.querySelector('.allyEgRefFields').style.display = s.grantsAllyBuff ? '' : 'none';
   });
   block.querySelector('.f-allyEgRefStat').addEventListener('change', e => s.allyEnergyGuardRefStat = e.target.value);
+  block.querySelector('.f-moveSkillUp').addEventListener('click', () => {
+    const idx = skillDraftList.findIndex(x => x._uid === s._uid);
+    if (idx > 0) {
+      [skillDraftList[idx - 1], skillDraftList[idx]] = [skillDraftList[idx], skillDraftList[idx - 1]];
+      renderSkillsArea();
+    }
+  });
+  block.querySelector('.f-moveSkillDown').addEventListener('click', () => {
+    const idx = skillDraftList.findIndex(x => x._uid === s._uid);
+    if (idx >= 0 && idx < skillDraftList.length - 1) {
+      [skillDraftList[idx], skillDraftList[idx + 1]] = [skillDraftList[idx + 1], skillDraftList[idx]];
+      renderSkillsArea();
+    }
+  });
   block.querySelector('.f-removeSkill').addEventListener('click', () => {
     skillDraftList = skillDraftList.filter(x => x._uid !== s._uid);
     renderSkillsArea();
