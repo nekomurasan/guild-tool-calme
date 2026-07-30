@@ -1288,6 +1288,9 @@ function blankPart() {
 
 // キャラの属性(火/水/風/光/闇)から、ボス部位のどの属性脆弱フィールドを見るかを決める
 const ATTRIBUTE_VULN_FIELD = { '火': 'fireVulnerability', '水': 'waterVulnerability', '風': 'windVulnerability', '光': 'lightVulnerability', '闇': 'darkVulnerability' };
+// 属性ごとの絵文字(キャラ名の前に表示する)
+const ATTRIBUTE_EMOJI = { '火': '🔥', '水': '💧', '風': '🍃', '光': '🌟', '闇': '🟣' };
+function attrCharName(name, attribute) { return `${ATTRIBUTE_EMOJI[attribute] || ''}${name}`; }
 // デバフ付与攻撃(2撃目以降)で属性脆弱を付与する場合、攻撃キャラの属性に応じてどのスキル項目を見るか
 const ATTRIBUTE_DEBUFF_FIELD = { '火': 'debuffFireVulnerability', '水': 'debuffWaterVulnerability', '風': 'debuffWindVulnerability', '光': 'debuffLightVulnerability', '闇': 'debuffDarkVulnerability' };
 
@@ -1399,7 +1402,7 @@ function addSlot(snapshot) {
     <div class="rowFields">
       <div class="formField"><label>属性で絞り込み</label><select class="f-slotAttrFilter">
         <option value="">すべて</option>
-        <option value="火">火</option><option value="水">水</option><option value="風">風</option><option value="光">光</option><option value="闇">闇</option>
+        <option value="火">🔥火</option><option value="水">💧水</option><option value="風">🍃風</option><option value="光">🌟光</option><option value="闇">🟣闇</option>
       </select></div>
       <div class="formField"><label>キャラクター</label><select class="f-slotChar"><option value="">選択してください</option></select></div>
       <div class="formField"><label>スキル</label><select class="f-slotSkill"><option value="">-</option></select></div>
@@ -1471,7 +1474,7 @@ function populateSlotCharSelect(el) {
     (c.skills || []).some(s => s.dealsDamage) && (!attrFilter || c.attribute === attrFilter)
   );
   sel.innerHTML = '<option value="">選択してください</option>' +
-    damageChars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}(${escapeHtml(c.attribute || '-')})</option>`).join('');
+    damageChars.map(c => `<option value="${c.id}">${escapeHtml(attrCharName(c.name, c.attribute))}</option>`).join('');
 }
 
 function renderSlotBuffList(el) {
@@ -1479,13 +1482,13 @@ function renderSlotBuffList(el) {
   const items = [];
   charactersCache.forEach(c => {
     (c.skills || []).forEach(s => {
-      if (s.grantsAllyBuff) items.push({ charName: c.name, skill: s });
+      if (s.grantsAllyBuff) items.push({ charName: c.name, attribute: c.attribute, skill: s });
     });
   });
   if (!items.length) { wrap.innerHTML = '<div class="empty">配布バフを持つスキルがまだ登録されていません。</div>'; return; }
   wrap.innerHTML = items.map((it, i) => `
     <div class="buffItem" data-buff-idx="${i}">
-      <label class="checkLabel"><input type="checkbox" class="f-buffCheck"> ${escapeHtml(it.charName)} - ${escapeHtml(it.skill.skillName)}</label>
+      <label class="checkLabel"><input type="checkbox" class="f-buffCheck"> ${escapeHtml(attrCharName(it.charName, it.attribute))} - ${escapeHtml(it.skill.skillName)}</label>
       凸<select class="f-buffCopies">${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
       バースト<select class="f-buffBurst">${[0,1,2,3].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
       ${(it.skill.potentials || []).map((p, pi) => potentialHasNumericEffect(p) ? `
@@ -1940,8 +1943,10 @@ function renderResults(list) {
     const totalsLine = r.totals
       ? `<div class="detail">スキル合計(${dmgTypeLabel})：有利属性 ${r.totals.advantage.toLocaleString()} / 属性相性無 ${r.totals.neutral.toLocaleString()} / 不利属性 ${r.totals.disadvantage.toLocaleString()}</div>`
       : '';
+    const matchedChar = charactersCache.find(c => c.name === r.characterName);
+    const displayName = matchedChar ? attrCharName(r.characterName, matchedChar.attribute) : r.characterName;
     return `<div class="resultCard">
-      <div><strong>${escapeHtml(r.label)}</strong>　<span class="detail">${escapeHtml(r.characterName)} - ${escapeHtml(r.skillName)}</span></div>
+      <div><strong>${escapeHtml(r.label)}</strong>　<span class="detail">${escapeHtml(displayName)} - ${escapeHtml(r.skillName)}</span></div>
       <div class="detail">保存者: ${escapeHtml(r.savedBy)} / ${new Date(r.savedAt).toLocaleString('ja-JP')}</div>
       ${totalsLine}
       <div style="margin-top:6px;">
