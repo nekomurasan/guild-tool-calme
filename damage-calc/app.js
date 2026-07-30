@@ -1511,6 +1511,8 @@ function renderSlotBuffList(el) {
       ${it.skill.allyEnergyGuardRefStat === 'receiverMaxHP' ? `<span class="detail">(計算しているキャラ自身の最大HP入力値を使用)</span>` : ''}
     </div>`).join('');
   wrap._buffItems = items;
+  // 「対象の最大HPを参照」するバフが実際にチェックされた時だけ、自身最大HP欄を表示させるため
+  wrap.querySelectorAll('.f-buffCheck').forEach(chk => chk.addEventListener('change', () => renderReferenceInputs(el)));
 }
 
 function renderSlotParts(el) {
@@ -1636,8 +1638,13 @@ function renderReferenceInputs(el) {
   let stats = [...new Set(cur.skill.referenceFormula.map(t => t.stat))];
   // エナジーガードは自身の最大HPから自動算出するため、手入力欄は出さず、代わりに自身最大HP欄を必ず出す
   if (stats.includes('energyGuard') && !stats.includes('selfMaxHP')) stats.push('selfMaxHP');
-  // 「対象の最大HPを参照」するエナガ付与バフがロスター内に存在する場合も、念のため自身最大HP欄を出しておく
-  const anyReceiverHPBuff = charactersCache.some(c => (c.skills || []).some(s => s.grantsAllyBuff && s.allyEnergyGuardRefStat === 'receiverMaxHP'));
+  // 「対象の最大HPを参照」するエナガ付与バフが、実際にチェックされている場合だけ自身最大HP欄を出す
+  const buffWrap = el.querySelector('.f-buffList');
+  const anyReceiverHPBuff = buffWrap && buffWrap._buffItems ? [...buffWrap.querySelectorAll('.buffItem')].some(item => {
+    const idx = Number(item.dataset.buffIdx);
+    const checked = item.querySelector('.f-buffCheck')?.checked;
+    return checked && buffWrap._buffItems[idx]?.skill.allyEnergyGuardRefStat === 'receiverMaxHP';
+  }) : false;
   if (anyReceiverHPBuff && !stats.includes('selfMaxHP')) stats.push('selfMaxHP');
   stats = stats.filter(s => s !== 'energyGuard');
   wrap.innerHTML = stats.map(s => {
