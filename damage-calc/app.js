@@ -442,13 +442,14 @@ function skillBlockHtml(s) {
 
     <div class="allyEgRefFields" ${s.grantsAllyBuff ? '' : 'style="display:none;"'}>
       <div class="formField" style="max-width:360px;">
-        <label>エナガ付与%の参照ステータス(自分の魔法力/HPからエナガを付与するタイプの場合のみ設定)</label>
+        <label>エナガ付与%の参照ステータス(自分または対象のステータスからエナガを付与するタイプの場合のみ設定)</label>
         <select class="f-allyEgRefStat">
           <option value="" ${!s.allyEnergyGuardRefStat ? 'selected' : ''}>無し(固定値のエナガ付与のみ)</option>
-          <option value="magicAttack" ${s.allyEnergyGuardRefStat === 'magicAttack' ? 'selected' : ''}>自分の魔法力を参照</option>
-          <option value="selfMaxHP" ${s.allyEnergyGuardRefStat === 'selfMaxHP' ? 'selected' : ''}>自分の最大HPを参照</option>
+          <option value="magicAttack" ${s.allyEnergyGuardRefStat === 'magicAttack' ? 'selected' : ''}>自分(バフをかけるキャラ)の魔法力を参照</option>
+          <option value="selfMaxHP" ${s.allyEnergyGuardRefStat === 'selfMaxHP' ? 'selected' : ''}>自分(バフをかけるキャラ)の最大HPを参照</option>
+          <option value="receiverMaxHP" ${s.allyEnergyGuardRefStat === 'receiverMaxHP' ? 'selected' : ''}>対象(バフを受け取り計算するキャラ)の最大HPを参照</option>
         </select>
-        <div class="detail">下のグリッドの「配布:エナガ%」に変換率(%)を入力してください。計算時、このスキルを持つバフキャラを選択すると、そのキャラの参照ステータス実数値を入力する欄が表示されます。</div>
+        <div class="detail">「自分」を選ぶと、計算時にこのバフキャラの実数値を入力する欄が出ます。「対象」を選ぶと、計算しているキャラ自身の最大HP入力値がそのまま使われます(別途入力欄は出ません)。下のグリッドの「配布:エナガ%」に変換率(%)を入力してください。</div>
       </div>
     </div>
 
@@ -1503,10 +1504,11 @@ function renderSlotBuffList(el) {
       ${(it.skill.potentials || []).map((p, pi) => potentialHasNumericEffect(p) ? `
         <label class="checkLabel"><input type="checkbox" class="f-buffPotential" data-idx="${pi}"> 潜在${pi + 1}${p.description ? '(' + escapeHtml(p.description) + ')' : ''}</label>
       ` : '').join('')}
-      ${it.skill.allyEnergyGuardRefStat ? `
+      ${(it.skill.allyEnergyGuardRefStat && it.skill.allyEnergyGuardRefStat !== 'receiverMaxHP') ? `
         <label>${it.skill.allyEnergyGuardRefStat === 'magicAttack' ? 'このキャラの魔法力' : 'このキャラの最大HP'}
         <input type="number" class="f-buffEgRefValue" style="width:100px;" placeholder="実数値"></label>
       ` : ''}
+      ${it.skill.allyEnergyGuardRefStat === 'receiverMaxHP' ? `<span class="detail">(計算しているキャラ自身の最大HP入力値を使用)</span>` : ''}
     </div>`).join('');
   wrap._buffItems = items;
 }
@@ -1634,6 +1636,9 @@ function renderReferenceInputs(el) {
   let stats = [...new Set(cur.skill.referenceFormula.map(t => t.stat))];
   // エナジーガードは自身の最大HPから自動算出するため、手入力欄は出さず、代わりに自身最大HP欄を必ず出す
   if (stats.includes('energyGuard') && !stats.includes('selfMaxHP')) stats.push('selfMaxHP');
+  // 「対象の最大HPを参照」するエナガ付与バフがロスター内に存在する場合も、念のため自身最大HP欄を出しておく
+  const anyReceiverHPBuff = charactersCache.some(c => (c.skills || []).some(s => s.grantsAllyBuff && s.allyEnergyGuardRefStat === 'receiverMaxHP'));
+  if (anyReceiverHPBuff && !stats.includes('selfMaxHP')) stats.push('selfMaxHP');
   stats = stats.filter(s => s !== 'energyGuard');
   wrap.innerHTML = stats.map(s => {
     if (s === 'enemyTotalHP') {
@@ -1712,10 +1717,12 @@ function runSlotCalc(el) {
     const it = buffWrap._buffItems[idx];
     const effLevel = getEffectiveLevel(it.skill, bCopies, bBurst, bPotentialIdxs);
     if (effLevel.allyBuff) {
-      // 自分の魔法力/HPを参照してエナガを付与するタイプのバフ: 参照ステータス実数値 × エナガ%を、固定のエナガ付与に加算する
+      // 自分(バフをかけるキャラ)/対象(受け取って計算しているキャラ)のステータスを参照してエナガを付与するタイプのバフ:
+      // 参照ステータス実数値 × エナガ%を、固定のエナガ付与に加算する
       if (it.skill.allyEnergyGuardRefStat) {
-        const refInput = item.querySelector('.f-buffEgRefValue');
-        const refValue = refInput ? Number(refInput.value) || 0 : 0;
+        const refValue = it.skill.allyEnergyGuardRefStat === 'receiverMaxHP'
+          ? (Number(inputStats.selfMaxHP) || 0)
+          : (item.querySelector('.f-buffEgRefValue') ? Number(item.querySelector('.f-buffEgRefValue').value) || 0 : 0);
         const percentContribution = Math.floor(refValue * (effLevel.allyBuff.energyGuardPercent || 0) / 100);
         effLevel.allyBuff = { ...effLevel.allyBuff, energyGuardBonus: (effLevel.allyBuff.energyGuardBonus || 0) + percentContribution };
       }
