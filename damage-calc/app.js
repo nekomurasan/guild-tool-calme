@@ -213,6 +213,8 @@ async function loadCharacters() {
   try {
     const snap = await getDocs(charactersCol);
     charactersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // 表示優先度(priority)が大きいキャラほど上に表示。同じ優先度なら名前順
+    charactersCache.sort((a, b) => (b.priority || 0) - (a.priority || 0) || a.name.localeCompare(b.name, 'ja'));
   } catch (e) {
     charactersCache = [];
   }
@@ -334,6 +336,7 @@ function loadCharIntoForm(charId) {
   document.getElementById('charEditTitle').textContent = `キャラクターを編集: ${c.name}`;
   document.getElementById('charName').value = c.name;
   document.getElementById('charAttribute').value = c.attribute || '火';
+  document.getElementById('charPriority').value = c.priority || 0;
   skillDraftList = JSON.parse(JSON.stringify(c.skills || [])).map(s => ({ ...s, _uid: uid(), lock5Copies: s.lock5Copies || false }));
   renderSkillsArea();
   document.getElementById('deleteCharBtn').style.display = isAdmin ? 'inline-block' : 'none';
@@ -344,6 +347,7 @@ document.getElementById('newCharFormBtn').addEventListener('click', () => {
   document.getElementById('charEditTitle').textContent = 'キャラクターを新規登録';
   document.getElementById('charName').value = '';
   document.getElementById('charAttribute').value = '火';
+  document.getElementById('charPriority').value = 0;
   skillDraftList = [];
   renderSkillsArea();
   document.getElementById('deleteCharBtn').style.display = 'none';
@@ -850,13 +854,14 @@ document.getElementById('saveCharBtn').addEventListener('click', async () => {
   if (!isAdmin) { statusEl.className = 'status err'; statusEl.textContent = 'キャラ登録は管理者のみ行えます。'; return; }
   const name = document.getElementById('charName').value.trim();
   const attribute = document.getElementById('charAttribute').value;
+  const priority = Number(document.getElementById('charPriority').value) || 0;
   if (!name) { statusEl.className = 'status err'; statusEl.textContent = 'キャラクター名を入力してください。'; return; }
   if (!skillDraftList.length) { statusEl.className = 'status err'; statusEl.textContent = 'スキルを最低1つ追加してください。'; return; }
   const cleanSkills = skillDraftList.map(({ _uid, ...rest }) => rest);
   const docId = currentEditCharId || name;
   try {
     await setDoc(doc(charactersCol, docId), {
-      name, attribute, skills: cleanSkills, registeredBy: operatorName, updatedAt: new Date().toISOString()
+      name, attribute, priority, skills: cleanSkills, registeredBy: operatorName, updatedAt: new Date().toISOString()
     });
     logWrite('characterSave', name);
     statusEl.className = 'status ok'; statusEl.textContent = '保存しました。';
@@ -989,7 +994,7 @@ document.getElementById('charImportBtn').addEventListener('click', async () => {
     try {
       const cleanSkills = byName[name].skills.map(({ _uid, ...rest }) => rest);
       await setDoc(doc(charactersCol, name), {
-        name, attribute: byName[name].attribute || '火', skills: cleanSkills,
+        name, attribute: byName[name].attribute || '火', priority: 0, skills: cleanSkills,
         registeredBy: operatorName, updatedAt: new Date().toISOString()
       });
       logWrite('characterImport', name);
