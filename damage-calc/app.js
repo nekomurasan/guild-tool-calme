@@ -1647,16 +1647,25 @@ function renderReferenceInputs(el) {
   }) : false;
   if (anyReceiverHPBuff && !stats.includes('selfMaxHP')) stats.push('selfMaxHP');
   stats = stats.filter(s => s !== 'energyGuard');
+
+  // 再描画で入力値が消えないよう、今入っている値を先に保持しておく
+  const prevValues = {};
+  wrap.querySelectorAll('[class^="f-stat-"]').forEach(inp => {
+    prevValues[inp.className.replace('f-stat-', '').split(' ')[0]] = inp.value;
+  });
+  const prevBossHP = wrap.querySelector('.f-bossHP')?.value;
+
   wrap.innerHTML = stats.map(s => {
     if (s === 'enemyTotalHP') {
       return `<div class="formField"><label>ボスHP(敵全体・5万上限)</label>
         <div style="display:flex; gap:6px;">
-          <input type="number" class="f-bossHP" placeholder="例: 32000">
+          <input type="number" class="f-bossHP" placeholder="例: 32000" value="${prevBossHP || ''}">
           <button class="small f-bossHpCap" type="button">5万超え</button>
         </div>
       </div>`;
     }
-    return `<div class="formField"><label>${statInputLabel(s)}</label><input type="number" class="f-stat-${s}" value="0"></div>`;
+    const restored = prevValues[s] != null ? prevValues[s] : 0;
+    return `<div class="formField"><label>${statInputLabel(s)}</label><input type="number" class="f-stat-${s}" value="${restored}"></div>`;
   }).join('');
   const capBtn = wrap.querySelector('.f-bossHpCap');
   if (capBtn) capBtn.addEventListener('click', () => { wrap.querySelector('.f-bossHP').value = 50000; });
