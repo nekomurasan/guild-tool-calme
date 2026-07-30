@@ -1419,7 +1419,7 @@ function addSlot(snapshot) {
     </div>
     <div class="f-conditionalInputs rowFields"></div>
 
-    <h3>バフキャラ選択</h3>
+    <h3>バフキャラ選択(対象スキルを打つ時にかかってるものだけ入力)</h3>
     <div class="f-buffList buffList"><div class="empty">配布バフを持つスキルがまだ登録されていません。</div></div>
 
     <h3>ボスから貰えるバフ＆外部バフ(対象スキルを打つ時にかかってるものだけ入力)</h3>
@@ -1466,6 +1466,15 @@ function addSlot(snapshot) {
 }
 
 document.getElementById('addSlotBtn').addEventListener('click', () => addSlot());
+document.getElementById('duplicateSlotBtn').addEventListener('click', () => {
+  const slots = document.querySelectorAll('#slotsArea .calcSlot');
+  if (!slots.length) { addSlot(); return; }
+  const lastSlot = slots[slots.length - 1];
+  const cur = currentSlotSkill(lastSlot);
+  if (!cur) { addSlot(); return; }
+  const snapshot = buildSnapshot(lastSlot, cur);
+  addSlot(snapshot);
+});
 
 function populateSlotCharSelect(el) {
   const sel = el.querySelector('.f-slotChar');
