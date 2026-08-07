@@ -305,6 +305,7 @@ function blankSkill() {
     referenceFormula: [{ stat: 'attack', cap: null, coefficient: 100 }],
     hasMainTargetOverride: false, // メインターゲット時、基本のスキル倍率の代わりにメインターゲット用倍率を使う
     allyEnergyGuardRefStat: '', // ''=無し / 'magicAttack' / 'selfMaxHP'
+    allyBuffMaxStacks: 1, // 配布バフの重複上限数(1=重複無し。2以上なら計算時に重複数を選択可能)
     isBuffRemovalAttack: false, // 1撃目はボスのバリア/防御力バフ/魔法抵抗バフが有効、2撃目以降は解除される(バリアのみ解除したい場合は他を0のままでOK)
     isDebuffApplyAttack: false, // このスキル自身がボスにデバフを付与する。2撃目以降だけ有効になる
     isSummonDamage: false, // 召喚獣ダメージ(召喚獣脆弱が有効になる)
@@ -452,6 +453,11 @@ function skillBlockHtml(s) {
           <option value="receiverMaxHP" ${s.allyEnergyGuardRefStat === 'receiverMaxHP' ? 'selected' : ''}>対象(バフを受け取り計算するキャラ)の最大HPを参照</option>
         </select>
         <div class="detail">「自分」を選ぶと、計算時にこのバフキャラの実数値を入力する欄が出ます。「対象」を選ぶと、計算しているキャラ自身の最大HP入力値がそのまま使われます(別途入力欄は出ません)。下のグリッドの「配布:エナガ%」に変換率(%)を入力してください。</div>
+      </div>
+      <div class="formField" style="max-width:360px;">
+        <label>配布バフの重複上限数(1=重複無し。2以上にすると計算時に重複数を選択可能になります)</label>
+        <input type="number" class="f-allyBuffMaxStacks" value="${s.allyBuffMaxStacks || 1}" min="1">
+        <div class="detail">重複数を選ぶと、配布バフの%系項目(物理/魔法攻撃・クリ率・クリダメ・増強・属性強化・チェイン増加)が重複数倍されます。凸ごとの数値変化と組み合わせて使えます。</div>
       </div>
     </div>
 
@@ -612,6 +618,7 @@ function bindSkillBlockEvents(s) {
     block.querySelector('.allyEgRefFields').style.display = s.grantsAllyBuff ? '' : 'none';
   });
   block.querySelector('.f-allyEgRefStat').addEventListener('change', e => s.allyEnergyGuardRefStat = e.target.value);
+  block.querySelector('.f-allyBuffMaxStacks').addEventListener('input', e => s.allyBuffMaxStacks = Math.max(1, Number(e.target.value) || 1));
   block.querySelector('.f-moveSkillUp').addEventListener('click', () => {
     const idx = skillDraftList.findIndex(x => x._uid === s._uid);
     if (idx > 0) {
@@ -1517,6 +1524,9 @@ function renderSlotBuffList(el) {
       <label class="checkLabel"><input type="checkbox" class="f-buffCheck"> ${escapeHtml(attrCharName(it.charName, it.attribute))} - ${escapeHtml(it.skill.skillName)}</label>
       凸<select class="f-buffCopies">${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
       バースト<select class="f-buffBurst">${[0,1,2,3].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
+      ${(it.skill.allyBuffMaxStacks || 1) > 1 ? `
+        重複数<select class="f-buffStacks">${Array.from({length: it.skill.allyBuffMaxStacks}, (_, i) => i + 1).map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
+      ` : ''}
       ${(it.skill.potentials || []).map((p, pi) => potentialHasNumericEffect(p) ? `
         <label class="checkLabel"><input type="checkbox" class="f-buffPotential" data-idx="${pi}"> 潜在${pi + 1}${p.description ? '(' + escapeHtml(p.description) + ')' : ''}</label>
       ` : '').join('')}
@@ -1749,6 +1759,22 @@ function runSlotCalc(el) {
     const it = buffWrap._buffItems[idx];
     const effLevel = getEffectiveLevel(it.skill, bCopies, bBurst, bPotentialIdxs);
     if (effLevel.allyBuff) {
+      // 配布バフの重複(スタック): %系項目を重複数倍する
+      const stacksSelect = item.querySelector('.f-buffStacks');
+      const stacks = stacksSelect ? Number(stacksSelect.value) || 1 : 1;
+      if (stacks > 1) {
+        const mulIntervals = (arr) => (arr || []).map(iv => ({ ...iv, value: iv.value * stacks }));
+        effLevel.allyBuff = {
+          ...effLevel.allyBuff,
+          physicalAttackBuffPercent: mulIntervals(effLevel.allyBuff.physicalAttackBuffPercent),
+          magicAttackBuffPercent: mulIntervals(effLevel.allyBuff.magicAttackBuffPercent),
+          critRateBuffPercent: mulIntervals(effLevel.allyBuff.critRateBuffPercent),
+          critDamageBuffPercent: mulIntervals(effLevel.allyBuff.critDamageBuffPercent),
+          enhancePercent: mulIntervals(effLevel.allyBuff.enhancePercent),
+          elementBoostPercent: mulIntervals(effLevel.allyBuff.elementBoostPercent),
+          chainDamageIncreasePercent: mulIntervals(effLevel.allyBuff.chainDamageIncreasePercent)
+        };
+      }
       // 自分(バフをかけるキャラ)/対象(受け取って計算しているキャラ)のステータスを参照してエナガを付与するタイプのバフ:
       // 参照ステータス実数値 × エナガ%を、固定のエナガ付与に加算する
       if (it.skill.allyEnergyGuardRefStat) {
@@ -1860,7 +1886,8 @@ function buildSnapshot(el, cur) {
       copies: Number(item.querySelector('.f-buffCopies').value),
       burst: Number(item.querySelector('.f-buffBurst').value),
       potentialIdxs: [...item.querySelectorAll('.f-buffPotential')].filter(c => c.checked).map(c => Number(c.dataset.idx)),
-      egRefValue: item.querySelector('.f-buffEgRefValue') ? Number(item.querySelector('.f-buffEgRefValue').value) || 0 : null
+      egRefValue: item.querySelector('.f-buffEgRefValue') ? Number(item.querySelector('.f-buffEgRefValue').value) || 0 : null,
+      stacks: item.querySelector('.f-buffStacks') ? Number(item.querySelector('.f-buffStacks').value) || 1 : null
     });
   });
   return {
@@ -1944,6 +1971,10 @@ function applySnapshotToSlot(el, snap) {
     if (sb.egRefValue != null) {
       const refInput = item.querySelector('.f-buffEgRefValue');
       if (refInput) refInput.value = sb.egRefValue;
+    }
+    if (sb.stacks != null) {
+      const stacksSelect = item.querySelector('.f-buffStacks');
+      if (stacksSelect) stacksSelect.value = sb.stacks;
     }
   });
 }
