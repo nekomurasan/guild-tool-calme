@@ -79,7 +79,7 @@ const SLOT_ITEM_OPTIONS = {};
 SLOTS.forEach(slot => { SLOT_ITEM_OPTIONS[slot] = [...(EQUIPMENT_BY_SLOT[slot] || []), "専用装備"]; });
 // 関連キャラのグループ(キー: このキャラの行にボタンを出す / 値: 表示する関連キャラ一覧)
 const RELATED_CHAR_GROUPS = {
-  "グランヒルト": ["グランヒルト", "ディアナ", "ルゥ"]
+  "グランヒルト": ["グランヒルト", "ディアナ", "ルゥ", "ヘレナ"]
 };
 
 let rosterMembers = [];
