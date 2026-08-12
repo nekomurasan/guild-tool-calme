@@ -450,6 +450,13 @@ function hasGrade24(item) {
   const slots = item.slots || {};
   return SLOTS.some(slot => slots[slot] && slots[slot].grade === '24');
 }
+function hasExclusive23Plus(item) {
+  const slots = item.slots || {};
+  return SLOTS.some(slot => {
+    const s = slots[slot];
+    return s && s.item === '専用装備' && s.grade && parseInt(s.grade) >= 23;
+  });
+}
 function sortExHolders(a, b) { return maxGradeOf(b) - maxGradeOf(a); }
 
 function getFilters() {
@@ -458,7 +465,8 @@ function getFilters() {
     member: document.getElementById('filterMember').value,
     attr: document.getElementById('filterAttr').value,
     atkType: document.getElementById('filterAtkType').value,
-    g24Only: document.getElementById('filterG24Only').checked
+    g24Only: document.getElementById('filterG24Only').checked,
+    exclusive23Only: document.getElementById('filterExclusive23').checked
   };
 }
 
@@ -469,6 +477,7 @@ function renderExList(members, filters) {
       if (filters.search && !item.character.toLowerCase().includes(filters.search)) return;
       if (filters.member && m.name !== filters.member) return;
       if (filters.g24Only && !hasGrade24(item)) return;
+      if (filters.exclusive23Only && !hasExclusive23Plus(item)) return;
       if (!map[item.character]) map[item.character] = [];
       map[item.character].push({ memberName: m.name, idx, ...item });
     });
@@ -578,7 +587,7 @@ function applyFilterAndRender() {
   const filters = getFilters();
   renderExList(allMembersCache, filters);
 }
-['searchBox', 'filterMember', 'filterAttr', 'filterAtkType', 'filterG24Only'].forEach(id => {
+['searchBox', 'filterMember', 'filterAttr', 'filterAtkType', 'filterG24Only', 'filterExclusive23'].forEach(id => {
   document.getElementById(id).addEventListener('input', applyFilterAndRender);
   document.getElementById(id).addEventListener('change', applyFilterAndRender);
 });
