@@ -80,8 +80,10 @@
       <div><label>メンバーで絞り込み</label><select id="filterMember"><option value="">すべて</option></select></div>
       <div><label>属性で絞り込み</label><select id="filterAttr"><option value="">すべて</option></select></div>
       <div><label>攻撃タイプで絞り込み</label><select id="filterAtkType"><option value="">すべて</option><option value="物理">物理</option><option value="魔法">魔法</option></select></div>
-      <div><label class="checkLabel" style="margin-top:22px;"><input type="checkbox" id="filterG24Only"> 24等級のみ表示</label></div>
-      <div><label class="checkLabel" style="margin-top:22px;"><input type="checkbox" id="filterExclusive23"> 専用23以上表示</label></div>
+      <div style="display:flex; gap:14px; align-items:center; margin-top:22px; flex-wrap:wrap;">
+        <label class="checkLabel"><input type="checkbox" id="filterG24Only"> 24等級のみ</label>
+        <label class="checkLabel"><input type="checkbox" id="filterExclusive23"> 専用23以上</label>
+      </div>
     </div>
     <div class="detail scrollHint">※ 表が画面より広い場合は、横にスワイプ(スクロール)して見ることができます</div>
     <h3>キャラクターごとの所持者</h3>
