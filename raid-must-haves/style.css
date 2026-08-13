@@ -103,6 +103,7 @@ tr.grp-b td { background: var(--bg-sub); }
 .annotationBox { font-size: 12px; margin: 6px 0 4px; white-space: pre-wrap; line-height: 1.6; }
 .annotationEdit { margin-top: 6px; }
 .mergedCell { background: var(--bg-card-alt); font-size: 12px; white-space: pre-wrap; }
+#charTable th:nth-child(2), #charTable td.c-skill { max-width: 12ch; word-break: break-word; }
 
 .status { font-size: 13px; margin-top: 6px; }
 .status.ok { color: #8fd3a5; }

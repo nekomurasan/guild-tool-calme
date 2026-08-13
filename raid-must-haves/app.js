@@ -221,38 +221,85 @@ document.getElementById('charAddBtn').addEventListener('click', async () => {
   renderCharTable();
 });
 
+let editingCharRowIndex = null;
+
 function renderCharTable() {
   const table = document.getElementById('charTable');
   const rows = contentData.characters || [];
   const showActions = isAdmin && editModeOn;
   if (!rows.length) { table.innerHTML = '<tr><td class="empty">まだ登録がありません。</td></tr>'; return; }
-  let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>コメント</th>${showActions ? '<th style="width:120px;">操作</th>' : ''}</tr>`;
+  let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>コメント</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
   rows.forEach((r, i) => {
     const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
-    // 直前の行と同じキャラ名なら、キャラ名セルは結合してスキップする
-    const sameAsPrev = i > 0 && rows[i - 1].charName === r.charName;
+    const isEditing = editingCharRowIndex === i;
+    // 編集中の行がある間は、テーブル全体のセル結合を一時的に解除する(結合セルの中身は編集できないため)
+    const mergeDisabled = editingCharRowIndex != null;
+    const sameAsPrev = !mergeDisabled && i > 0 && rows[i - 1].charName === r.charName;
     let charCellHtml = '';
-    if (!sameAsPrev) {
+    if (isEditing) {
+      const charOptions = damageCalcCharsCache.map(c => `<option value="${c.id}" ${c.id === r.charId ? 'selected' : ''}>${escapeHtml(attrCharName(c.name, c.attribute))}</option>`).join('');
+      charCellHtml = `<td class="c-char"><select class="e-char">${charOptions}</select></td>`;
+    } else if (!sameAsPrev) {
       let span = 1;
-      while (i + span < rows.length && rows[i + span].charName === r.charName) span++;
+      while (!mergeDisabled && i + span < rows.length && rows[i + span].charName === r.charName) span++;
       charCellHtml = `<td class="c-char" rowspan="${span}">${escapeHtml(attrCharName(r.charName, r.attribute))}</td>`;
     }
     html += `<tr class="${grpClass}" data-i="${i}">
-      ${charCellHtml}
-      <td class="c-skill">${escapeHtml(r.skillName)}</td>
-      <td class="c-copies">${r.recommendedCopies}凸</td>
-      <td class="c-tears">${escapeHtml(r.tearsOfGoddess)}</td>
-      <td class="c-comment">${escapeHtml(r.comment)}</td>`;
+      ${charCellHtml}`;
+    if (isEditing) {
+      html += `<td class="c-skill"><input type="text" class="e-skill" value="${escapeHtml(r.skillName)}"></td>
+        <td class="c-copies"><select class="e-copies">${[0,1,2,3,4,5].map(n => `<option value="${n}" ${n===r.recommendedCopies?'selected':''}>${n}凸</option>`).join('')}</select></td>
+        <td class="c-tears"><input type="text" class="e-tears" value="${escapeHtml(r.tearsOfGoddess)}"></td>
+        <td class="c-comment"><input type="text" class="e-comment" value="${escapeHtml(r.comment)}"></td>`;
+    } else {
+      html += `<td class="c-skill">${escapeHtml(r.skillName)}</td>
+        <td class="c-copies">${r.recommendedCopies}凸</td>
+        <td class="c-tears">${escapeHtml(r.tearsOfGoddess)}</td>
+        <td class="c-comment">${escapeHtml(r.comment)}</td>`;
+    }
     if (showActions) {
-      html += `<td class="c-actions">
-        <button class="small danger" data-action="del-char" data-i="${i}">削除</button>
-        <button class="small" data-action="up-char" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
-        <button class="small" data-action="down-char" data-i="${i}" ${i === rows.length - 1 ? 'disabled' : ''}>↓</button>
-      </td>`;
+      if (isEditing) {
+        html += `<td class="c-actions">
+          <button class="small primary" data-action="save-char" data-i="${i}">保存</button>
+          <button class="small" data-action="cancel-char" data-i="${i}">キャンセル</button>
+        </td>`;
+      } else {
+        html += `<td class="c-actions">
+          <button class="small" data-action="edit-char" data-i="${i}">編集</button>
+          <button class="small danger" data-action="del-char" data-i="${i}">削除</button>
+          <button class="small" data-action="up-char" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="small" data-action="down-char" data-i="${i}" ${i === rows.length - 1 ? 'disabled' : ''}>↓</button>
+        </td>`;
+      }
     }
     html += `</tr>`;
   });
   table.innerHTML = html;
+  table.querySelectorAll('[data-action="edit-char"]').forEach(btn => btn.addEventListener('click', () => {
+    editingCharRowIndex = Number(btn.dataset.i);
+    renderCharTable();
+  }));
+  table.querySelectorAll('[data-action="cancel-char"]').forEach(btn => btn.addEventListener('click', () => {
+    editingCharRowIndex = null;
+    renderCharTable();
+  }));
+  table.querySelectorAll('[data-action="save-char"]').forEach(btn => btn.addEventListener('click', async () => {
+    const i = Number(btn.dataset.i);
+    const tr = table.querySelector(`tr[data-i="${i}"]`);
+    const r = contentData.characters[i];
+    const charSel = tr.querySelector('.e-char');
+    if (charSel) {
+      const c = damageCalcCharsCache.find(x => x.id === charSel.value);
+      if (c) { r.charId = c.id; r.charName = c.name; r.attribute = c.attribute; }
+    }
+    r.skillName = tr.querySelector('.e-skill').value.trim();
+    r.recommendedCopies = Number(tr.querySelector('.e-copies').value) || 0;
+    r.tearsOfGoddess = tr.querySelector('.e-tears').value.trim();
+    r.comment = tr.querySelector('.e-comment').value.trim();
+    editingCharRowIndex = null;
+    await saveContent();
+    renderCharTable();
+  }));
   table.querySelectorAll('[data-action="del-char"]').forEach(btn => btn.addEventListener('click', async () => {
     if (!confirm('この行を削除しますか?')) return;
     contentData.characters.splice(Number(btn.dataset.i), 1);
