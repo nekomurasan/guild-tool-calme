@@ -70,8 +70,20 @@
           <option value="3">3凸</option><option value="4">4凸</option><option value="5">5凸</option>
         </select>
         <input type="text" id="charNewTears" placeholder="女神の涙" style="max-width:140px;">
+        <select id="charNewPriority" style="max-width:110px;">
+          <option value="0">☆☆☆☆</option>
+          <option value="1">★☆☆☆</option>
+          <option value="2">★★☆☆</option>
+          <option value="3">★★★☆</option>
+          <option value="4">★★★★</option>
+        </select>
         <input type="text" id="charNewComment" placeholder="コメント" style="max-width:220px;">
         <button class="small" id="charAddBtn">+ 追加</button>
+      </div>
+      <div id="charAnnotationBox" class="annotationBox"></div>
+      <div id="charAnnotationEdit" class="annotationEdit" style="display:none;">
+        <textarea id="charAnnotationInput" rows="2" placeholder="注釈(HTMLタグで文字色指定可。例: &lt;span style=&quot;color:#ff8080&quot;&gt;注意&lt;/span&gt;)"></textarea>
+        <button class="small primary" id="charAnnotationSaveBtn" style="margin-top:4px;">注釈を保存</button>
       </div>
     </div>
 

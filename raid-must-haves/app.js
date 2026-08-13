@@ -28,7 +28,7 @@ const SESSION_KEY = 'calmeguild_sub_unlocked'; // ポータル・他ツールと
 
 let isAdmin = false;
 let editModeOn = false;
-let contentData = { characters: [], equipmentLevels: [] };
+let contentData = { characters: [], charactersAnnotation: '', equipmentLevels: [] };
 let damageCalcCharsCache = []; // ダメージ計算ツールのキャラデータ(閲覧専用で流用)
 let uidCounter = 0;
 function uid() { uidCounter++; return 'u' + Date.now() + '_' + uidCounter; }
@@ -45,6 +45,7 @@ async function sha256Hex(text) {
 }
 const ATTRIBUTE_EMOJI = { '火': '🔥', '水': '💧', '風': '🍃', '光': '🌟', '闇': '🟣' };
 function attrCharName(name, attribute) { return `${ATTRIBUTE_EMOJI[attribute] || ''}${name || ''}`; }
+const PRIORITY_STARS = ['☆☆☆☆', '★☆☆☆', '★★☆☆', '★★★☆', '★★★★'];
 
 // ---------- アクセス(2経路) ----------
 function showMainContent() {
@@ -153,6 +154,7 @@ async function loadContent() {
     if (snap.exists()) {
       const data = snap.data();
       contentData.characters = data.characters || [];
+      contentData.charactersAnnotation = data.charactersAnnotation || '';
       contentData.equipmentLevels = data.equipmentLevels || [];
     }
   } catch (e) {
@@ -174,7 +176,16 @@ function renderAll() {
   renderGearLevels();
   document.getElementById('charAddRow').style.display = (isAdmin && editModeOn) ? 'flex' : 'none';
   document.getElementById('addLevelBtn').style.display = (isAdmin && editModeOn) ? '' : 'none';
+  document.getElementById('charAnnotationBox').innerHTML = contentData.charactersAnnotation || '';
+  document.getElementById('charAnnotationInput').value = contentData.charactersAnnotation || '';
+  document.getElementById('charAnnotationEdit').style.display = (isAdmin && editModeOn) ? 'block' : 'none';
 }
+
+document.getElementById('charAnnotationSaveBtn').addEventListener('click', async () => {
+  contentData.charactersAnnotation = document.getElementById('charAnnotationInput').value;
+  await saveContent();
+  document.getElementById('charAnnotationBox').innerHTML = contentData.charactersAnnotation || '';
+});
 
 // ==================================================================
 // Essential Characters
@@ -211,11 +222,13 @@ document.getElementById('charAddBtn').addEventListener('click', async () => {
     id: uid(), charId, charName: c.name, attribute: c.attribute, skillName,
     recommendedCopies: Number(document.getElementById('charNewCopies').value) || 0,
     tearsOfGoddess: document.getElementById('charNewTears').value.trim(),
+    priority: Number(document.getElementById('charNewPriority').value) || 0,
     comment: document.getElementById('charNewComment').value.trim()
   });
   document.getElementById('charNewSkillSelect').value = '';
   document.getElementById('charNewSkillText').value = '';
   document.getElementById('charNewTears').value = '';
+  document.getElementById('charNewPriority').value = '0';
   document.getElementById('charNewComment').value = '';
   await saveContent();
   renderCharTable();
@@ -228,7 +241,7 @@ function renderCharTable() {
   const rows = contentData.characters || [];
   const showActions = isAdmin && editModeOn;
   if (!rows.length) { table.innerHTML = '<tr><td class="empty">まだ登録がありません。</td></tr>'; return; }
-  let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>コメント</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
+  let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>優先度</th><th>コメント</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
   rows.forEach((r, i) => {
     const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
     const isEditing = editingCharRowIndex === i;
@@ -250,11 +263,13 @@ function renderCharTable() {
       html += `<td class="c-skill"><input type="text" class="e-skill" value="${escapeHtml(r.skillName)}"></td>
         <td class="c-copies"><select class="e-copies">${[0,1,2,3,4,5].map(n => `<option value="${n}" ${n===r.recommendedCopies?'selected':''}>${n}凸</option>`).join('')}</select></td>
         <td class="c-tears"><input type="text" class="e-tears" value="${escapeHtml(r.tearsOfGoddess)}"></td>
+        <td class="c-priority"><select class="e-priority">${PRIORITY_STARS.map((s, n) => `<option value="${n}" ${n===(r.priority||0)?'selected':''}>${s}</option>`).join('')}</select></td>
         <td class="c-comment"><input type="text" class="e-comment" value="${escapeHtml(r.comment)}"></td>`;
     } else {
       html += `<td class="c-skill">${escapeHtml(r.skillName)}</td>
         <td class="c-copies">${r.recommendedCopies}凸</td>
         <td class="c-tears">${escapeHtml(r.tearsOfGoddess)}</td>
+        <td class="c-priority">${PRIORITY_STARS[r.priority || 0]}</td>
         <td class="c-comment">${escapeHtml(r.comment)}</td>`;
     }
     if (showActions) {
@@ -295,6 +310,7 @@ function renderCharTable() {
     r.skillName = tr.querySelector('.e-skill').value.trim();
     r.recommendedCopies = Number(tr.querySelector('.e-copies').value) || 0;
     r.tearsOfGoddess = tr.querySelector('.e-tears').value.trim();
+    r.priority = Number(tr.querySelector('.e-priority').value) || 0;
     r.comment = tr.querySelector('.e-comment').value.trim();
     editingCharRowIndex = null;
     await saveContent();
