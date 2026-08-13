@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raid Must-Haves | BrownDust Ⅱ Calme Guild Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="titleBlock" style="margin-bottom: 4px;">
+    <a href="../index.html" class="backLink">← BrownDust Ⅱ Calme Guild Tool</a>
+    <h1>Raid Must-Haves</h1>
+  </div>
+  <div class="sub">ギルドレイドに絶対に役立つ、必須級のキャラの必要育成水準などを掲載するページです。</div>
+
+  <!-- ログイン -->
+  <div id="loginScreen" class="card">
+    <h2>アクセス方法を選択してください</h2>
+
+    <div class="accessOption">
+      <h3>メインギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">他のツールと同じIDとパスワードでログインしてください。</div>
+      <div class="formField">
+        <label>ID</label>
+        <input type="text" id="loginId" placeholder="例: taro">
+      </div>
+      <div class="formField">
+        <label>パスワード</label>
+        <input type="password" id="loginPassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="loginBtn">ログイン</button>
+      <div id="loginStatus" class="status"></div>
+    </div>
+
+    <div class="accessOption">
+      <h3>サブギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">ギルド内で共有されている共通パスワードを入力してください。</div>
+      <div class="formField">
+        <label>共通パスワード</label>
+        <input type="password" id="gatePassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="gateBtn">閲覧する</button>
+      <div id="gateStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div id="mainContent" style="display:none;">
+
+    <div class="topBar">
+      <span class="guideNote" id="connNote"></span>
+      <button class="small" id="manageBtn" style="display:none; margin-left:auto;">管理者用:編集を開始</button>
+      <button class="small" id="logoutBtn">ログアウト</button>
+    </div>
+
+    <!-- Essential Characters -->
+    <div class="card">
+      <h2>Essential Characters <span class="sectionJp">(必須級キャラ一覧)</span></h2>
+      <div class="table-wrap"><table id="charTable"></table></div>
+      <div id="charAddRow" class="addRowBar" style="display:none; flex-wrap:wrap;">
+        <select id="charNewCharSelect" style="max-width:180px;"><option value="">キャラを選択</option></select>
+        <select id="charNewSkillSelect" style="max-width:180px;"><option value="">コスを選択</option></select>
+        <select id="charNewCopies" style="max-width:100px;">
+          <option value="0">0凸</option><option value="1">1凸</option><option value="2">2凸</option>
+          <option value="3">3凸</option><option value="4">4凸</option><option value="5">5凸</option>
+        </select>
+        <input type="text" id="charNewTears" placeholder="女神の涙" style="max-width:140px;">
+        <input type="text" id="charNewComment" placeholder="コメント" style="max-width:220px;">
+        <button class="small" id="charAddBtn">+ 追加</button>
+      </div>
+    </div>
+
+    <!-- Priority Gear Sets -->
+    <div class="card">
+      <h2>Priority Gear Sets <span class="sectionJp">(用意しておきたい装備一覧)</span></h2>
+      <div id="gearLevelsArea"></div>
+      <button class="small" id="addLevelBtn" style="display:none; margin-top:10px;">+ レベルを追加</button>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
