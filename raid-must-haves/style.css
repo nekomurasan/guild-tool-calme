@@ -114,13 +114,10 @@ tr.grp-b td { background: var(--bg-sub); }
 #charTableWrap table { border-collapse: separate; border-spacing: 0; }
 #charTableWrap th { position: sticky; top: 0; z-index: 2; border-bottom: 2px solid var(--gold); }
 
-/* 装備一覧: 最大幅を保ったまま横スクロール可能にし、想定キャラ列だけ左端に固定する(縦スクロールは不要) */
+/* 装備一覧: 最大幅を保ったまま横スクロール可能にする(縦スクロールは不要)。
+   想定キャラのセル結合(rowspan)と左端固定(sticky)は相性が悪く表示が崩れるため、結合を優先し左端固定は行わない */
 .gearTableWrap { overflow-x: auto; overflow-y: visible; }
 .gearTableWrap table.gearTable { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; }
-table.gearTable th:first-child, table.gearTable td:first-child {
-  position: sticky; left: 0; z-index: 2;
-}
-table.gearTable th:first-child { z-index: 3; }
 .suboptCell { font-size: 11px; }
 .suboptCell.kensenFuyou { color: #4478ab; font-weight: 600; }
 
