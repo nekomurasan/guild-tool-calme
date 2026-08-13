@@ -189,24 +189,32 @@ function updateSkillSelect() {
   const charId = document.getElementById('charNewCharSelect').value;
   const c = damageCalcCharsCache.find(x => x.id === charId);
   const skillSel = document.getElementById('charNewSkillSelect');
-  if (!c) { skillSel.innerHTML = '<option value="">コスを選択</option>'; return; }
-  skillSel.innerHTML = '<option value="">コスを選択</option>' +
+  if (!c) { skillSel.innerHTML = '<option value="">コスを選択(参考用)</option>'; return; }
+  skillSel.innerHTML = '<option value="">コスを選択(参考用)</option>' +
     (c.skills || []).map((s, i) => `<option value="${i}">${escapeHtml(s.skillName)}</option>`).join('');
 }
 document.getElementById('charNewCharSelect').addEventListener('change', updateSkillSelect);
+document.getElementById('charNewSkillSelect').addEventListener('change', () => {
+  const charId = document.getElementById('charNewCharSelect').value;
+  const c = damageCalcCharsCache.find(x => x.id === charId);
+  const skillIdx = document.getElementById('charNewSkillSelect').value;
+  if (!c || skillIdx === '') return;
+  document.getElementById('charNewSkillText').value = (c.skills || [])[Number(skillIdx)]?.skillName || '';
+});
 
 document.getElementById('charAddBtn').addEventListener('click', async () => {
   const charId = document.getElementById('charNewCharSelect').value;
   const c = damageCalcCharsCache.find(x => x.id === charId);
-  const skillIdx = document.getElementById('charNewSkillSelect').value;
-  if (!c || skillIdx === '') { alert('キャラとコスを選択してください。'); return; }
-  const skillName = (c.skills || [])[Number(skillIdx)]?.skillName || '';
+  const skillName = document.getElementById('charNewSkillText').value.trim();
+  if (!c || !skillName) { alert('キャラを選択し、コス名を入力してください。'); return; }
   contentData.characters.push({
     id: uid(), charId, charName: c.name, attribute: c.attribute, skillName,
     recommendedCopies: Number(document.getElementById('charNewCopies').value) || 0,
     tearsOfGoddess: document.getElementById('charNewTears').value.trim(),
     comment: document.getElementById('charNewComment').value.trim()
   });
+  document.getElementById('charNewSkillSelect').value = '';
+  document.getElementById('charNewSkillText').value = '';
   document.getElementById('charNewTears').value = '';
   document.getElementById('charNewComment').value = '';
   await saveContent();
@@ -221,8 +229,16 @@ function renderCharTable() {
   let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>コメント</th>${showActions ? '<th style="width:120px;">操作</th>' : ''}</tr>`;
   rows.forEach((r, i) => {
     const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
+    // 直前の行と同じキャラ名なら、キャラ名セルは結合してスキップする
+    const sameAsPrev = i > 0 && rows[i - 1].charName === r.charName;
+    let charCellHtml = '';
+    if (!sameAsPrev) {
+      let span = 1;
+      while (i + span < rows.length && rows[i + span].charName === r.charName) span++;
+      charCellHtml = `<td class="c-char" rowspan="${span}">${escapeHtml(attrCharName(r.charName, r.attribute))}</td>`;
+    }
     html += `<tr class="${grpClass}" data-i="${i}">
-      <td class="c-char">${escapeHtml(attrCharName(r.charName, r.attribute))}</td>
+      ${charCellHtml}
       <td class="c-skill">${escapeHtml(r.skillName)}</td>
       <td class="c-copies">${r.recommendedCopies}凸</td>
       <td class="c-tears">${escapeHtml(r.tearsOfGoddess)}</td>
