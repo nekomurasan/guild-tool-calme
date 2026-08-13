@@ -46,6 +46,14 @@ async function sha256Hex(text) {
 const ATTRIBUTE_EMOJI = { '火': '🔥', '水': '💧', '風': '🍃', '光': '🌟', '闇': '🟣' };
 function attrCharName(name, attribute) { return `${ATTRIBUTE_EMOJI[attribute] || ''}${name || ''}`; }
 const PRIORITY_STARS = ['☆☆☆☆☆', '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'];
+// 優先度(0〜5)に応じて、はっきりした青(0)→金色(5)のグラデーション色を返す
+function priorityColor(n) {
+  const t = Math.max(0, Math.min(5, Number(n) || 0)) / 5;
+  const blue = [56, 170, 255];   // はっきりした青
+  const gold = [216, 179, 93];   // サイトの金色(--gold)
+  const rgb = blue.map((b, i) => Math.round(b + (gold[i] - b) * t));
+  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+}
 
 // Ace Characters Databaseと同じ汎用装備名データ(スロット別の選択肢に利用)
 const EQUIPMENT_DATA = {
@@ -270,10 +278,18 @@ document.getElementById('charAddBtn').addEventListener('click', async () => {
   document.getElementById('charNewSkillText').value = '';
   document.getElementById('charNewTears').value = '';
   document.getElementById('charNewPriority').value = '0';
+  updateNewPriorityColor();
   document.getElementById('charNewComment').value = '';
   await saveContent();
   renderCharTable();
 });
+function updateNewPriorityColor() {
+  const sel = document.getElementById('charNewPriority');
+  sel.style.color = priorityColor(Number(sel.value) || 0);
+  sel.style.fontWeight = '700';
+}
+document.getElementById('charNewPriority').addEventListener('change', updateNewPriorityColor);
+updateNewPriorityColor();
 
 let editingCharRowIndex = null;
 
@@ -314,13 +330,13 @@ function renderCharTable() {
       html += `<td class="c-skill"><input type="text" class="e-skill" value="${escapeHtml(r.skillName)}"></td>
         <td class="c-copies"><select class="e-copies">${[0,1,2,3,4,5].map(n => `<option value="${n}" ${n===r.recommendedCopies?'selected':''}>${n}凸</option>`).join('')}</select></td>
         <td class="c-tears"><input type="text" class="e-tears" value="${escapeHtml(r.tearsOfGoddess)}"></td>
-        <td class="c-priority"><select class="e-priority">${PRIORITY_STARS.map((s, n) => `<option value="${n}" ${n===(r.priority||0)?'selected':''}>${s}</option>`).join('')}</select></td>
+        <td class="c-priority"><select class="e-priority" style="color:${priorityColor(r.priority || 0)}; font-weight:700;">${PRIORITY_STARS.map((s, n) => `<option value="${n}" ${n===(r.priority||0)?'selected':''}>${s}</option>`).join('')}</select></td>
         <td class="c-comment"><input type="text" class="e-comment" value="${escapeHtml(r.comment)}"></td>`;
     } else {
       html += `<td class="c-skill">${escapeHtml(r.skillName)}</td>
         <td class="c-copies">${r.recommendedCopies}凸</td>
         <td class="c-tears">${escapeHtml(r.tearsOfGoddess)}</td>
-        <td class="c-priority">${PRIORITY_STARS[r.priority || 0]}</td>
+        <td class="c-priority" style="color:${priorityColor(r.priority || 0)}; font-weight:700;">${PRIORITY_STARS[r.priority || 0]}</td>
         <td class="c-comment">${escapeHtml(r.comment)}</td>`;
     }
     if (showActions) {
