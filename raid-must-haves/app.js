@@ -483,10 +483,14 @@ function renderGearLevels() {
   bindGearLevelActions();
 }
 
-// サブオプ列の表示用セルHTML(「厳選不要」の場合だけ文字色を変え、文字サイズも少し小さくする)
+// 改行を含む可能性がある表示用セルHTML(white-space:pre-wrapで改行をそのまま反映)
+function multilineCellHtml(value, extraClass, extraAttrs) {
+  return `<td class="multilineCell${extraClass ? ' ' + extraClass : ''}"${extraAttrs || ''}>${escapeHtml(value)}</td>`;
+}
+// サブオプ列の表示用セルHTML(「厳選不要」の場合だけ文字色を変え、文字サイズも少し小さくする。改行も反映)
 function suboptCellHtml(value) {
   const isKensenFuyou = value === '厳選不要';
-  return `<td class="suboptCell${isKensenFuyou ? ' kensenFuyou' : ''}">${escapeHtml(value)}</td>`;
+  return `<td class="suboptCell multilineCell${isKensenFuyou ? ' kensenFuyou' : ''}">${escapeHtml(value)}</td>`;
 }
 
 function gearTableHtml(lvl, showActions) {
@@ -509,18 +513,18 @@ function gearTableHtml(lvl, showActions) {
       if (r.targetChar) {
         while (i + span < lvl.rows.length && lvl.rows[i + span].targetChar === r.targetChar) span++;
       }
-      targetCharCellHtml = `<td rowspan="${span}">${escapeHtml(r.targetChar)}</td>`;
+      targetCharCellHtml = multilineCellHtml(r.targetChar, '', ` rowspan="${span}"`);
     }
     html += `<tr class="${grpClass}">
       ${targetCharCellHtml}<td>${escapeHtml(r.damageType)}</td>
-      <td>${escapeHtml(r.weapon.name)}</td><td>${escapeHtml(r.weapon.grade)}</td>${suboptCellHtml(r.weapon.subopt)}
-      <td>${escapeHtml(r.arm.name)}</td><td>${escapeHtml(r.arm.grade)}</td>${suboptCellHtml(r.arm.subopt)}
-      <td>${escapeHtml(r.accessory.name)}</td><td>${escapeHtml(r.accessory.grade)}</td>${suboptCellHtml(r.accessory.subopt)}`;
+      ${multilineCellHtml(r.weapon.name)}<td>${escapeHtml(r.weapon.grade)}</td>${suboptCellHtml(r.weapon.subopt)}
+      ${multilineCellHtml(r.arm.name)}<td>${escapeHtml(r.arm.grade)}</td>${suboptCellHtml(r.arm.subopt)}
+      ${multilineCellHtml(r.accessory.name)}<td>${escapeHtml(r.accessory.grade)}</td>${suboptCellHtml(r.accessory.subopt)}`;
     if (r.mergedEnabled) {
       html += `<td colspan="6" class="mergedCell">${escapeHtml(r.mergedComment)}</td>`;
     } else {
-      html += `<td>${escapeHtml(r.armor.name)}</td><td>${escapeHtml(r.armor.grade)}</td>${suboptCellHtml(r.armor.subopt)}
-        <td>${escapeHtml(r.head.name)}</td><td>${escapeHtml(r.head.grade)}</td>${suboptCellHtml(r.head.subopt)}`;
+      html += `${multilineCellHtml(r.armor.name)}<td>${escapeHtml(r.armor.grade)}</td>${suboptCellHtml(r.armor.subopt)}
+        ${multilineCellHtml(r.head.name)}<td>${escapeHtml(r.head.grade)}</td>${suboptCellHtml(r.head.subopt)}`;
     }
     if (showActions) {
       html += `<td>
@@ -546,13 +550,13 @@ function gearAddRowHtml(levelId) {
       ${slot.key === 'weapon' ? '<option value="専用武器">専用武器</option>' : ''}
       ${equipmentNamesForSlot(slot.label).map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}
     </select>
-    <input type="text" class="f-new${slot.key}Name" placeholder="${escapeHtml(slot.label)}(自由入力可)" style="max-width:130px; display:${editRow && editRow.mergedEnabled && (slot.key==='armor'||slot.key==='head') ? 'none' : ''};" value="${v(slot.key,'name')}">
+    <textarea class="f-new${slot.key}Name" rows="2" placeholder="${escapeHtml(slot.label)}(自由入力可・改行OK)" style="max-width:130px; display:${editRow && editRow.mergedEnabled && (slot.key==='armor'||slot.key==='head') ? 'none' : ''};">${v(slot.key,'name')}</textarea>
     <input type="text" class="f-new${slot.key}Grade" placeholder="${escapeHtml(slot.label)}等級" style="max-width:80px; display:${editRow && editRow.mergedEnabled && (slot.key==='armor'||slot.key==='head') ? 'none' : ''};" value="${v(slot.key,'grade')}">
-    <input type="text" class="f-new${slot.key}Subopt" placeholder="${escapeHtml(slot.label)}サブオプ" style="max-width:110px; display:${editRow && editRow.mergedEnabled && (slot.key==='armor'||slot.key==='head') ? 'none' : ''};" value="${v(slot.key,'subopt')}">
+    <textarea class="f-new${slot.key}Subopt" rows="2" placeholder="${escapeHtml(slot.label)}サブオプ(改行OK)" style="max-width:110px; display:${editRow && editRow.mergedEnabled && (slot.key==='armor'||slot.key==='head') ? 'none' : ''};">${v(slot.key,'subopt')}</textarea>
     ${slot.key === 'accessory' ? `<label class="checkLabel" style="display:flex; align-items:center; gap:4px;"><input type="checkbox" class="f-newMergedEnabled" ${editRow && editRow.mergedEnabled ? 'checked' : ''}> 鎧〜頭を結合</label>` : ''}
   `).join('');
   return `<div class="addRowBar" data-level="${levelId}">
-    <input type="text" class="f-newTargetChar" placeholder="想定キャラ" style="max-width:130px;" value="${editRow ? escapeHtml(editRow.targetChar) : ''}">
+    <textarea class="f-newTargetChar" rows="2" placeholder="想定キャラ(改行OK)" style="max-width:130px;">${editRow ? escapeHtml(editRow.targetChar) : ''}</textarea>
     <select class="f-newDamageType" style="max-width:90px;">
       <option value="" ${editRow && !editRow.damageType ? 'selected' : ''}>無選択</option>
       <option value="物理" ${editRow && editRow.damageType === '物理' ? 'selected' : ''}>物理</option>
