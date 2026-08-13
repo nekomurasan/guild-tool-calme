@@ -470,7 +470,7 @@ function renderGearLevels() {
         <button class="small" data-action="down-level" data-level="${lvl.id}" ${li === contentData.equipmentLevels.length - 1 ? 'disabled' : ''} title="下に移動">↓</button>
         <button class="small danger" data-action="del-level" data-level="${lvl.id}">レベルを削除</button>` : ''}
       </div>
-      <div class="table-wrap"><table class="gearTable" data-level="${lvl.id}">${gearTableHtml(lvl, showActions)}</table></div>
+      <div class="table-wrap gearTableWrap"><table class="gearTable" data-level="${lvl.id}">${gearTableHtml(lvl, showActions)}</table></div>
       ${showActions ? gearAddRowHtml(lvl.id) : ''}
       <div class="c-annotationBox annotationBox" data-level="${lvl.id}">${lvl.annotation || ''}</div>
       ${showActions ? `<div class="annotationEdit">
