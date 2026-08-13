@@ -461,11 +461,13 @@ function renderGearLevels() {
   const area = document.getElementById('gearLevelsArea');
   const showActions = isAdmin && editModeOn;
   if (!contentData.equipmentLevels.length) { area.innerHTML = '<div class="empty">まだレベルがありません。</div>'; return; }
-  area.innerHTML = contentData.equipmentLevels.map((lvl) => `
+  area.innerHTML = contentData.equipmentLevels.map((lvl, li) => `
     <div class="gearLevel" data-level="${lvl.id}">
       <div class="levelHead">
         <h3 class="c-levelLabel">${escapeHtml(lvl.label)}</h3>
         ${showActions ? `<button class="small" data-action="rename-level" data-level="${lvl.id}">名前変更</button>
+        <button class="small" data-action="up-level" data-level="${lvl.id}" ${li === 0 ? 'disabled' : ''} title="上に移動">↑</button>
+        <button class="small" data-action="down-level" data-level="${lvl.id}" ${li === contentData.equipmentLevels.length - 1 ? 'disabled' : ''} title="下に移動">↓</button>
         <button class="small danger" data-action="del-level" data-level="${lvl.id}">レベルを削除</button>` : ''}
       </div>
       <div class="table-wrap"><table class="gearTable" data-level="${lvl.id}">${gearTableHtml(lvl, showActions)}</table></div>
@@ -492,8 +494,18 @@ function gearTableHtml(lvl, showActions) {
   </tr>`;
   lvl.rows.forEach((r, i) => {
     const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
+    // 想定キャラが連続していて空でなければセル結合する
+    const sameAsPrev = r.targetChar && i > 0 && lvl.rows[i - 1].targetChar === r.targetChar;
+    let targetCharCellHtml = '';
+    if (!sameAsPrev) {
+      let span = 1;
+      if (r.targetChar) {
+        while (i + span < lvl.rows.length && lvl.rows[i + span].targetChar === r.targetChar) span++;
+      }
+      targetCharCellHtml = `<td rowspan="${span}">${escapeHtml(r.targetChar)}</td>`;
+    }
     html += `<tr class="${grpClass}">
-      <td>${escapeHtml(r.targetChar)}</td><td>${escapeHtml(r.damageType)}</td>
+      ${targetCharCellHtml}<td>${escapeHtml(r.damageType)}</td>
       <td>${escapeHtml(r.weapon.name)}</td><td>${escapeHtml(r.weapon.grade)}</td><td>${escapeHtml(r.weapon.subopt)}</td>
       <td>${escapeHtml(r.arm.name)}</td><td>${escapeHtml(r.arm.grade)}</td><td>${escapeHtml(r.arm.subopt)}</td>
       <td>${escapeHtml(r.accessory.name)}</td><td>${escapeHtml(r.accessory.grade)}</td><td>${escapeHtml(r.accessory.subopt)}</td>`;
@@ -519,6 +531,7 @@ function gearAddRowHtml(levelId) {
   const slotFieldsHtml = GEAR_SLOTS.map(slot => `
     <select class="f-new${slot.key}NameSelect" style="max-width:110px;">
       <option value="">${escapeHtml(slot.label)}名を選択(参考用)</option>
+      ${slot.key === 'weapon' ? '<option value="専用武器">専用武器</option>' : ''}
       ${equipmentNamesForSlot(slot.label).map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}
     </select>
     <input type="text" class="f-new${slot.key}Name" placeholder="${escapeHtml(slot.label)}(自由入力可)" style="max-width:130px;">
@@ -528,7 +541,7 @@ function gearAddRowHtml(levelId) {
   `).join('');
   return `<div class="addRowBar" data-level="${levelId}">
     <input type="text" class="f-newTargetChar" placeholder="想定キャラ" style="max-width:130px;">
-    <select class="f-newDamageType" style="max-width:90px;"><option value="物理">物理</option><option value="魔法">魔法</option></select>
+    <select class="f-newDamageType" style="max-width:90px;"><option value="">無選択</option><option value="物理">物理</option><option value="魔法">魔法</option></select>
     ${slotFieldsHtml}
     <input type="text" class="f-newMergedComment" placeholder="結合コメント(結合時のみ使用)" style="max-width:200px; display:none;">
     <button class="small" data-action="add-row" data-level="${levelId}">+ 行を追加</button>
@@ -623,6 +636,20 @@ function bindGearLevelActions() {
   area.querySelectorAll('[data-action="del-level"]').forEach(btn => btn.addEventListener('click', async () => {
     if (!confirm('このレベルを削除しますか?(中の行も全て削除されます)')) return;
     contentData.equipmentLevels = contentData.equipmentLevels.filter(l => l.id !== btn.dataset.level);
+    await saveContent(); renderGearLevels();
+  }));
+  area.querySelectorAll('[data-action="up-level"]').forEach(btn => btn.addEventListener('click', async () => {
+    const levels = contentData.equipmentLevels;
+    const i = levels.findIndex(l => l.id === btn.dataset.level);
+    if (i <= 0) return;
+    [levels[i - 1], levels[i]] = [levels[i], levels[i - 1]];
+    await saveContent(); renderGearLevels();
+  }));
+  area.querySelectorAll('[data-action="down-level"]').forEach(btn => btn.addEventListener('click', async () => {
+    const levels = contentData.equipmentLevels;
+    const i = levels.findIndex(l => l.id === btn.dataset.level);
+    if (i === -1 || i >= levels.length - 1) return;
+    [levels[i + 1], levels[i]] = [levels[i], levels[i + 1]];
     await saveContent(); renderGearLevels();
   }));
   area.querySelectorAll('[data-action="save-annotation"]').forEach(btn => btn.addEventListener('click', async () => {
