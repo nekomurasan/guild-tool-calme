@@ -121,6 +121,8 @@ table.gearTable th:first-child, table.gearTable td:first-child {
   position: sticky; left: 0; z-index: 2;
 }
 table.gearTable th:first-child { z-index: 3; }
+.suboptCell { font-size: 11px; }
+.suboptCell.kensenFuyou { color: #4478ab; font-weight: 600; }
 
 .status { font-size: 13px; margin-top: 6px; }
 .status.ok { color: #8fd3a5; }

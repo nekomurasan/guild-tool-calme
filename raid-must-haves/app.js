@@ -482,6 +482,12 @@ function renderGearLevels() {
   bindGearLevelActions();
 }
 
+// サブオプ列の表示用セルHTML(「厳選不要」の場合だけ文字色を変え、文字サイズも少し小さくする)
+function suboptCellHtml(value) {
+  const isKensenFuyou = value === '厳選不要';
+  return `<td class="suboptCell${isKensenFuyou ? ' kensenFuyou' : ''}">${escapeHtml(value)}</td>`;
+}
+
 function gearTableHtml(lvl, showActions) {
   let html = `<tr>
     <th>想定キャラ</th><th>物理/魔法</th>
@@ -506,14 +512,14 @@ function gearTableHtml(lvl, showActions) {
     }
     html += `<tr class="${grpClass}">
       ${targetCharCellHtml}<td>${escapeHtml(r.damageType)}</td>
-      <td>${escapeHtml(r.weapon.name)}</td><td>${escapeHtml(r.weapon.grade)}</td><td>${escapeHtml(r.weapon.subopt)}</td>
-      <td>${escapeHtml(r.arm.name)}</td><td>${escapeHtml(r.arm.grade)}</td><td>${escapeHtml(r.arm.subopt)}</td>
-      <td>${escapeHtml(r.accessory.name)}</td><td>${escapeHtml(r.accessory.grade)}</td><td>${escapeHtml(r.accessory.subopt)}</td>`;
+      <td>${escapeHtml(r.weapon.name)}</td><td>${escapeHtml(r.weapon.grade)}</td>${suboptCellHtml(r.weapon.subopt)}
+      <td>${escapeHtml(r.arm.name)}</td><td>${escapeHtml(r.arm.grade)}</td>${suboptCellHtml(r.arm.subopt)}
+      <td>${escapeHtml(r.accessory.name)}</td><td>${escapeHtml(r.accessory.grade)}</td>${suboptCellHtml(r.accessory.subopt)}`;
     if (r.mergedEnabled) {
       html += `<td colspan="6" class="mergedCell">${escapeHtml(r.mergedComment)}</td>`;
     } else {
-      html += `<td>${escapeHtml(r.armor.name)}</td><td>${escapeHtml(r.armor.grade)}</td><td>${escapeHtml(r.armor.subopt)}</td>
-        <td>${escapeHtml(r.head.name)}</td><td>${escapeHtml(r.head.grade)}</td><td>${escapeHtml(r.head.subopt)}</td>`;
+      html += `<td>${escapeHtml(r.armor.name)}</td><td>${escapeHtml(r.armor.grade)}</td>${suboptCellHtml(r.armor.subopt)}
+        <td>${escapeHtml(r.head.name)}</td><td>${escapeHtml(r.head.grade)}</td>${suboptCellHtml(r.head.subopt)}`;
     }
     if (showActions) {
       html += `<td>
