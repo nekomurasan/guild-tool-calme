@@ -46,16 +46,10 @@ async function sha256Hex(text) {
 const ATTRIBUTE_EMOJI = { '火': '🔥', '水': '💧', '風': '🍃', '光': '🌟', '闇': '🟣' };
 function attrCharName(name, attribute) { return `${ATTRIBUTE_EMOJI[attribute] || ''}${name || ''}`; }
 const PRIORITY_STARS = ['☆☆☆☆☆', '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'];
-// 優先度(0〜5)に応じて、はっきりした青(0)→金色(5)のグラデーション色を返す
-// (RGBのまま混ぜると中間色がくすむため、色相(Hue)を直接補間して鮮やかさを保つ)
+// 優先度(0〜5)ごとの固定カラーパレット(青系→黄金系のグラデーション)
+const PRIORITY_COLORS = ['#29E7FF', '#29F0DC', '#4DF0B5', '#ACFF96', '#F9FF84', '#FFF079'];
 function priorityColor(n) {
-  const t = Math.max(0, Math.min(5, Number(n) || 0)) / 5;
-  const hueStart = 208; // 鮮やかな青
-  const hueEnd = 42;    // 金色
-  const hue = hueStart + (hueEnd - hueStart) * t;
-  const sat = 92;       // 常に高彩度を維持
-  const light = 58;
-  return `hsl(${hue.toFixed(0)}, ${sat}%, ${light}%)`;
+  return PRIORITY_COLORS[Math.max(0, Math.min(5, Number(n) || 0))];
 }
 
 // Ace Characters Databaseと同じ汎用装備名データ(スロット別の選択肢に利用)
