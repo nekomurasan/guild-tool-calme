@@ -447,7 +447,7 @@ function moveCharGroup(headIndex, direction) {
 // Priority Gear Sets
 // ==================================================================
 function blankGearRow() {
-  return { id: uid(), part: '', name: '', grade: '', subopt: '', comment: '' };
+  return { id: uid(), part: '', name: '', quality: '伝説', grade: '', subopt: '', comment: '' };
 }
 
 function renderGearLevels() {
@@ -482,7 +482,7 @@ function multilineCellHtml(value, extraClass, extraAttrs) {
 
 function gearTableHtml(lvl, showActions) {
   let html = `<tr>
-    <th>装備部位</th><th>装備名</th><th>等級</th><th>サブオプション</th><th>コメント</th>
+    <th>装備部位</th><th>装備名</th><th>品質</th><th>等級</th><th>サブオプション</th><th>コメント</th>
     ${showActions ? '<th style="width:110px;">操作</th>' : ''}
   </tr>`;
   lvl.rows.forEach((r, i) => {
@@ -491,6 +491,7 @@ function gearTableHtml(lvl, showActions) {
     html += `<tr class="${grpClass}">
       ${multilineCellHtml(r.part)}
       ${multilineCellHtml(r.name)}
+      ${multilineCellHtml(r.quality)}
       ${multilineCellHtml(r.grade)}
       <td class="multilineCell suboptCell${isKensenFuyou ? ' kensenFuyou' : ''}">${escapeHtml(r.subopt)}</td>
       ${multilineCellHtml(r.comment)}`;
@@ -512,6 +513,7 @@ function gearAddRowHtml(levelId) {
   const lvl = contentData.equipmentLevels.find(l => l.id === levelId);
   const editRow = isEditingThisLevel ? lvl.rows.find(r => r.id === editingGearRow.rowId) : null;
   const v = (field) => editRow ? escapeHtml(editRow[field] || '') : '';
+  const qualityValue = editRow ? escapeHtml(editRow.quality || '伝説') : '伝説';
   return `<div class="addRowBar" data-level="${levelId}">
     <textarea class="f-newPart" rows="2" placeholder="装備部位(改行OK。装備名選択で自動入力)" style="max-width:110px;">${v('part')}</textarea>
     <select class="f-newNameSelect" style="max-width:150px;">
@@ -520,6 +522,7 @@ function gearAddRowHtml(levelId) {
       ${equipmentNameOptionsHtml()}
     </select>
     <textarea class="f-newName" rows="2" placeholder="装備名(自由入力可・改行OK)" style="max-width:150px;">${v('name')}</textarea>
+    <input type="text" class="f-newQuality" placeholder="品質" style="max-width:90px;" value="${qualityValue}">
     <textarea class="f-newGrade" rows="2" placeholder="等級(改行OK)" style="max-width:100px;">${v('grade')}</textarea>
     <textarea class="f-newSubopt" rows="2" placeholder="サブオプション(改行OK)" style="max-width:150px;">${v('subopt')}</textarea>
     <textarea class="f-newComment" rows="2" placeholder="コメント(改行OK)" style="max-width:200px;">${v('comment')}</textarea>
@@ -553,6 +556,7 @@ function bindGearLevelActions() {
     if (!row) return;
     row.part = bar.querySelector('.f-newPart').value.trim();
     row.name = bar.querySelector('.f-newName').value.trim();
+    row.quality = bar.querySelector('.f-newQuality').value.trim();
     row.grade = bar.querySelector('.f-newGrade').value.trim();
     row.subopt = bar.querySelector('.f-newSubopt').value.trim();
     row.comment = bar.querySelector('.f-newComment').value.trim();
