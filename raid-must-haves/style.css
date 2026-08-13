@@ -105,10 +105,11 @@ tr.grp-b td { background: var(--bg-sub); }
 .mergedCell { background: var(--bg-card-alt); font-size: 12px; white-space: pre-wrap; }
 .charGroupMove { margin-top: 6px; display: flex; gap: 4px; }
 .charGroupMove button { padding: 2px 6px; font-size: 11px; margin-left: 0; }
+.charPriorityDisplay { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.charPriorityEdit { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; max-width: 140px; }
 #charTable th:nth-child(2), #charTable td.c-skill { max-width: 12ch; word-break: break-word; }
 #charTable th:nth-child(3), #charTable td.c-copies { width: 60px; white-space: nowrap; }
-#charTable th:nth-child(5), #charTable td.c-priority { width: 90px; white-space: nowrap; }
-#charTable th:nth-child(6), #charTable td.c-comment { width: auto; min-width: 220px; }
+#charTable th:nth-child(5), #charTable td.c-comment { width: auto; min-width: 220px; }
 #charTableWrap { max-height: 60vh; overflow-y: auto; }
 #charTableWrap table { border-collapse: separate; border-spacing: 0; }
 #charTableWrap th { position: sticky; top: 0; z-index: 2; border-bottom: 2px solid var(--gold); }

@@ -264,38 +264,32 @@ document.getElementById('charAddBtn').addEventListener('click', async () => {
   const c = damageCalcCharsCache.find(x => x.id === charId);
   const skillName = document.getElementById('charNewSkillText').value.trim();
   if (!c || !skillName) { alert('キャラを選択し、コス名を入力してください。'); return; }
+  // 同じキャラが既に登録されていれば、その優先度を引き継ぐ(優先度はキャラ単位のため)
+  const existing = contentData.characters.find(x => x.charName === c.name);
   contentData.characters.push({
     id: uid(), charId, charName: c.name, attribute: c.attribute, skillName,
     recommendedCopies: Number(document.getElementById('charNewCopies').value) || 0,
     tearsOfGoddess: document.getElementById('charNewTears').value.trim(),
-    priority: Number(document.getElementById('charNewPriority').value) || 0,
+    priority: existing ? (existing.priority || 0) : 0,
     comment: document.getElementById('charNewComment').value.trim()
   });
   document.getElementById('charNewSkillSelect').value = '';
   document.getElementById('charNewSkillText').value = '';
   document.getElementById('charNewTears').value = '';
-  document.getElementById('charNewPriority').value = '0';
-  updateNewPriorityColor();
   document.getElementById('charNewComment').value = '';
   await saveContent();
   renderCharTable();
 });
-function updateNewPriorityColor() {
-  const sel = document.getElementById('charNewPriority');
-  sel.style.color = priorityColor(Number(sel.value) || 0);
-  sel.style.fontWeight = '700';
-}
-document.getElementById('charNewPriority').addEventListener('change', updateNewPriorityColor);
-updateNewPriorityColor();
 
 let editingCharRowIndex = null;
+let editingPriorityGroupIndex = null; // 星評価を編集中のグループの先頭行インデックス
 
 function renderCharTable() {
   const table = document.getElementById('charTable');
   const rows = contentData.characters || [];
   const showActions = isAdmin && editModeOn;
   if (!rows.length) { table.innerHTML = '<tr><td class="empty">まだ登録がありません。</td></tr>'; return; }
-  let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>凸優先度</th><th>コメント</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
+  let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>コメント</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
   let groupIndex = -1;
   rows.forEach((r, i) => {
     // 同じキャラ名が続く間は同じグループとみなし、グループ単位で背景色を交互にする(結合セルとの見た目のズレを防ぐため)
@@ -319,7 +313,17 @@ function renderCharTable() {
           <button class="small" data-action="up-chargroup" data-i="${i}" ${isFirstGroup ? 'disabled' : ''} title="キャラ単位で上に移動">キャラ↑</button>
           <button class="small" data-action="down-chargroup" data-i="${i}" ${isLastGroup ? 'disabled' : ''} title="キャラ単位で下に移動">キャラ↓</button>
         </div>` : '';
-      charCellHtml = `<td class="c-char" rowspan="${span}">${escapeHtml(attrCharName(r.charName, r.attribute))}${moveBtns}</td>`;
+      const isEditingPriority = editingPriorityGroupIndex === i;
+      let priorityHtml;
+      if (isEditingPriority) {
+        priorityHtml = `<div class="charPriorityEdit">
+          <select class="e-groupPriority" style="color:${priorityColor(r.priority || 0)}; font-weight:700;">${PRIORITY_STARS.map((s, n) => `<option value="${n}" ${n===(r.priority||0)?'selected':''}>${s}</option>`).join('')}</select>
+          <button class="small primary" data-action="save-priority" data-i="${i}">保存</button>
+        </div>`;
+      } else {
+        priorityHtml = `<div class="charPriorityDisplay" style="color:${priorityColor(r.priority || 0)};">${PRIORITY_STARS[r.priority || 0]}${(showActions && !mergeDisabled) ? ` <button class="small" data-action="edit-priority" data-i="${i}" title="星評価を変更">★変更</button>` : ''}</div>`;
+      }
+      charCellHtml = `<td class="c-char" rowspan="${span}">${priorityHtml}${escapeHtml(attrCharName(r.charName, r.attribute))}${moveBtns}</td>`;
     }
     html += `<tr class="${grpClass}" data-i="${i}">
       ${charCellHtml}`;
@@ -327,13 +331,11 @@ function renderCharTable() {
       html += `<td class="c-skill"><input type="text" class="e-skill" value="${escapeHtml(r.skillName)}"></td>
         <td class="c-copies"><select class="e-copies">${[0,1,2,3,4,5].map(n => `<option value="${n}" ${n===r.recommendedCopies?'selected':''}>${n}凸</option>`).join('')}</select></td>
         <td class="c-tears"><input type="text" class="e-tears" value="${escapeHtml(r.tearsOfGoddess)}"></td>
-        <td class="c-priority"><select class="e-priority" style="color:${priorityColor(r.priority || 0)}; font-weight:700;">${PRIORITY_STARS.map((s, n) => `<option value="${n}" ${n===(r.priority||0)?'selected':''}>${s}</option>`).join('')}</select></td>
         <td class="c-comment"><input type="text" class="e-comment" value="${escapeHtml(r.comment)}"></td>`;
     } else {
       html += `<td class="c-skill">${escapeHtml(r.skillName)}</td>
         <td class="c-copies">${r.recommendedCopies}凸</td>
         <td class="c-tears">${escapeHtml(r.tearsOfGoddess)}</td>
-        <td class="c-priority" style="color:${priorityColor(r.priority || 0)}; font-weight:700;">${PRIORITY_STARS[r.priority || 0]}</td>
         <td class="c-comment">${escapeHtml(r.comment)}</td>`;
     }
     if (showActions) {
@@ -374,9 +376,23 @@ function renderCharTable() {
     r.skillName = tr.querySelector('.e-skill').value.trim();
     r.recommendedCopies = Number(tr.querySelector('.e-copies').value) || 0;
     r.tearsOfGoddess = tr.querySelector('.e-tears').value.trim();
-    r.priority = Number(tr.querySelector('.e-priority').value) || 0;
     r.comment = tr.querySelector('.e-comment').value.trim();
     editingCharRowIndex = null;
+    await saveContent();
+    renderCharTable();
+  }));
+  table.querySelectorAll('[data-action="edit-priority"]').forEach(btn => btn.addEventListener('click', () => {
+    editingPriorityGroupIndex = Number(btn.dataset.i);
+    renderCharTable();
+  }));
+  table.querySelectorAll('[data-action="save-priority"]').forEach(btn => btn.addEventListener('click', async () => {
+    const i = Number(btn.dataset.i);
+    const tr = table.querySelector(`tr[data-i="${i}"]`);
+    const newPriority = Number(tr.querySelector('.e-groupPriority').value) || 0;
+    const charName = contentData.characters[i].charName;
+    // 優先度はキャラ単位のため、同じキャラ名の行すべてに同じ値を反映する
+    contentData.characters.forEach(r => { if (r.charName === charName) r.priority = newPriority; });
+    editingPriorityGroupIndex = null;
     await saveContent();
     renderCharTable();
   }));
