@@ -118,6 +118,7 @@ tr.grp-b td { background: var(--bg-sub); }
    想定キャラのセル結合(rowspan)と左端固定(sticky)は相性が悪く表示が崩れるため、結合を優先し左端固定は行わない */
 .gearTableWrap { overflow-x: auto; overflow-y: visible; }
 .gearTableWrap table.gearTable { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; }
+table.gearTable td, table.gearTable th { text-align: center; }
 .suboptCell { font-size: 11px; }
 .suboptCell.kensenFuyou { color: #4478ab; font-weight: 600; }
 
