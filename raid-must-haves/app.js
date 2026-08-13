@@ -45,7 +45,48 @@ async function sha256Hex(text) {
 }
 const ATTRIBUTE_EMOJI = { '火': '🔥', '水': '💧', '風': '🍃', '光': '🌟', '闇': '🟣' };
 function attrCharName(name, attribute) { return `${ATTRIBUTE_EMOJI[attribute] || ''}${name || ''}`; }
-const PRIORITY_STARS = ['☆☆☆☆', '★☆☆☆', '★★☆☆', '★★★☆', '★★★★'];
+const PRIORITY_STARS = ['☆☆☆☆☆', '★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'];
+
+// Ace Characters Databaseと同じ汎用装備名データ(スロット別の選択肢に利用)
+const EQUIPMENT_DATA = {
+  "邪龍の魔剣": { slot: "武器", rank: "UR4", abilities: [{ name: "攻撃力", value: "37" }, { name: "クリダメ", value: "50%" }] },
+  "雷槌": { slot: "武器", rank: "UR4", abilities: [{ name: "攻撃力", value: "37" }, { name: "攻撃力%", value: "25%" }] },
+  "必中の投槍": { slot: "武器", rank: "UR4", abilities: [{ name: "攻撃力", value: "37" }, { name: "攻撃力", value: "37" }] },
+  "旅神の友": { slot: "武器", rank: "UR4", abilities: [{ name: "魔法力", value: "37" }, { name: "クリダメ", value: "50%" }] },
+  "破壊者の目": { slot: "武器", rank: "UR4", abilities: [{ name: "魔法力", value: "37" }, { name: "魔法力%", value: "25%" }] },
+  "魔王の禁書": { slot: "武器", rank: "UR4", abilities: [{ name: "魔法力", value: "37" }, { name: "魔法力", value: "37" }] },
+  "不屈の鎧": { slot: "鎧", rank: "UR4", abilities: [{ name: "防御力%", value: "9%" }, { name: "防御力%", value: "9%" }] },
+  "海神の鱗": { slot: "鎧", rank: "UR4", abilities: [{ name: "防御力%", value: "9%" }, { name: "HP実数", value: "270" }] },
+  "不死の黄甲": { slot: "鎧", rank: "UR4", abilities: [{ name: "防御力%", value: "9%" }, { name: "HP%", value: "30%" }] },
+  "魔手の加護": { slot: "鎧", rank: "UR4", abilities: [{ name: "魔法抵抗", value: "9%" }, { name: "魔法抵抗", value: "9%" }] },
+  "死神の寿衣": { slot: "鎧", rank: "UR4", abilities: [{ name: "魔法抵抗", value: "9%" }, { name: "HP実数", value: "270" }] },
+  "業火のローブ": { slot: "鎧", rank: "UR4", abilities: [{ name: "魔法抵抗", value: "9%" }, { name: "HP%", value: "30%" }] },
+  "殺戮の兜": { slot: "頭", rank: "UR4", abilities: [{ name: "防御力%", value: "9%" }, { name: "防御力%", value: "9%" }] },
+  "不敗の栄光": { slot: "頭", rank: "UR4", abilities: [{ name: "防御力%", value: "9%" }, { name: "HP実数", value: "270" }] },
+  "死の兜": { slot: "頭", rank: "UR4", abilities: [{ name: "防御力%", value: "9%" }, { name: "HP%", value: "30%" }] },
+  "知恵の光輝": { slot: "頭", rank: "UR4", abilities: [{ name: "魔法抵抗", value: "9%" }, { name: "魔法抵抗", value: "9%" }] },
+  "太陽の威光": { slot: "頭", rank: "UR4", abilities: [{ name: "魔法抵抗", value: "9%" }, { name: "HP実数", value: "270" }] },
+  "銀河の王冠": { slot: "頭", rank: "UR4", abilities: [{ name: "魔法抵抗", value: "9%" }, { name: "HP%", value: "30%" }] },
+  "毒蛇の手": { slot: "装飾", rank: "UR4", abilities: [{ name: "クリダメ", value: "50%" }, { name: "クリダメ", value: "50%" }] },
+  "湖の指輪": { slot: "装飾", rank: "UR4", abilities: [{ name: "クリダメ", value: "50%" }, { name: "HP実数", value: "270" }] },
+  "魅惑のまなざし": { slot: "装飾", rank: "UR4", abilities: [{ name: "クリダメ", value: "50%" }, { name: "HP%", value: "30%" }] },
+  "火鉢のぬくもり": { slot: "装飾", rank: "UR4", abilities: [{ name: "クリ率", value: "8.33%" }, { name: "クリ率", value: "8.33%" }] },
+  "美学の極み": { slot: "装飾", rank: "UR4", abilities: [{ name: "クリ率", value: "8.33%" }, { name: "HP実数", value: "270" }] },
+  "調和の約束": { slot: "装飾", rank: "UR4", abilities: [{ name: "クリ率", value: "8.33%" }, { name: "HP%", value: "30%" }] },
+  "反逆の決意": { slot: "腕", rank: "UR4", abilities: [{ name: "攻撃力%", value: "25%" }, { name: "クリ率", value: "8.33%" }] },
+  "神王の銀腕": { slot: "腕", rank: "UR4", abilities: [{ name: "攻撃力%", value: "25%" }, { name: "攻撃力%", value: "25%" }] },
+  "主神の威厳": { slot: "腕", rank: "UR4", abilities: [{ name: "攻撃力%", value: "25%" }, { name: "攻撃力", value: "37" }] },
+  "怒りの輪": { slot: "腕", rank: "UR4", abilities: [{ name: "魔法力%", value: "25%" }, { name: "クリ率", value: "8.33%" }] },
+  "裏切りの束縛": { slot: "腕", rank: "UR4", abilities: [{ name: "魔法力%", value: "25%" }, { name: "魔法力%", value: "25%" }] },
+  "守護の龍鱗": { slot: "腕", rank: "UR4", abilities: [{ name: "魔法力%", value: "25%" }, { name: "魔法力", value: "37" }] }
+};
+const GEAR_SLOTS = [
+  { key: 'weapon', label: '武器' }, { key: 'arm', label: '腕' }, { key: 'accessory', label: '装飾' },
+  { key: 'armor', label: '鎧' }, { key: 'head', label: '頭' }
+];
+function equipmentNamesForSlot(slotLabel) {
+  return Object.keys(EQUIPMENT_DATA).filter(name => EQUIPMENT_DATA[name].slot === slotLabel);
+}
 
 // ---------- アクセス(2経路) ----------
 function showMainContent() {
@@ -241,9 +282,12 @@ function renderCharTable() {
   const rows = contentData.characters || [];
   const showActions = isAdmin && editModeOn;
   if (!rows.length) { table.innerHTML = '<tr><td class="empty">まだ登録がありません。</td></tr>'; return; }
-  let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>優先度</th><th>コメント</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
+  let html = `<tr><th>キャラ名</th><th>コス名</th><th>推奨凸数</th><th>女神の涙</th><th>凸優先度</th><th>コメント</th>${showActions ? '<th style="width:150px;">操作</th>' : ''}</tr>`;
+  let groupIndex = -1;
   rows.forEach((r, i) => {
-    const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
+    // 同じキャラ名が続く間は同じグループとみなし、グループ単位で背景色を交互にする(結合セルとの見た目のズレを防ぐため)
+    if (i === 0 || rows[i - 1].charName !== r.charName) groupIndex++;
+    const grpClass = groupIndex % 2 === 0 ? 'grp-a' : 'grp-b';
     const isEditing = editingCharRowIndex === i;
     // 編集中の行がある間は、テーブル全体のセル結合を一時的に解除する(結合セルの中身は編集できないため)
     const mergeDisabled = editingCharRowIndex != null;
@@ -339,8 +383,8 @@ function renderCharTable() {
 function blankGearRow() {
   return {
     id: uid(), targetChar: '', damageType: '物理',
-    weapon: { grade: '', subopt: '' }, arm: { grade: '', subopt: '' },
-    accessory: { grade: '', subopt: '' }, armor: { grade: '', subopt: '' }, head: { grade: '', subopt: '' },
+    weapon: { name: '', grade: '', subopt: '' }, arm: { name: '', grade: '', subopt: '' },
+    accessory: { name: '', grade: '', subopt: '' }, armor: { name: '', grade: '', subopt: '' }, head: { name: '', grade: '', subopt: '' },
     mergedEnabled: false, mergedComment: ''
   };
 }
@@ -371,25 +415,25 @@ function renderGearLevels() {
 function gearTableHtml(lvl, showActions) {
   let html = `<tr>
     <th>想定キャラ</th><th>物理/魔法</th>
-    <th>武器等級</th><th>武器サブオプ</th>
-    <th>腕等級</th><th>腕サブオプ</th>
-    <th>装飾等級</th><th>装飾サブオプ</th>
-    <th>鎧等級</th><th>鎧サブオプ</th>
-    <th>頭等級</th><th>頭サブオプ</th>
+    <th>武器</th><th>等級</th><th>サブオプ</th>
+    <th>腕</th><th>等級</th><th>サブオプ</th>
+    <th>装飾</th><th>等級</th><th>サブオプ</th>
+    <th>鎧</th><th>等級</th><th>サブオプ</th>
+    <th>頭</th><th>等級</th><th>サブオプ</th>
     ${showActions ? '<th style="width:110px;">操作</th>' : ''}
   </tr>`;
   lvl.rows.forEach((r, i) => {
     const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
     html += `<tr class="${grpClass}">
       <td>${escapeHtml(r.targetChar)}</td><td>${escapeHtml(r.damageType)}</td>
-      <td>${escapeHtml(r.weapon.grade)}</td><td>${escapeHtml(r.weapon.subopt)}</td>
-      <td>${escapeHtml(r.arm.grade)}</td><td>${escapeHtml(r.arm.subopt)}</td>
-      <td>${escapeHtml(r.accessory.grade)}</td><td>${escapeHtml(r.accessory.subopt)}</td>`;
+      <td>${escapeHtml(r.weapon.name)}</td><td>${escapeHtml(r.weapon.grade)}</td><td>${escapeHtml(r.weapon.subopt)}</td>
+      <td>${escapeHtml(r.arm.name)}</td><td>${escapeHtml(r.arm.grade)}</td><td>${escapeHtml(r.arm.subopt)}</td>
+      <td>${escapeHtml(r.accessory.name)}</td><td>${escapeHtml(r.accessory.grade)}</td><td>${escapeHtml(r.accessory.subopt)}</td>`;
     if (r.mergedEnabled) {
-      html += `<td colspan="4" class="mergedCell">${escapeHtml(r.mergedComment)}</td>`;
+      html += `<td colspan="6" class="mergedCell">${escapeHtml(r.mergedComment)}</td>`;
     } else {
-      html += `<td>${escapeHtml(r.armor.grade)}</td><td>${escapeHtml(r.armor.subopt)}</td>
-        <td>${escapeHtml(r.head.grade)}</td><td>${escapeHtml(r.head.subopt)}</td>`;
+      html += `<td>${escapeHtml(r.armor.name)}</td><td>${escapeHtml(r.armor.grade)}</td><td>${escapeHtml(r.armor.subopt)}</td>
+        <td>${escapeHtml(r.head.name)}</td><td>${escapeHtml(r.head.grade)}</td><td>${escapeHtml(r.head.subopt)}</td>`;
     }
     if (showActions) {
       html += `<td>
@@ -404,20 +448,20 @@ function gearTableHtml(lvl, showActions) {
 }
 
 function gearAddRowHtml(levelId) {
+  const slotFieldsHtml = GEAR_SLOTS.map(slot => `
+    <select class="f-new${slot.key}NameSelect" style="max-width:110px;">
+      <option value="">${escapeHtml(slot.label)}名を選択(参考用)</option>
+      ${equipmentNamesForSlot(slot.label).map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}
+    </select>
+    <input type="text" class="f-new${slot.key}Name" placeholder="${escapeHtml(slot.label)}(自由入力可)" style="max-width:130px;">
+    <input type="text" class="f-new${slot.key}Grade" placeholder="${escapeHtml(slot.label)}等級" style="max-width:80px;">
+    <input type="text" class="f-new${slot.key}Subopt" placeholder="${escapeHtml(slot.label)}サブオプ" style="max-width:110px;">
+    ${slot.key === 'accessory' ? `<label class="checkLabel" style="display:flex; align-items:center; gap:4px;"><input type="checkbox" class="f-newMergedEnabled"> 鎧〜頭を結合</label>` : ''}
+  `).join('');
   return `<div class="addRowBar" data-level="${levelId}">
     <input type="text" class="f-newTargetChar" placeholder="想定キャラ" style="max-width:130px;">
     <select class="f-newDamageType" style="max-width:90px;"><option value="物理">物理</option><option value="魔法">魔法</option></select>
-    <input type="text" class="f-newWeaponGrade" placeholder="武器等級" style="max-width:90px;">
-    <input type="text" class="f-newWeaponSubopt" placeholder="武器サブオプ" style="max-width:120px;">
-    <input type="text" class="f-newArmGrade" placeholder="腕等級" style="max-width:90px;">
-    <input type="text" class="f-newArmSubopt" placeholder="腕サブオプ" style="max-width:120px;">
-    <input type="text" class="f-newAccessoryGrade" placeholder="装飾等級" style="max-width:90px;">
-    <input type="text" class="f-newAccessorySubopt" placeholder="装飾サブオプ" style="max-width:120px;">
-    <label class="checkLabel" style="display:flex; align-items:center; gap:4px;"><input type="checkbox" class="f-newMergedEnabled"> 鎧〜頭を結合</label>
-    <input type="text" class="f-newArmorGrade" placeholder="鎧等級" style="max-width:90px;">
-    <input type="text" class="f-newArmorSubopt" placeholder="鎧サブオプ" style="max-width:120px;">
-    <input type="text" class="f-newHeadGrade" placeholder="頭等級" style="max-width:90px;">
-    <input type="text" class="f-newHeadSubopt" placeholder="頭サブオプ" style="max-width:120px;">
+    ${slotFieldsHtml}
     <input type="text" class="f-newMergedComment" placeholder="結合コメント(結合時のみ使用)" style="max-width:200px; display:none;">
     <button class="small" data-action="add-row" data-level="${levelId}">+ 行を追加</button>
   </div>`;
@@ -426,15 +470,24 @@ function gearAddRowHtml(levelId) {
 function bindGearLevelActions() {
   const area = document.getElementById('gearLevelsArea');
 
-  // 結合チェックボックスで、通常項目/結合コメント欄を切り替える
+  // 装備名を選択すると、対応する自由入力欄に自動で入力する
   area.querySelectorAll('.addRowBar').forEach(bar => {
+    GEAR_SLOTS.forEach(slot => {
+      const sel = bar.querySelector(`.f-new${slot.key}NameSelect`);
+      const txt = bar.querySelector(`.f-new${slot.key}Name`);
+      if (sel && txt) sel.addEventListener('change', () => { if (sel.value) txt.value = sel.value; });
+    });
+
+    // 結合チェックボックスで、鎧/頭の通常項目⇔結合コメント欄を切り替える
     const chk = bar.querySelector('.f-newMergedEnabled');
     if (!chk) return;
     const toggle = () => {
-      bar.querySelector('.f-newArmorGrade').style.display = chk.checked ? 'none' : '';
-      bar.querySelector('.f-newArmorSubopt').style.display = chk.checked ? 'none' : '';
-      bar.querySelector('.f-newHeadGrade').style.display = chk.checked ? 'none' : '';
-      bar.querySelector('.f-newHeadSubopt').style.display = chk.checked ? 'none' : '';
+      ['armor', 'head'].forEach(key => {
+        bar.querySelector(`.f-new${key}NameSelect`).style.display = chk.checked ? 'none' : '';
+        bar.querySelector(`.f-new${key}Name`).style.display = chk.checked ? 'none' : '';
+        bar.querySelector(`.f-new${key}Grade`).style.display = chk.checked ? 'none' : '';
+        bar.querySelector(`.f-new${key}Subopt`).style.display = chk.checked ? 'none' : '';
+      });
       bar.querySelector('.f-newMergedComment').style.display = chk.checked ? '' : 'none';
     };
     chk.addEventListener('change', toggle);
@@ -448,15 +501,17 @@ function bindGearLevelActions() {
     const row = blankGearRow();
     row.targetChar = bar.querySelector('.f-newTargetChar').value.trim();
     row.damageType = bar.querySelector('.f-newDamageType').value;
-    row.weapon = { grade: bar.querySelector('.f-newWeaponGrade').value.trim(), subopt: bar.querySelector('.f-newWeaponSubopt').value.trim() };
-    row.arm = { grade: bar.querySelector('.f-newArmGrade').value.trim(), subopt: bar.querySelector('.f-newArmSubopt').value.trim() };
-    row.accessory = { grade: bar.querySelector('.f-newAccessoryGrade').value.trim(), subopt: bar.querySelector('.f-newAccessorySubopt').value.trim() };
     row.mergedEnabled = bar.querySelector('.f-newMergedEnabled').checked;
+    GEAR_SLOTS.forEach(slot => {
+      if (row.mergedEnabled && (slot.key === 'armor' || slot.key === 'head')) return;
+      row[slot.key] = {
+        name: bar.querySelector(`.f-new${slot.key}Name`).value.trim(),
+        grade: bar.querySelector(`.f-new${slot.key}Grade`).value.trim(),
+        subopt: bar.querySelector(`.f-new${slot.key}Subopt`).value.trim()
+      };
+    });
     if (row.mergedEnabled) {
       row.mergedComment = bar.querySelector('.f-newMergedComment').value.trim();
-    } else {
-      row.armor = { grade: bar.querySelector('.f-newArmorGrade').value.trim(), subopt: bar.querySelector('.f-newArmorSubopt').value.trim() };
-      row.head = { grade: bar.querySelector('.f-newHeadGrade').value.trim(), subopt: bar.querySelector('.f-newHeadSubopt').value.trim() };
     }
     lvl.rows.push(row);
     await saveContent();
