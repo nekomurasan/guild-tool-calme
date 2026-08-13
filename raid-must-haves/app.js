@@ -283,6 +283,7 @@ document.getElementById('charAddBtn').addEventListener('click', async () => {
 
 let editingCharRowIndex = null;
 let editingPriorityGroupIndex = null; // 星評価を編集中のグループの先頭行インデックス
+let editingGearRow = null; // { levelId, rowId } 装備一覧で編集中の行
 
 function renderCharTable() {
   const table = document.getElementById('charTable');
@@ -523,6 +524,7 @@ function gearTableHtml(lvl, showActions) {
     }
     if (showActions) {
       html += `<td>
+        <button class="small" data-action="edit-row" data-level="${lvl.id}" data-row="${r.id}">編集</button>
         <button class="small danger" data-action="del-row" data-level="${lvl.id}" data-row="${r.id}">削除</button>
         <button class="small" data-action="up-row" data-level="${lvl.id}" data-row="${r.id}" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="small" data-action="down-row" data-level="${lvl.id}" data-row="${r.id}" ${i === lvl.rows.length - 1 ? 'disabled' : ''}>↓</button>
@@ -534,23 +536,32 @@ function gearTableHtml(lvl, showActions) {
 }
 
 function gearAddRowHtml(levelId) {
+  const isEditingThisLevel = editingGearRow && editingGearRow.levelId === levelId;
+  const lvl = contentData.equipmentLevels.find(l => l.id === levelId);
+  const editRow = isEditingThisLevel ? lvl.rows.find(r => r.id === editingGearRow.rowId) : null;
+  const v = (slotKey, field) => editRow ? escapeHtml(editRow[slotKey]?.[field] || '') : '';
   const slotFieldsHtml = GEAR_SLOTS.map(slot => `
     <select class="f-new${slot.key}NameSelect" style="max-width:110px;">
       <option value="">${escapeHtml(slot.label)}名を選択(参考用)</option>
       ${slot.key === 'weapon' ? '<option value="専用武器">専用武器</option>' : ''}
       ${equipmentNamesForSlot(slot.label).map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}
     </select>
-    <input type="text" class="f-new${slot.key}Name" placeholder="${escapeHtml(slot.label)}(自由入力可)" style="max-width:130px;">
-    <input type="text" class="f-new${slot.key}Grade" placeholder="${escapeHtml(slot.label)}等級" style="max-width:80px;">
-    <input type="text" class="f-new${slot.key}Subopt" placeholder="${escapeHtml(slot.label)}サブオプ" style="max-width:110px;">
-    ${slot.key === 'accessory' ? `<label class="checkLabel" style="display:flex; align-items:center; gap:4px;"><input type="checkbox" class="f-newMergedEnabled"> 鎧〜頭を結合</label>` : ''}
+    <input type="text" class="f-new${slot.key}Name" placeholder="${escapeHtml(slot.label)}(自由入力可)" style="max-width:130px; display:${editRow && editRow.mergedEnabled && (slot.key==='armor'||slot.key==='head') ? 'none' : ''};" value="${v(slot.key,'name')}">
+    <input type="text" class="f-new${slot.key}Grade" placeholder="${escapeHtml(slot.label)}等級" style="max-width:80px; display:${editRow && editRow.mergedEnabled && (slot.key==='armor'||slot.key==='head') ? 'none' : ''};" value="${v(slot.key,'grade')}">
+    <input type="text" class="f-new${slot.key}Subopt" placeholder="${escapeHtml(slot.label)}サブオプ" style="max-width:110px; display:${editRow && editRow.mergedEnabled && (slot.key==='armor'||slot.key==='head') ? 'none' : ''};" value="${v(slot.key,'subopt')}">
+    ${slot.key === 'accessory' ? `<label class="checkLabel" style="display:flex; align-items:center; gap:4px;"><input type="checkbox" class="f-newMergedEnabled" ${editRow && editRow.mergedEnabled ? 'checked' : ''}> 鎧〜頭を結合</label>` : ''}
   `).join('');
   return `<div class="addRowBar" data-level="${levelId}">
-    <input type="text" class="f-newTargetChar" placeholder="想定キャラ" style="max-width:130px;">
-    <select class="f-newDamageType" style="max-width:90px;"><option value="">無選択</option><option value="物理">物理</option><option value="魔法">魔法</option></select>
+    <input type="text" class="f-newTargetChar" placeholder="想定キャラ" style="max-width:130px;" value="${editRow ? escapeHtml(editRow.targetChar) : ''}">
+    <select class="f-newDamageType" style="max-width:90px;">
+      <option value="" ${editRow && !editRow.damageType ? 'selected' : ''}>無選択</option>
+      <option value="物理" ${editRow && editRow.damageType === '物理' ? 'selected' : ''}>物理</option>
+      <option value="魔法" ${editRow && editRow.damageType === '魔法' ? 'selected' : ''}>魔法</option>
+    </select>
     ${slotFieldsHtml}
-    <input type="text" class="f-newMergedComment" placeholder="結合コメント(結合時のみ使用)" style="max-width:200px; display:none;">
-    <button class="small" data-action="add-row" data-level="${levelId}">+ 行を追加</button>
+    <input type="text" class="f-newMergedComment" placeholder="結合コメント(結合時のみ使用)" style="max-width:200px; display:${editRow && editRow.mergedEnabled ? '' : 'none'};" value="${editRow ? escapeHtml(editRow.mergedComment || '') : ''}">
+    <button class="small primary" data-action="add-row" data-level="${levelId}">${editRow ? '変更を保存' : '+ 行を追加'}</button>
+    ${editRow ? `<button class="small" data-action="cancel-edit-row" data-level="${levelId}">編集をキャンセル</button>` : ''}
   </div>`;
 }
 
@@ -585,7 +596,9 @@ function bindGearLevelActions() {
     const bar = area.querySelector(`.addRowBar[data-level="${levelId}"]`);
     const lvl = contentData.equipmentLevels.find(l => l.id === levelId);
     if (!lvl) return;
-    const row = blankGearRow();
+    const isEditing = editingGearRow && editingGearRow.levelId === levelId;
+    const row = isEditing ? lvl.rows.find(r => r.id === editingGearRow.rowId) : blankGearRow();
+    if (!row) return;
     row.targetChar = bar.querySelector('.f-newTargetChar').value.trim();
     row.damageType = bar.querySelector('.f-newDamageType').value;
     row.mergedEnabled = bar.querySelector('.f-newMergedEnabled').checked;
@@ -600,8 +613,18 @@ function bindGearLevelActions() {
     if (row.mergedEnabled) {
       row.mergedComment = bar.querySelector('.f-newMergedComment').value.trim();
     }
-    lvl.rows.push(row);
+    if (!isEditing) lvl.rows.push(row);
+    editingGearRow = null;
     await saveContent();
+    renderGearLevels();
+  }));
+
+  area.querySelectorAll('[data-action="edit-row"]').forEach(btn => btn.addEventListener('click', () => {
+    editingGearRow = { levelId: btn.dataset.level, rowId: btn.dataset.row };
+    renderGearLevels();
+  }));
+  area.querySelectorAll('[data-action="cancel-edit-row"]').forEach(btn => btn.addEventListener('click', () => {
+    editingGearRow = null;
     renderGearLevels();
   }));
 
@@ -610,6 +633,7 @@ function bindGearLevelActions() {
     const lvl = contentData.equipmentLevels.find(l => l.id === btn.dataset.level);
     if (!lvl) return;
     lvl.rows = lvl.rows.filter(r => r.id !== btn.dataset.row);
+    if (editingGearRow && editingGearRow.rowId === btn.dataset.row) editingGearRow = null;
     await saveContent(); renderGearLevels();
   }));
   area.querySelectorAll('[data-action="up-row"]').forEach(btn => btn.addEventListener('click', async () => {
