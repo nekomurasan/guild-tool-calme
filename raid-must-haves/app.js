@@ -299,7 +299,14 @@ function renderCharTable() {
     } else if (!sameAsPrev) {
       let span = 1;
       while (!mergeDisabled && i + span < rows.length && rows[i + span].charName === r.charName) span++;
-      charCellHtml = `<td class="c-char" rowspan="${span}">${escapeHtml(attrCharName(r.charName, r.attribute))}</td>`;
+      const isFirstGroup = i === 0;
+      const isLastGroup = i + span >= rows.length;
+      const moveBtns = (showActions && !mergeDisabled) ? `
+        <div class="charGroupMove">
+          <button class="small" data-action="up-chargroup" data-i="${i}" ${isFirstGroup ? 'disabled' : ''} title="キャラ単位で上に移動">キャラ↑</button>
+          <button class="small" data-action="down-chargroup" data-i="${i}" ${isLastGroup ? 'disabled' : ''} title="キャラ単位で下に移動">キャラ↓</button>
+        </div>` : '';
+      charCellHtml = `<td class="c-char" rowspan="${span}">${escapeHtml(attrCharName(r.charName, r.attribute))}${moveBtns}</td>`;
     }
     html += `<tr class="${grpClass}" data-i="${i}">
       ${charCellHtml}`;
@@ -375,6 +382,38 @@ function renderCharTable() {
     [contentData.characters[i + 1], contentData.characters[i]] = [contentData.characters[i], contentData.characters[i + 1]];
     await saveContent(); renderCharTable();
   }));
+  table.querySelectorAll('[data-action="up-chargroup"]').forEach(btn => btn.addEventListener('click', async () => {
+    moveCharGroup(Number(btn.dataset.i), -1);
+    await saveContent(); renderCharTable();
+  }));
+  table.querySelectorAll('[data-action="down-chargroup"]').forEach(btn => btn.addEventListener('click', async () => {
+    moveCharGroup(Number(btn.dataset.i), 1);
+    await saveContent(); renderCharTable();
+  }));
+}
+
+// headIndex(そのキャラグループの先頭行のインデックス)を、隣接するキャラグループとまとめて入れ替える
+function moveCharGroup(headIndex, direction) {
+  const rows = contentData.characters;
+  const groups = [];
+  let idx = 0;
+  while (idx < rows.length) {
+    let len = 1;
+    while (idx + len < rows.length && rows[idx + len].charName === rows[idx].charName) len++;
+    groups.push({ start: idx, len });
+    idx += len;
+  }
+  const gi = groups.findIndex(g => g.start === headIndex);
+  if (gi === -1) return;
+  const targetGi = gi + direction;
+  if (targetGi < 0 || targetGi >= groups.length) return;
+  const [earlier, later] = direction === -1 ? [groups[targetGi], groups[gi]] : [groups[gi], groups[targetGi]];
+  contentData.characters = [
+    ...rows.slice(0, earlier.start),
+    ...rows.slice(later.start, later.start + later.len),
+    ...rows.slice(earlier.start, earlier.start + earlier.len),
+    ...rows.slice(later.start + later.len)
+  ];
 }
 
 // ==================================================================
