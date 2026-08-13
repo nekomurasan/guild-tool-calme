@@ -447,7 +447,7 @@ function moveCharGroup(headIndex, direction) {
 // Priority Gear Sets
 // ==================================================================
 function blankGearRow() {
-  return { id: uid(), name: '', grade: '', subopt: '', comment: '' };
+  return { id: uid(), part: '', name: '', grade: '', subopt: '', comment: '' };
 }
 
 function renderGearLevels() {
@@ -482,13 +482,14 @@ function multilineCellHtml(value, extraClass, extraAttrs) {
 
 function gearTableHtml(lvl, showActions) {
   let html = `<tr>
-    <th>装備名</th><th>等級</th><th>サブオプション</th><th>コメント</th>
+    <th>装備部位</th><th>装備名</th><th>等級</th><th>サブオプション</th><th>コメント</th>
     ${showActions ? '<th style="width:110px;">操作</th>' : ''}
   </tr>`;
   lvl.rows.forEach((r, i) => {
     const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
     const isKensenFuyou = r.subopt === '厳選不要';
     html += `<tr class="${grpClass}">
+      ${multilineCellHtml(r.part)}
       ${multilineCellHtml(r.name)}
       ${multilineCellHtml(r.grade)}
       <td class="multilineCell suboptCell${isKensenFuyou ? ' kensenFuyou' : ''}">${escapeHtml(r.subopt)}</td>
@@ -512,6 +513,7 @@ function gearAddRowHtml(levelId) {
   const editRow = isEditingThisLevel ? lvl.rows.find(r => r.id === editingGearRow.rowId) : null;
   const v = (field) => editRow ? escapeHtml(editRow[field] || '') : '';
   return `<div class="addRowBar" data-level="${levelId}">
+    <textarea class="f-newPart" rows="2" placeholder="装備部位(改行OK。装備名選択で自動入力)" style="max-width:110px;">${v('part')}</textarea>
     <select class="f-newNameSelect" style="max-width:150px;">
       <option value="">装備名を選択(参考用)</option>
       <option value="専用装備">専用装備</option>
@@ -529,11 +531,16 @@ function gearAddRowHtml(levelId) {
 function bindGearLevelActions() {
   const area = document.getElementById('gearLevelsArea');
 
-  // 装備名を選択すると、自由入力欄に自動で入力する
+  // 装備名を選択すると、自由入力欄(名前・部位)に自動で入力する。専用装備の場合は部位を空のままにする
   area.querySelectorAll('.addRowBar').forEach(bar => {
     const sel = bar.querySelector('.f-newNameSelect');
     const txt = bar.querySelector('.f-newName');
-    if (sel && txt) sel.addEventListener('change', () => { if (sel.value) txt.value = sel.value; });
+    const partTxt = bar.querySelector('.f-newPart');
+    if (sel && txt) sel.addEventListener('change', () => {
+      if (!sel.value) return;
+      txt.value = sel.value;
+      if (partTxt) partTxt.value = EQUIPMENT_DATA[sel.value] ? EQUIPMENT_DATA[sel.value].slot : '';
+    });
   });
 
   area.querySelectorAll('[data-action="add-row"]').forEach(btn => btn.addEventListener('click', async () => {
@@ -544,6 +551,7 @@ function bindGearLevelActions() {
     const isEditing = editingGearRow && editingGearRow.levelId === levelId;
     const row = isEditing ? lvl.rows.find(r => r.id === editingGearRow.rowId) : blankGearRow();
     if (!row) return;
+    row.part = bar.querySelector('.f-newPart').value.trim();
     row.name = bar.querySelector('.f-newName').value.trim();
     row.grade = bar.querySelector('.f-newGrade').value.trim();
     row.subopt = bar.querySelector('.f-newSubopt').value.trim();
