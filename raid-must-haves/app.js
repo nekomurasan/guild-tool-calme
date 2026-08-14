@@ -480,6 +480,14 @@ function multilineCellHtml(value, extraClass, extraAttrs) {
   return `<td class="multilineCell${extraClass ? ' ' + extraClass : ''}"${extraAttrs || ''}>${escapeHtml(value)}</td>`;
 }
 
+// 装備名セル: icons/フォルダに「装備名.png」と同名の画像があれば、名前の左にアイコンを表示する
+// (画像が見つからない場合はonerrorで非表示にする。装備名が空の時はアイコンも出さない)
+function nameCellHtml(value) {
+  const trimmed = (value || '').trim();
+  const iconHtml = trimmed ? `<img src="icons/${encodeURIComponent(trimmed)}.png" class="gearIcon" alt="" onerror="this.style.display='none'">` : '';
+  return `<td class="multilineCell nameCell">${iconHtml}${escapeHtml(value)}</td>`;
+}
+
 function gearTableHtml(lvl, showActions) {
   let html = `<tr>
     <th>装備部位</th><th>装備名</th><th>品質</th><th>等級</th><th>サブオプション</th><th>コメント</th>
@@ -490,7 +498,7 @@ function gearTableHtml(lvl, showActions) {
     const isKensenFuyou = r.subopt === '厳選不要';
     html += `<tr class="${grpClass}">
       ${multilineCellHtml(r.part)}
-      ${multilineCellHtml(r.name)}
+      ${nameCellHtml(r.name)}
       ${multilineCellHtml(r.quality)}
       ${multilineCellHtml(r.grade)}
       <td class="multilineCell suboptCell${isKensenFuyou ? ' kensenFuyou' : ''}">${escapeHtml(r.subopt)}</td>
