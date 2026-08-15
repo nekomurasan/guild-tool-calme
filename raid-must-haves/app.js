@@ -512,6 +512,7 @@ function gearTableHtml(lvl, showActions) {
     if (showActions) {
       html += `<td>
         <button class="small" data-action="edit-row" data-level="${lvl.id}" data-row="${r.id}">編集</button>
+        <button class="small" data-action="duplicate-row" data-level="${lvl.id}" data-row="${r.id}">複製</button>
         <button class="small danger" data-action="del-row" data-level="${lvl.id}" data-row="${r.id}">削除</button>
         <button class="small" data-action="up-row" data-level="${lvl.id}" data-row="${r.id}" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="small" data-action="down-row" data-level="${lvl.id}" data-row="${r.id}" ${i === lvl.rows.length - 1 ? 'disabled' : ''}>↓</button>
@@ -586,6 +587,16 @@ function bindGearLevelActions() {
   }));
   area.querySelectorAll('[data-action="cancel-edit-row"]').forEach(btn => btn.addEventListener('click', () => {
     editingGearRow = null;
+    renderGearLevels();
+  }));
+  area.querySelectorAll('[data-action="duplicate-row"]').forEach(btn => btn.addEventListener('click', async () => {
+    const lvl = contentData.equipmentLevels.find(l => l.id === btn.dataset.level);
+    if (!lvl) return;
+    const i = lvl.rows.findIndex(r => r.id === btn.dataset.row);
+    if (i === -1) return;
+    const copy = { ...lvl.rows[i], id: uid() };
+    lvl.rows.splice(i + 1, 0, copy); // その装備の真下に挿入
+    await saveContent();
     renderGearLevels();
   }));
 
