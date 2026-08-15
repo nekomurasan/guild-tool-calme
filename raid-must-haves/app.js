@@ -516,6 +516,8 @@ function gearTableHtml(lvl, showActions) {
         <button class="small danger" data-action="del-row" data-level="${lvl.id}" data-row="${r.id}">削除</button>
         <button class="small" data-action="up-row" data-level="${lvl.id}" data-row="${r.id}" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="small" data-action="down-row" data-level="${lvl.id}" data-row="${r.id}" ${i === lvl.rows.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="small" data-action="top-row" data-level="${lvl.id}" data-row="${r.id}" ${i === 0 ? 'disabled' : ''} title="一番上へ">⤒</button>
+        <button class="small" data-action="bottom-row" data-level="${lvl.id}" data-row="${r.id}" ${i === lvl.rows.length - 1 ? 'disabled' : ''} title="一番下へ">⤓</button>
       </td>`;
     }
     html += `</tr>`;
@@ -622,6 +624,24 @@ function bindGearLevelActions() {
     const i = lvl.rows.findIndex(r => r.id === btn.dataset.row);
     if (i === -1 || i >= lvl.rows.length - 1) return;
     [lvl.rows[i + 1], lvl.rows[i]] = [lvl.rows[i], lvl.rows[i + 1]];
+    await saveContent(); renderGearLevels();
+  }));
+  area.querySelectorAll('[data-action="top-row"]').forEach(btn => btn.addEventListener('click', async () => {
+    const lvl = contentData.equipmentLevels.find(l => l.id === btn.dataset.level);
+    if (!lvl) return;
+    const i = lvl.rows.findIndex(r => r.id === btn.dataset.row);
+    if (i <= 0) return;
+    const [row] = lvl.rows.splice(i, 1);
+    lvl.rows.unshift(row);
+    await saveContent(); renderGearLevels();
+  }));
+  area.querySelectorAll('[data-action="bottom-row"]').forEach(btn => btn.addEventListener('click', async () => {
+    const lvl = contentData.equipmentLevels.find(l => l.id === btn.dataset.level);
+    if (!lvl) return;
+    const i = lvl.rows.findIndex(r => r.id === btn.dataset.row);
+    if (i === -1 || i >= lvl.rows.length - 1) return;
+    const [row] = lvl.rows.splice(i, 1);
+    lvl.rows.push(row);
     await saveContent(); renderGearLevels();
   }));
 
