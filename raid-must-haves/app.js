@@ -490,15 +490,15 @@ function nameCellHtml(value) {
 
 function gearTableHtml(lvl, showActions) {
   let html = `<tr>
-    <th>装備部位</th><th>装備名</th><th>品質</th><th>等級</th><th>サブオプション</th><th>コメント</th>
+    <th>装備名</th><th>装備部位</th><th>品質</th><th>等級</th><th>サブオプション</th><th>コメント</th>
     ${showActions ? '<th style="width:110px;">操作</th>' : ''}
   </tr>`;
   lvl.rows.forEach((r, i) => {
     const grpClass = i % 2 === 0 ? 'grp-a' : 'grp-b';
     const isKensenFuyou = r.subopt === '厳選不要';
     html += `<tr class="${grpClass}">
-      ${multilineCellHtml(r.part)}
       ${nameCellHtml(r.name)}
+      ${multilineCellHtml(r.part)}
       ${multilineCellHtml(r.quality)}
       ${multilineCellHtml(r.grade)}
       <td class="multilineCell suboptCell${isKensenFuyou ? ' kensenFuyou' : ''}">${escapeHtml(r.subopt)}</td>
