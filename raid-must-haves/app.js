@@ -89,6 +89,11 @@ const EQUIPMENT_DATA = {
 function equipmentNameOptionsHtml() {
   return Object.keys(EQUIPMENT_DATA).map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}(${escapeHtml(EQUIPMENT_DATA[name].slot)})</option>`).join('');
 }
+// 装備部位の自動入力時に付ける絵文字
+const PART_EMOJI = { '武器': '⚔️', '鎧': '🛡️', '頭': '🪖', '装飾': '💍', '腕': '🦾' };
+function partEmojiLabel(slot) {
+  return slot ? `${PART_EMOJI[slot] || ''}${slot}` : '';
+}
 
 // ---------- アクセス(2経路) ----------
 function showMainContent() {
@@ -550,7 +555,7 @@ function bindGearLevelActions() {
     if (sel && txt) sel.addEventListener('change', () => {
       if (!sel.value) return;
       txt.value = sel.value;
-      if (partTxt) partTxt.value = EQUIPMENT_DATA[sel.value] ? EQUIPMENT_DATA[sel.value].slot : '';
+      if (partTxt) partTxt.value = EQUIPMENT_DATA[sel.value] ? partEmojiLabel(EQUIPMENT_DATA[sel.value].slot) : '';
     });
   });
 
