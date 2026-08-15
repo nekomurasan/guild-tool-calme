@@ -98,6 +98,15 @@ tr.grp-b td { background: var(--bg-sub); }
 .addRowBar { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
 .addRowBar input, .addRowBar select { max-width: 220px; }
 
+.gearLevel {
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--gold);
+  border-radius: 8px;
+  background: var(--bg-sub);
+}
+.gearLevel:last-child { margin-bottom: 0; }
 .levelHead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .levelHead h3 { margin: 0; }
 .annotationBox { font-size: 12px; margin: 6px 0 4px; white-space: pre-wrap; line-height: 1.6; }
