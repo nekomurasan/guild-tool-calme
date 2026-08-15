@@ -464,6 +464,7 @@ function renderGearLevels() {
       <div class="levelHead">
         <h3 class="c-levelLabel">${escapeHtml(lvl.label)}</h3>
         ${showActions ? `<button class="small" data-action="rename-level" data-level="${lvl.id}">名前変更</button>
+        <button class="small" data-action="duplicate-level" data-level="${lvl.id}">複製</button>
         <button class="small" data-action="up-level" data-level="${lvl.id}" ${li === 0 ? 'disabled' : ''} title="上に移動">↑</button>
         <button class="small" data-action="down-level" data-level="${lvl.id}" ${li === contentData.equipmentLevels.length - 1 ? 'disabled' : ''} title="下に移動">↓</button>
         <button class="small danger" data-action="del-level" data-level="${lvl.id}">レベルを削除</button>` : ''}
@@ -622,6 +623,20 @@ function bindGearLevelActions() {
       lvl.label = wrap.querySelector('.e-levelLabel').value.trim() || lvl.label;
       await saveContent(); renderGearLevels();
     });
+  }));
+  area.querySelectorAll('[data-action="duplicate-level"]').forEach(btn => btn.addEventListener('click', async () => {
+    const levels = contentData.equipmentLevels;
+    const i = levels.findIndex(l => l.id === btn.dataset.level);
+    if (i === -1) return;
+    const original = levels[i];
+    const copy = {
+      id: uid(),
+      label: `${original.label}(コピー)`,
+      annotation: original.annotation || '',
+      rows: (original.rows || []).map(r => ({ ...r, id: uid() }))
+    };
+    levels.splice(i + 1, 0, copy); // 元のレベルのすぐ下に挿入
+    await saveContent(); renderGearLevels();
   }));
   area.querySelectorAll('[data-action="del-level"]').forEach(btn => btn.addEventListener('click', async () => {
     if (!confirm('このレベルを削除しますか?(中の行も全て削除されます)')) return;
