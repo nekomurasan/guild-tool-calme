@@ -79,7 +79,7 @@ const ICONS = new Set(["アーモンド","エビ","オリーブ油","かいわ�
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function segs(str) {
-  const out = []; let last = 0; const re = /<(r|p|m|b)>([\s\S]*?)<\/\1>/g; let m;
+  const out = []; let last = 0; const re = /<(r|p|m|b|g)>([\s\S]*?)<\/\1>/g; let m;
   while ((m = re.exec(str))) {
     if (m.index > last) out.push({ c: '', t: str.slice(last, m.index) });
     out.push({ c: m[1], t: m[2] }); last = re.lastIndex;
@@ -105,15 +105,16 @@ function chip(name, { c = '', price = null, qty = null, mark = false, plain = fa
   return mark ? `<span class="mkw"><span class="mk">‼️</span>${body}</span>` : body;
 }
 /* 「名前(価格)、名前(価格)…」形式のリスト（色マーク対応） */
-function ingList(str) {
+function ingList(str, { noBuy = false } = {}) {
   const html = [];
-  segs(str).forEach(s => {
+  segs(str).forEach(seg => {
+    const s = { c: noBuy && seg.c === 'r' ? 'g' : seg.c, t: seg.t };
     let firstMark = true;
     s.t.split(/[、\n]/).forEach(piece => {
       let t = piece.replace(/^[\s　]+|[\s　]+$/g, '');
       if (!t) return;
       let mark = false;
-      if (t.startsWith('※')) { mark = firstMark; t = t.slice(1).trim(); firstMark = false; }
+      if (t.startsWith('※')) { mark = firstMark && !noBuy; t = t.slice(1).trim(); firstMark = false; }
       if (t === 'なし' || t === '全て') { html.push(chip(t, { plain: true, c: s.c })); return; }
       const m = t.match(/^(.+?)\((\d[\d,]*)\)$/);   // 価格(括弧内)は表示しない
       html.push(chip(m ? m[1] : t, { c: s.c, mark }));
@@ -171,7 +172,7 @@ const SHOPS = [
 ];
 
 const NOTICE_B = '※<p>ツナ缶</p>は値下げ後買値も、120％売値も6Gなので、買っても買わなくても良いのだが、商店に関する業績の足しになることを考えると料理に使わずとも買った方が良い。金欠で商店金策がギリギリなのであれば買わない事。\n\n※<p>チョコレート</p>に関しても買値6Gのものに関しては120％売値が6Gなのでツナ缶と同じ扱い。\nチョコ6Gの店はファイヤーチップ、ビューティーインポッシブル、ナイトメアウィンター、ビーチサイドエンジェル、メモリーズエッジ、スプラッシュクイーンの6つ';
-const NOTICE_C = '買わない食材リストの中で‼️<r>赤字</r>のものに関しては、買う食材リストに記載の量とフィールドで手に入る量で料理に使う分を十分賄えている予定なので買わない食材リストに移したもの。もしこれらの食材が足りず高利益料理が作れないのであれば買ってもいい。料理に使えば黒字。\nただし売価21Gのキノコだけは「シャイニーガンバス」「ルーゴ高麗人参の串焼き」「屋台の焼き鳥」に使う分のみが黒字になるので注意';
+const NOTICE_C = '買わない食材リストの中で<g>緑色</g>のものに関しては、買う食材リストに記載の量とフィールドで手に入る量で料理に使う分を十分賄えている予定なので買わない食材リストに移したもの。もしこれらの食材が足りず高利益料理が作れないのであれば買ってもいい。料理に使えば黒字。\nただし売価21Gのキノコだけは「シャイニーガンバス」「ルーゴ高麗人参の串焼き」「屋台の焼き鳥」に使う分のみが黒字になるので注意';
 
 const SUMMARY = [
   ['買う食材リストを全て購入', '合計　205　品　1,080,800Ｇ', '損しない範囲で最大限購入した場合'],
@@ -183,7 +184,7 @@ const SUMMARY_NOTE = '※サキさんの金策リスト197個 1,073,600Gと、�
 function renderShop() {
   let h = '<thead><tr><th>商店</th><th>買う食材（<span class="c-r">赤文字</span>は足りてたら買わなくていいもの※食材で売ると赤字）</th><th class="thNoBuy">買わない食材（買った時点で赤字の食材）</th></tr></thead><tbody>';
   SHOPS.forEach(([name, buy, nobuy], i) => {
-    h += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}"><td class="shopName">${esc(name)}</td><td>${ingList(buy)}</td><td class="noBuy">${ingList(nobuy)}</td></tr>`;
+    h += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}"><td class="shopName">${esc(name)}</td><td>${ingList(buy)}</td><td class="noBuy">${ingList(nobuy, { noBuy: true })}</td></tr>`;
   });
   document.getElementById('shopTable').innerHTML = h + '</tbody>';
 
@@ -259,7 +260,8 @@ function renderCook() {
   setText('grayDesc', cookState.showGray ? GRAY_DESC_SHOWN : GRAY_DESC_HIDDEN);
   const table = document.getElementById('cookTable');
   table.classList.toggle('hideNums', !cookState.showNums);
-  let h = '<thead><tr><th>順位</th><th>料理</th>' + NUM_TH.map(t => `<th class="numcol">${t}</th>`).join('') + '<th>材料(個数)</th><th>備考</th></tr></thead><tbody>';
+  const numStyle = cookState.showNums ? '' : ' style="display:none"';   // CSSの読み込み状況に左右されないよう直接指定
+  let h = '<thead><tr><th class="rankTh">順位</th><th>料理</th>' + NUM_TH.map(t => `<th class="numcol"${numStyle}>${t}</th>`).join('') + '<th>材料(個数)</th><th>備考</th></tr></thead><tbody>';
   let vis = 0;
   COOK.forEach((r) => {
     const [rank, name, price, cost, eUse, eCost, total, profit, mats, note, cls, purple] = r;
@@ -267,9 +269,9 @@ function renderCook() {
     const zebra = vis++ % 2 ? 'grp-b' : 'grp-a';
     h += `<tr class="${zebra} ${cls || ''}">` +
       `<td class="rank">${esc(rank)}</td><td class="dish${purple ? ' c-p' : ''}">${esc(name)}</td>` +
-      `<td class="num numcol c-b">${price}</td><td class="num numcol c-b">${cost}</td><td class="num numcol c-b">${eUse}</td>` +
-      `<td class="num numcol">${eCost}</td><td class="num numcol">${total}</td><td class="num numcol profit">${profit}</td>` +
-      `<td class="mat">${matList(mats)}</td><td class="remark">${rich(note || '')}</td></tr>`;
+      `<td class="num numcol c-b"${numStyle}>${price}</td><td class="num numcol c-b"${numStyle}>${cost}</td><td class="num numcol c-b"${numStyle}>${eUse}</td>` +
+      `<td class="num numcol"${numStyle}>${eCost}</td><td class="num numcol"${numStyle}>${total}</td><td class="num numcol profit"${numStyle}>${profit}</td>` +
+      `<td class="mat">${matList(mats)}</td><td class="remark">${rich(note || '').replace(/\n/g, '<br>')}</td></tr>`;
   });
   table.innerHTML = h + '</tbody>';
   document.getElementById('cookFoot').innerHTML = rich(COOK_FOOT);
@@ -287,7 +289,7 @@ const SELL_MERGED_NOTE = 'これらの食材はそのまま売っても利益に
 const SELL_OTHERS = [
   ['各種スカウト契約書', 'スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK'],
   ['スライム', '手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK'],
-  ['料理に使わない特殊食材\n（元気粉、鱗甲目のうろっこ、ビタＢ濃縮溶液、元気ポーション、黄金バジル、魅惑の粉、鷲の羽根、元気キノコ、魂生クリーム）', '既存の食材を使用したレシピ追加が無いとは明言されていないので<b>自己責任</b>で売却可']
+  ['料理に使わない特殊食材\n・元気粉・鱗甲目のうろっこ\n・ビタＢ濃縮溶液・元気ポーション\n・黄金バジル・魅惑の粉\n・鷲の羽根・元気キノコ\n・魂生クリーム', '既存の食材を使用したレシピ追加が無いとは明言されていないので<b>自己責任</b>で売却可']
 ];
 const SELL_FOOT = '<r>ここに載っていないものを売るのは非推奨ですが、自己責任で売却可</r>';
 
@@ -301,7 +303,7 @@ function renderSell() {
   });
   SELL_OTHERS.forEach(([n, note], i) => {
     const long = n.length > 20;
-    h += `<tr class="${(SELL_ITEMS.length + 1 + i) % 2 ? 'grp-b' : 'grp-a'}"><td class="item${long ? ' wrapItem' : ''}">${esc(n).replace(/\n/g, '<br>')}</td><td class="remark">${rich(note)}</td></tr>`;
+    h += `<tr class="${(SELL_ITEMS.length + 1 + i) % 2 ? 'grp-b' : 'grp-a'}${n.startsWith('料理に使わない') ? ' dimRow' : ''}"><td class="item${long ? ' wrapItem' : ''}">${esc(n).replace(/\n/g, '<br>')}</td><td class="remark">${rich(note)}</td></tr>`;
   });
   h += `<tr class="grp-b"><td></td><td class="remark">${rich(SELL_FOOT)}</td></tr>`;
   document.getElementById('sellTable').innerHTML = h + '</tbody>';

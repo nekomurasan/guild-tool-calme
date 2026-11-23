@@ -85,8 +85,8 @@ b.strong { font-weight: 700; }
 #cookTable tr.gray td.profit { color: var(--c-gray); }
 
 /* ③ */
-#sellTable td.item { white-space: nowrap; font-weight: 600; width: 190px; }
-#sellTable td.item.wrapItem { white-space: normal; }
+#sellTable td.item { white-space: nowrap; font-weight: 600; width: 250px; }
+#sellTable td.item.wrapItem { white-space: nowrap; line-height: 1.7; }
 #sellTable td.remark { font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
 #sellTable td.remark.noteMerged { vertical-align: middle; background: rgba(0,0,0,0.22) !important; }
 #sellTable .ing { font-size: 13px; }
@@ -120,3 +120,26 @@ table.v2t th { position: sticky; top: 0; z-index: 3; }
   /* 狭い画面は表の中でスクロール（その中でヘッダー固定） */
   .table-wrap { overflow: auto; max-height: 78vh; }
 }
+
+/* 緑文字（買わない食材のうち、料理に使えば黒字のもの） */
+.c-g { color: #8fd3a5 !important; }
+.ing.c-g { border-color: rgba(143,211,165,0.5); }
+#shopTable td.noBuy .c-g { color: #6fb58a !important; }
+#shopTable td.noBuy .c-g.ing { border-color: rgba(111,181,138,0.45); }
+
+/* 注意事項の表：列幅を固定して崩れを防ぐ */
+#noticeTable { table-layout: fixed; width: 100%; min-width: 0; }
+#noticeTable td:first-child { width: 66%; }
+#noticeTable td:last-child { width: 34%; }
+
+/* ② 順位列：中央揃え・幅を狭く */
+#cookTable th.rankTh, #cookTable td.rank { width: 38px; min-width: 0; padding-left: 2px; padding-right: 2px; text-align: center; }
+#cookTable td.remark { white-space: normal; overflow-wrap: anywhere; }
+
+/* ③ 特殊食材の行：少しグレーに */
+#sellTable tr.dimRow td { color: #98a4b4; }
+
+/* ③ 備考セル（結合セル含む）の枠線をはっきり表示 */
+#sellTable td.item { border-right: 0; }
+#sellTable td.remark { border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+#sellTable td.remark.noteMerged { background: rgba(0,0,0,0.12) !important; }
