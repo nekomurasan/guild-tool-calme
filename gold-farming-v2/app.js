@@ -101,8 +101,8 @@ function icon(name) {
 function chip(name, { c = '', price = null, qty = null, mark = false, plain = false } = {}) {
   const has = ICONS.has(name);
   const body = `<span class="ing${has ? '' : ' noicon'}${c ? ' c-' + c : ''}${plain ? ' plain' : ''}">${icon(name)}<span class="nm">${esc(name)}</span>` +
-    `${price != null ? `<span class="pr">${esc(price)}G</span>` : ''}${qty != null ? `<span class="qty">×${esc(qty)}</span>` : ''}</span>`;
-  return mark ? `<span class="mkw"><span class="mk c-${c}">※</span>${body}</span>` : body;
+    `${qty != null ? `<span class="qty">×${esc(qty)}</span>` : ''}</span>`;
+  return mark ? `<span class="mkw"><span class="mk">‼️</span>${body}</span>` : body;
 }
 /* 「名前(価格)、名前(価格)…」形式のリスト（色マーク対応） */
 function ingList(str) {
@@ -115,8 +115,8 @@ function ingList(str) {
       let mark = false;
       if (t.startsWith('※')) { mark = firstMark; t = t.slice(1).trim(); firstMark = false; }
       if (t === 'なし' || t === '全て') { html.push(chip(t, { plain: true, c: s.c })); return; }
-      const m = t.match(/^(.+?)\((\d[\d,]*)\)$/);
-      html.push(m ? chip(m[1], { c: s.c, price: m[2], mark }) : chip(t, { c: s.c, mark }));
+      const m = t.match(/^(.+?)\((\d[\d,]*)\)$/);   // 価格(括弧内)は表示しない
+      html.push(chip(m ? m[1] : t, { c: s.c, mark }));
     });
   });
   return `<div class="ings">${html.join('')}</div>`;
@@ -157,38 +157,38 @@ const SHOPS = [
   ['18：救済', 'トウモロコシ(23)、リンゴ(14)、卵(6)、小麦(6)、米(6)、麦(12)、牛乳(16)', 'ジャガイモ(18)、食パン(64)'],
   ['19：忘却されし戦争', '塩(4)、コーヒー豆(16)、バター(24)、砂糖(9)、チーズ(9)、ハーブ(17)', 'サフラン(60)、ブドウ(42)'],
   ['CC1：ジェイデンズ', ...CC1],
-  ['CC2：ファイヤーチ', ...CC2],
-  ['CC3：ビューティ', ...CC3],
+  ['CC2：ファイヤーチ～', ...CC2],
+  ['CC3：ビューティ～', ...CC3],
   ['CC4：大脱出', '米(4)、鶏の胸肉パック(4)、味付け海苔(40)、パプリカ(15)、唐辛子(14)、マヨネーズ(48)、小麦(4)、カプサイシン(51)', 'なし'],
   ['CC5：ルゥの迷路', ...CC56],
   ['CC6：御剣伝', ...CC56],
   ['CC7：契約戦争', ...CC1],
   ['EC1：サマーナイト', ...CC1],
-  ['EC2：ナイトメア', ...CC2],
-  ['EC3：ビーチサイド', ...CC3],
-  ["EC5：Memory's", ...CC2],
-  ['EC7：スプラッシュ', '<p>チョコレート(6)、</p>コーヒー豆(25)、缶詰フルーツ(66)、食パン(32)、牛乳(16)、<p>ツナ缶(6)、</p><r>キャビア缶(90)</r>', 'なし　<r>※鶏の胸肉パック(12)</r>']
+  ['EC2：ナイトメア～', ...CC2],
+  ['EC3：ビーチサイド～', ...CC3],
+  ["EC5：Memory's～", ...CC2],
+  ['EC7：スプラッシュ～', '<p>チョコレート(6)、</p>コーヒー豆(25)、缶詰フルーツ(66)、食パン(32)、牛乳(16)、<p>ツナ缶(6)、</p><r>キャビア缶(90)</r>', 'なし　<r>※鶏の胸肉パック(12)</r>']
 ];
 
 const NOTICE_B = '※<p>ツナ缶</p>は値下げ後買値も、120％売値も6Gなので、買っても買わなくても良いのだが、商店に関する業績の足しになることを考えると料理に使わずとも買った方が良い。金欠で商店金策がギリギリなのであれば買わない事。\n\n※<p>チョコレート</p>に関しても買値6Gのものに関しては120％売値が6Gなのでツナ缶と同じ扱い。\nチョコ6Gの店はファイヤーチップ、ビューティーインポッシブル、ナイトメアウィンター、ビーチサイドエンジェル、メモリーズエッジ、スプラッシュクイーンの6つ';
-const NOTICE_C = '買わない食材リストの中で<r>※印赤字</r>のものに関しては、買う食材リストに記載の量とフィールドで手に入る量で料理に使う分を十分賄えている予定なので買わない食材リストに移したもの。もしこれらの食材が足りず高利益料理が作れないのであれば買ってもいい。料理に使えば黒字。\nただし売価21Gのキノコだけは「シャイニーガンバス」「ルーゴ高麗人参の串焼き」「屋台の焼き鳥」に使う分のみが黒字になるので注意';
+const NOTICE_C = '買わない食材リストの中で‼️<r>赤字</r>のものに関しては、買う食材リストに記載の量とフィールドで手に入る量で料理に使う分を十分賄えている予定なので買わない食材リストに移したもの。もしこれらの食材が足りず高利益料理が作れないのであれば買ってもいい。料理に使えば黒字。\nただし売価21Gのキノコだけは「シャイニーガンバス」「ルーゴ高麗人参の串焼き」「屋台の焼き鳥」に使う分のみが黒字になるので注意';
 
 const SUMMARY = [
   ['買う食材リストを全て購入', '合計　205　品　1,080,800Ｇ', '損しない範囲で最大限購入した場合'],
-  ['買う食材リストの黒文字のみ購入', '合計　159　品　801,900Ｇ', '用途にかかわらず必ず得するものだけ購入した場合'],
-  ['買う食材リストの黒＋赤文字のみ購入', '合計　195　品　1,056,800Ｇ', '損しない範囲で最大限購入した場合（業績不要）']
+  ['買う食材リストの白文字のみ購入', '合計　159　品　801,900Ｇ', '用途にかかわらず必ず得するものだけ購入した場合'],
+  ['買う食材リストの白＋赤文字のみ購入', '合計　195　品　1,056,800Ｇ', '損しない範囲で最大限購入した場合（業績不要）']
 ];
-const SUMMARY_NOTE = '※サキさんの金策リスト197個 1,073,600Gと、「黒＋赤文字」で2品16,800Gの差があるのは、\n「21Gで買えるキノコを2枠分買う予定にしているかどうかの違い」です。\n私の方で買わない予定にしているのは「間違えて低利益のキノコ料理を作って損しないようにしている」だけなので、\nキノコが不足して高利益の料理が作れなくなったら購入してください。';
+const SUMMARY_NOTE = '※サキさんの金策リスト197個 1,073,600Gと、「白＋赤文字」で2品16,800Gの差があるのは、\n「21Gで買えるキノコを2枠分買う予定にしているかどうかの違い」です。\n私の方で買わない予定にしているのはキノコが余った際に「間違えて低利益のキノコ料理を作って損しないようにしている」ためなので、\nキノコが不足して高利益の料理が作れなくなったら購入してください。';
 
 function renderShop() {
-  let h = '<thead><tr><th>商店</th><th>買う食材（<span class="c-r">赤文字</span>は足りてたら買わなくていいもの※食材で売ると赤字）</th><th>買わない食材（買った時点で赤字の食材）</th></tr></thead><tbody>';
+  let h = '<thead><tr><th>商店</th><th>買う食材（<span class="c-r">赤文字</span>は足りてたら買わなくていいもの※食材で売ると赤字）</th><th class="thNoBuy">買わない食材（買った時点で赤字の食材）</th></tr></thead><tbody>';
   SHOPS.forEach(([name, buy, nobuy], i) => {
     h += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}"><td class="shopName">${esc(name)}</td><td>${ingList(buy)}</td><td class="noBuy">${ingList(nobuy)}</td></tr>`;
   });
   document.getElementById('shopTable').innerHTML = h + '</tbody>';
 
   document.getElementById('noticeTable').innerHTML =
-    `<tbody><tr class="grp-a"><td>注意事項→</td><td>${rich(NOTICE_B).replace(/\n/g, '<br>')}</td><td class="noBuy">${rich(NOTICE_C).replace(/\n/g, '<br>')}</td></tr></tbody>`;
+    `<tbody><tr class="grp-a"><td>${rich(NOTICE_B).replace(/\n/g, '<br>')}</td><td class="noBuy">${rich(NOTICE_C).replace(/\n/g, '<br>')}</td></tr></tbody>`;
 
   let s = '<thead><tr><th>まとめて購入した場合の目安</th><th>合計</th><th>想定</th></tr></thead><tbody>';
   SUMMARY.forEach((r, i) => { s += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}">${r.map(x => `<td>${esc(x)}</td>`).join('')}</tr>`; });
@@ -200,7 +200,7 @@ function renderShop() {
    ② 料理の利益ランキング（シート「ギルマス手動まとめ②」）
    cls: '' 通常 / 'gray' グレーアウト(作らない) / 'lgray' 薄いグレー
    ========================================================= */
-const COOK_LEAD = '買うものリストに従って購入後、上から作れるだけ作っていれば間違いありません！　<r>※グレーアウトは作らない</r>';
+const COOK_LEAD = '買うものリストに従って購入後、上から作れるだけ作っていれば間違いありません！　<r>※取り消し線のかかってる料理は作らない</r>';
 const KINOKO = '<m>※キノコ不足で作れない時は21Gで売ってるキノコ追加購入</m>';
 const OVERLAP = '<r>上位と貴重素材被り</r>';
 // [順位, 料理, 売値(120%), 材料費, 秘薬消費量, 秘薬費用, 総コスト, 利益(1品), 材料, 備考, cls, 料理名を紫に]
@@ -231,8 +231,8 @@ const COOK = [
   ['24', '黒ビールシチュー', '294', '64', '5', '225', '289', '5', '麦×2、ホップ×2、獣の肉×2', 'これ以下の料理は11/19の更新で売値が上昇してますが利益が少ないです。必ず上位の料理を作ってから余った食材を使用してください', ''],
   ['25', 'サフラン花のポンチ', '546', '228', '7', '315', '543', '3', 'リンゴ×2、ブドウ×2、メロン×2、サフラン×2', '', ''],
   ['25', 'カイラック養生スープ', '534', '216', '7', '315', '531', '3', '鶏の胸肉パック×2、キノコ×2、塩×2、カイラック薬材×2', OVERLAP, 'gray'],
-  ['25', 'ベジタブルサンドイッチ', '360', '132', '5', '225', '357', '3', 'トマト×2、食パン×2', '<r>※業績的にはチョコパン優先を推奨します</r>', 'lgray', true],
-  ['25', 'ツナチキンサンドイッチ', '324', '96', '5', '225', '321', '3', 'ツナ缶×2、鶏の胸肉パック×2、食パン×2', '', 'lgray', true],
+  ['25', 'ベジタブルサンドイッチ', '360', '132', '5', '225', '357', '3', 'トマト×2、食パン×2', '<r>※業績的にはチョコパン優先を推奨します</r>', 'gray', true],
+  ['25', 'ツナチキンサンドイッチ', '324', '96', '5', '225', '321', '3', 'ツナ缶×2、鶏の胸肉パック×2、食パン×2', '<r>※業績的にはチョコパン優先を推奨します</r>', 'gray', true],
   ['25', 'キノコすき焼き鍋', '312', '84', '5', '225', '309', '3', 'キノコ×2、獣の肉×4、ニンジン×2', OVERLAP, 'gray'],
   ['25', 'フルーツスラッシュ', '168', '120', '1', '45', '165', '3', '缶詰フルーツ×1、砂糖×1', '', ''],
   ['25', 'チョコパン', '90', '42', '1', '45', '87', '3', 'チョコレート×1、食パン×1', '', '', true],
@@ -246,28 +246,43 @@ const COOK = [
 ];
 const COOK_FOOT = '<p>※食パンを使う低利益料理3種類に関してはどれも同じ利益なので、業績を考えると作れる数が多くなるチョコパンを優先するのがおすすめです。</p>';
 
+const cookState = { showNums: false, showGray: false };
+const NUM_TH = ['売値(120%)', '材料費', '秘薬消費量', '秘薬費用', '総コスト', '利益(1品)'];
+const GRAY_DESC_HIDDEN = '利益上位の料理と素材が重なり、作る必要のないレシピは非表示にしています。';
+const GRAY_DESC_SHOWN = '取り消し線のレシピは、利益上位の料理と素材が重なるため作る必要がありません。';
+
 function renderCook() {
   document.getElementById('cookLead').innerHTML = rich(COOK_LEAD);
-  let h = '<thead><tr><th>順位</th><th>料理</th><th>売値(120%)</th><th>材料費</th><th>秘薬消費量</th><th>秘薬費用</th><th>総コスト</th><th>利益(1品)</th><th>材料(個数)</th><th>備考</th></tr></thead><tbody>';
-  COOK.forEach((r, i) => {
+  document.getElementById('toggleNums').textContent = cookState.showNums ? '売値〜利益の数値を隠す' : '売値〜利益の数値を表示';
+  document.getElementById('toggleGray').textContent = cookState.showGray ? '作らない料理を隠す' : '作らない料理を表示';
+  document.getElementById('grayDesc').textContent = cookState.showGray ? GRAY_DESC_SHOWN : GRAY_DESC_HIDDEN;
+  const table = document.getElementById('cookTable');
+  table.classList.toggle('hideNums', !cookState.showNums);
+  let h = '<thead><tr><th>順位</th><th>料理</th>' + NUM_TH.map(t => `<th class="numcol">${t}</th>`).join('') + '<th>材料(個数)</th><th>備考</th></tr></thead><tbody>';
+  let vis = 0;
+  COOK.forEach((r) => {
     const [rank, name, price, cost, eUse, eCost, total, profit, mats, note, cls, purple] = r;
-    const zebra = i % 2 ? 'grp-b' : 'grp-a';
+    if (cls === 'gray' && !cookState.showGray) return;
+    const zebra = vis++ % 2 ? 'grp-b' : 'grp-a';
     h += `<tr class="${zebra} ${cls || ''}">` +
       `<td class="rank">${esc(rank)}</td><td class="dish${purple ? ' c-p' : ''}">${esc(name)}</td>` +
-      `<td class="num c-b">${price}</td><td class="num c-b">${cost}</td><td class="num c-b">${eUse}</td>` +
-      `<td class="num">${eCost}</td><td class="num">${total}</td><td class="num profit">${profit}</td>` +
-      `<td class="mat">${matList(mats)}</td><td class="note">${rich(note || '')}</td></tr>`;
+      `<td class="num numcol c-b">${price}</td><td class="num numcol c-b">${cost}</td><td class="num numcol c-b">${eUse}</td>` +
+      `<td class="num numcol">${eCost}</td><td class="num numcol">${total}</td><td class="num numcol profit">${profit}</td>` +
+      `<td class="mat">${matList(mats)}</td><td class="remark">${rich(note || '')}</td></tr>`;
   });
-  document.getElementById('cookTable').innerHTML = h + '</tbody>';
+  table.innerHTML = h + '</tbody>';
   document.getElementById('cookFoot').innerHTML = rich(COOK_FOOT);
 }
+document.getElementById('toggleNums').addEventListener('click', () => { cookState.showNums = !cookState.showNums; renderCook(); });
+document.getElementById('toggleGray').addEventListener('click', () => { cookState.showGray = !cookState.showGray; renderCook(); });
 
 /* =========================================================
    ③ 商店で売っていいもの（シート「ギルマス手動まとめ③」）
    ========================================================= */
 const SELL_LEAD = '※原則120％で売れる日にだけ売りましょう！それ以外の日は売らずにとっておきます。';
+const SELL_TOP = '作成した料理全て';
 const SELL_ITEMS = ['アーモンド', 'かいわれ菜', 'カプサイシン', 'コーヒー豆', 'チーズ', 'チリソース', 'トウモロコシ', 'トマト', 'ニンジン', 'バター', 'ブドウ', 'みりん', 'メロン', 'リンゴ', '牛乳', '砂糖', '鮭', '小麦', '唐辛子', '豆', '米', '味付け海苔', '卵'];
-const SELL_MERGED_NOTE = '料理に使っても尚余った分のみを売ります。\n（ここに無い食材は料理に使わず売ると赤字になる or 貴重なものなので売りません）';
+const SELL_MERGED_NOTE = 'これらの食材はそのまま売っても利益になるので、料理に使っても尚余った分のみを売ります。\n（ここに無い食材は料理に使わず売ると赤字になる or 貴重なものなので売りません）';
 const SELL_OTHERS = [
   ['各種スカウト契約書', 'スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK'],
   ['スライム', '手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK'],
@@ -278,15 +293,16 @@ const SELL_FOOT = '<r>ここに載っていないものを売るのは非推奨�
 function renderSell() {
   document.getElementById('sellLead').textContent = SELL_LEAD;
   let h = '<thead><tr><th>アイテム名</th><th>備考</th></tr></thead><tbody>';
+  h += `<tr class="grp-a"><td class="item">${esc(SELL_TOP)}</td><td class="remark"></td></tr>`;
   SELL_ITEMS.forEach((n, i) => {
-    h += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}"><td class="item">${chip(n)}</td>` +
-      (i === 0 ? `<td class="note noteMerged" rowspan="${SELL_ITEMS.length}">${esc(SELL_MERGED_NOTE).replace(/\n/g, '<br>')}</td>` : '') + '</tr>';
+    h += `<tr class="${(i + 1) % 2 ? 'grp-b' : 'grp-a'}"><td class="item">${chip(n)}</td>` +
+      (i === 0 ? `<td class="remark noteMerged" rowspan="${SELL_ITEMS.length}">${esc(SELL_MERGED_NOTE).replace(/\n/g, '<br>')}</td>` : '') + '</tr>';
   });
   SELL_OTHERS.forEach(([n, note], i) => {
     const long = n.length > 20;
-    h += `<tr class="${(SELL_ITEMS.length + i) % 2 ? 'grp-b' : 'grp-a'}"><td class="item${long ? ' wrapItem' : ''}">${esc(n).replace(/\n/g, '<br>')}</td><td class="note">${rich(note)}</td></tr>`;
+    h += `<tr class="${(SELL_ITEMS.length + 1 + i) % 2 ? 'grp-b' : 'grp-a'}"><td class="item${long ? ' wrapItem' : ''}">${esc(n).replace(/\n/g, '<br>')}</td><td class="remark">${rich(note)}</td></tr>`;
   });
-  h += `<tr class="grp-b"><td></td><td class="note">${rich(SELL_FOOT)}</td></tr>`;
+  h += `<tr class="grp-b"><td></td><td class="remark">${rich(SELL_FOOT)}</td></tr>`;
   document.getElementById('sellTable').innerHTML = h + '</tbody>';
 }
 
