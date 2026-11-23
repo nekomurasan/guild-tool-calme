@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=7">
-<link rel="stylesheet" href="v2.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="v2.css?v=8">
 </head>
 <body>
 <div class="wrap">
@@ -65,7 +65,8 @@
     <!-- ① 商店ごとの購入食材 -->
     <div class="card" id="sec1">
       <h2>🛒 ① 商店ごとに買うもの（必ず価格交渉スキル使用60％オフで購入）</h2>
-      <div class="legend legendRows">
+      <div class="table-wrap"><table id="shopTable" class="v2t"></table></div>
+      <div class="legend legendRows legendBelow">
         <div class="lgRow"><b class="lgLabel">買う食材リスト内→</b>
           <span class="lg"><i class="sw sw-k"></i>白文字：必ず買う（食材のまま売っても黒字）</span>
           <span class="lg"><i class="sw sw-r"></i>赤文字：食材のまま売ると赤字（料理用食材）</span>
@@ -76,7 +77,6 @@
           <span class="lg"><i class="sw sw-g"></i>緑文字：本当に足りない時だけ購入可</span>
         </div>
       </div>
-      <div class="table-wrap"><table id="shopTable" class="v2t"></table></div>
 
       <h3 class="subHead">注意事項</h3>
       <div class="table-wrap"><table id="noticeTable" class="v2t"></table></div>
@@ -109,6 +109,6 @@
   </div>
 </div>
 
-<script type="module" src="app.js?v=7"></script>
+<script type="module" src="app.js?v=8"></script>
 </body>
 </html>
