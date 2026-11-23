@@ -67,9 +67,9 @@
     <div class="card" id="sec1">
       <h2>🛒 ① 商店ごとの購入食材</h2>
       <div class="legend">
-        <span class="lg"><i class="sw sw-k"></i>黒文字：必ず買う</span>
-        <span class="lg"><i class="sw sw-r"></i>赤文字：足りていれば買わなくてOK（食材で売ると赤字）</span>
-        <span class="lg"><i class="sw sw-p"></i>紫文字：買値6Gのツナ缶・チョコレート</span>
+        <span class="lg"><i class="sw sw-k"></i>白文字：必ず買う（食材のまま売っても黒字）</span>
+        <span class="lg"><i class="sw sw-r"></i>赤文字：食材のまま売ると赤字（料理用食材）</span>
+        <span class="lg"><i class="sw sw-p"></i>紫文字：買値と売値が同額（業績用）</span>
       </div>
       <div class="table-wrap"><table id="shopTable" class="v2t"></table></div>
 
@@ -85,6 +85,11 @@
     <div class="card" id="sec2">
       <h2>🍳 ② 料理の利益ランキング</h2>
       <div id="cookLead" class="leadLine"></div>
+      <div class="cookTools">
+        <button class="small" id="toggleNums"></button>
+        <button class="small" id="toggleGray"></button>
+      </div>
+      <div id="grayDesc" class="leadLine"></div>
       <div class="table-wrap"><table id="cookTable" class="v2t"></table></div>
       <div id="cookFoot" class="noteBox"></div>
     </div>

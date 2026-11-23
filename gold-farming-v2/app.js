@@ -156,7 +156,7 @@ const SHOPS = [
   ['17：試練の道', 'アーモンド(60)、ホップ(12)、塩(4)、砂糖(9)、小麦(6)、米(6)', '豆(34)、カイラック薬材(105)'],
   ['18：救済', 'トウモロコシ(23)、リンゴ(14)、卵(6)、小麦(6)、米(6)、麦(12)、牛乳(16)', 'ジャガイモ(18)、食パン(64)'],
   ['19：忘却されし戦争', '塩(4)、コーヒー豆(16)、バター(24)、砂糖(9)、チーズ(9)、ハーブ(17)', 'サフラン(60)、ブドウ(42)'],
-  ['CC1：ジェイデンズ', ...CC1],
+  ['CC1：ジェイデンズ～', ...CC1],
   ['CC2：ファイヤーチ～', ...CC2],
   ['CC3：ビューティ～', ...CC3],
   ['CC4：大脱出', '米(4)、鶏の胸肉パック(4)、味付け海苔(40)、パプリカ(15)、唐辛子(14)、マヨネーズ(48)、小麦(4)、カプサイシン(51)', 'なし'],
@@ -253,9 +253,10 @@ const GRAY_DESC_SHOWN = '取り消し線のレシピは、利益上位の料理�
 
 function renderCook() {
   document.getElementById('cookLead').innerHTML = rich(COOK_LEAD);
-  document.getElementById('toggleNums').textContent = cookState.showNums ? '売値〜利益の数値を隠す' : '売値〜利益の数値を表示';
-  document.getElementById('toggleGray').textContent = cookState.showGray ? '作らない料理を隠す' : '作らない料理を表示';
-  document.getElementById('grayDesc').textContent = cookState.showGray ? GRAY_DESC_SHOWN : GRAY_DESC_HIDDEN;
+  const setText = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  setText('toggleNums', cookState.showNums ? '売値〜利益の数値を隠す' : '売値〜利益の数値を表示');
+  setText('toggleGray', cookState.showGray ? '作らない料理を隠す' : '作らない料理を表示');
+  setText('grayDesc', cookState.showGray ? GRAY_DESC_SHOWN : GRAY_DESC_HIDDEN);
   const table = document.getElementById('cookTable');
   table.classList.toggle('hideNums', !cookState.showNums);
   let h = '<thead><tr><th>順位</th><th>料理</th>' + NUM_TH.map(t => `<th class="numcol">${t}</th>`).join('') + '<th>材料(個数)</th><th>備考</th></tr></thead><tbody>';
@@ -273,8 +274,8 @@ function renderCook() {
   table.innerHTML = h + '</tbody>';
   document.getElementById('cookFoot').innerHTML = rich(COOK_FOOT);
 }
-document.getElementById('toggleNums').addEventListener('click', () => { cookState.showNums = !cookState.showNums; renderCook(); });
-document.getElementById('toggleGray').addEventListener('click', () => { cookState.showGray = !cookState.showGray; renderCook(); });
+document.getElementById('toggleNums')?.addEventListener('click', () => { cookState.showNums = !cookState.showNums; renderCook(); });
+document.getElementById('toggleGray')?.addEventListener('click', () => { cookState.showGray = !cookState.showGray; renderCook(); });
 
 /* =========================================================
    ③ 商店で売っていいもの（シート「ギルマス手動まとめ③」）

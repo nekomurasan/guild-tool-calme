@@ -49,13 +49,12 @@ b.strong { font-weight: 700; }
 }
 .ing.noicon { padding-left: 8px; }
 .ing img { width: 20px; height: 20px; object-fit: contain; border-radius: 50%; background: rgba(255,255,255,0.08); }
-.ing .pr { font-size: 11px; opacity: 0.85; }
 .ing.c-r { border-color: rgba(255,123,123,0.55); }
 .ing.c-p { border-color: rgba(199,146,255,0.6); }
 .ing.c-m { border-color: rgba(229,139,184,0.6); }
 .ing.plain { background: none; border-color: transparent; padding-left: 2px; }
 .mkw { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
-.mk { font-size: 12px; }
+.mk { font-size: 12px; line-height: 1; }
 .ing .qty { font-weight: 600; color: var(--gold-soft); }
 
 /* ① */
@@ -64,7 +63,7 @@ b.strong { font-weight: 700; }
 #shopTable th:nth-child(1) { width: 140px; }
 #shopTable th:nth-child(3), #shopTable td.noBuy { width: 34%; }
 #noticeTable td { font-size: 12px; line-height: 1.7; }
-#noticeTable td:first-child { white-space: nowrap; font-weight: 600; width: 80px; }
+#noticeTable td:last-child { width: 34%; }
 #noticeTable td.noBuy { background: rgba(0,0,0,0.22) !important; }
 #summaryTable th { background: #3d6f9e; color: #fff; border-bottom: 2px solid var(--gold); }
 .noteBox { font-size: 12px; color: var(--text-dim); white-space: pre-wrap; line-height: 1.7; margin-top: 10px; }
@@ -76,24 +75,48 @@ b.strong { font-weight: 700; }
 #cookTable td.mat { min-width: 230px; }
 #cookTable th, #cookTable td { padding: 8px 6px; }
 #cookTable { min-width: 0; }
-#cookTable td.note { font-size: 11px; min-width: 170px; line-height: 1.6; white-space: pre-wrap; }
+#cookTable td.remark { font-size: 11px; min-width: 170px; line-height: 1.6; white-space: pre-wrap; }
 #cookTable td.profit { color: var(--gold-soft); font-weight: 700; }
 #cookTable tr.gray td { color: var(--c-gray); background: rgba(0,0,0,0.28) !important; }
 #cookTable tr.gray td.num { color: var(--c-gray); }
 #cookTable tr.gray .ing { opacity: 0.55; }
-#cookTable tr.gray td.note { color: var(--c-gray-note); }
-#cookTable tr.lgray td { background: rgba(255,255,255,0.05) !important; }
+#cookTable tr.gray td.rank, #cookTable tr.gray td.dish, #cookTable tr.gray td.num { text-decoration: line-through; text-decoration-thickness: 1px; }
+#cookTable tr.gray td.remark { color: var(--c-gray-note); }
 #cookTable tr.gray td.profit { color: var(--c-gray); }
 
 /* ③ */
 #sellTable td.item { white-space: nowrap; font-weight: 600; width: 190px; }
 #sellTable td.item.wrapItem { white-space: normal; }
-#sellTable td.note { font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
-#sellTable td.noteMerged { vertical-align: middle; background: rgba(0,0,0,0.22) !important; }
+#sellTable td.remark { font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+#sellTable td.remark.noteMerged { vertical-align: middle; background: rgba(0,0,0,0.22) !important; }
 #sellTable .ing { font-size: 13px; }
 
 @media (max-width: 780px) {
   #shopTable th:nth-child(1) { width: 96px; }
   #shopTable td.noBuy { width: auto; }
   table.v2t { min-width: 560px; }
+}
+
+/* ② 切替ボタン */
+.cookTools { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.cookTools button.small { margin: 0; padding: 5px 12px; }
+#cookTable.hideNums .numcol { display: none; }
+#cookTable td.dish { width: auto; }
+
+/* ① 「買わない食材」列を一段暗く */
+#shopTable th.thNoBuy { color: #a58b50; background: #2a3643; }
+#shopTable td.noBuy { color: #a9b5c5; }
+#shopTable td.noBuy .ing { border-color: #3a526f; }
+#shopTable td.noBuy .ing img { opacity: 0.7; }
+#shopTable td.noBuy .c-r { color: #d06a6a !important; }
+#shopTable td.noBuy .c-r.ing { border-color: rgba(208,106,106,0.45); }
+#shopTable td.noBuy .c-p { color: #a37fd0 !important; }
+#shopTable td.noBuy .c-m { color: #c98aab !important; }
+
+/* 表ヘッダーを下までスクロールしても表示（sticky） */
+table.v2t th { position: sticky; top: 0; z-index: 3; }
+.table-wrap { overflow: clip; }
+@media (max-width: 1100px) {
+  /* 狭い画面は表の中でスクロール（その中でヘッダー固定） */
+  .table-wrap { overflow: auto; max-height: 78vh; }
 }
