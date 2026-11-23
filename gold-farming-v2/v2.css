@@ -145,3 +145,5 @@ table.v2t th { position: sticky; top: 0; z-index: 3; }
 
 /* 落ち着いたオレンジ（注意喚起） */
 .c-o { color: #e0a463 !important; }
+
+.ings .lb { flex-basis: 100%; height: 0; }
