@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Farming Guide (11/19更新版) | BrownDust Ⅱ Calme Guild Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="v2.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="titleBlock" style="margin-bottom: 4px;">
+    <a href="../index.html" class="backLink">← BrownDust Ⅱ Calme Guild Tool</a>
+    <h1>Gold Farming Guide</h1>
+    <div class="verTag">11/19 更新版</div>
+  </div>
+
+  <!-- ログイン -->
+  <div id="loginScreen" class="card">
+    <h2>アクセス方法を選択してください</h2>
+
+    <div class="accessOption">
+      <h3>メインギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">装備管理ツールと同じIDとパスワードでログインしてください。</div>
+      <div class="formField">
+        <label>ID</label>
+        <input type="text" id="loginId" placeholder="例: taro">
+      </div>
+      <div class="formField">
+        <label>パスワード</label>
+        <input type="password" id="loginPassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="loginBtn">ログイン</button>
+      <div id="loginStatus" class="status"></div>
+    </div>
+
+    <div class="accessOption">
+      <h3>サブギルドの方</h3>
+      <div class="detail" style="margin-bottom:8px;">ギルド内で共有されている共通パスワードを入力してください。</div>
+      <div class="formField">
+        <label>共通パスワード</label>
+        <input type="password" id="gatePassword" placeholder="パスワード">
+      </div>
+      <button class="primary" id="gateBtn">閲覧する</button>
+      <div id="gateStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div id="mainContent" style="display:none;">
+
+    <div class="topBar">
+      <span class="guideNote">上から順に「①購入 → ②料理 → ③売却」の流れでご利用ください✨</span>
+      <button class="small" id="logoutBtn" style="margin-left:auto;">ログアウト</button>
+    </div>
+
+    <nav class="jumpNav">
+      <a href="#sec1">🛒 ① 商店ごとの購入食材</a>
+      <a href="#sec2">🍳 ② 料理の利益ランキング</a>
+      <a href="#sec3">💰 ③ 商店で売っていいもの</a>
+    </nav>
+
+    <!-- ① 商店ごとの購入食材 -->
+    <div class="card" id="sec1">
+      <h2>🛒 ① 商店ごとの購入食材</h2>
+      <div class="legend">
+        <span class="lg"><i class="sw sw-k"></i>黒文字：必ず買う</span>
+        <span class="lg"><i class="sw sw-r"></i>赤文字：足りていれば買わなくてOK（食材で売ると赤字）</span>
+        <span class="lg"><i class="sw sw-p"></i>紫文字：買値6Gのツナ缶・チョコレート</span>
+      </div>
+      <div class="table-wrap"><table id="shopTable" class="v2t"></table></div>
+
+      <h3 class="subHead">注意事項</h3>
+      <div class="table-wrap"><table id="noticeTable" class="v2t"></table></div>
+
+      <h3 class="subHead">まとめて購入した場合の目安</h3>
+      <div class="table-wrap"><table id="summaryTable" class="v2t"></table></div>
+      <div id="summaryNote" class="noteBox"></div>
+    </div>
+
+    <!-- ② 料理の利益ランキング -->
+    <div class="card" id="sec2">
+      <h2>🍳 ② 料理の利益ランキング</h2>
+      <div id="cookLead" class="leadLine"></div>
+      <div class="table-wrap"><table id="cookTable" class="v2t"></table></div>
+      <div id="cookFoot" class="noteBox"></div>
+    </div>
+
+    <!-- ③ 商店で売っていいもの -->
+    <div class="card" id="sec3">
+      <h2>💰 ③ <span class="hl">売っていい</span>もの</h2>
+      <div id="sellLead" class="leadLine"></div>
+      <div class="table-wrap"><table id="sellTable" class="v2t"></table></div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

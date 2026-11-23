@@ -1,0 +1,99 @@
+/* gold-farming-v2 追加スタイル（ベースは style.css を流用） */
+:root {
+  --c-red: #ff7b7b;      /* シートの赤文字（#ff0000）を暗背景用に明るく */
+  --c-purple: #c792ff;   /* シートの紫文字（#9900ff） */
+  --c-magenta: #e58bb8;  /* シートのえんじ紫（#a64d79） */
+  --c-blue: #7db4ff;     /* シートの青文字（#0000ff） */
+  --c-gray: #8794a6;     /* グレーアウト行 */
+  --c-gray-note: #f08a8a;
+}
+.verTag { font-size: 12px; color: var(--gold-soft); margin-top: 2px; letter-spacing: 1px; }
+.jumpNav { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+.jumpNav a {
+  font-size: 12px; color: var(--gold-soft); text-decoration: none;
+  border: 1px solid var(--gold); border-radius: 16px; padding: 4px 12px;
+}
+.jumpNav a:hover { background: rgba(216,179,93,0.15); }
+.card { scroll-margin-top: 10px; }
+.hl { color: var(--c-red); }
+.subHead { margin: 18px 0 0 !important; }
+.leadLine { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+.legend .lg { display: inline-flex; align-items: center; gap: 5px; }
+.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.sw-k { background: var(--text); } .sw-r { background: var(--c-red); } .sw-p { background: var(--c-purple); }
+
+table.v2t { border-collapse: separate; border-spacing: 0; margin-top: 0; min-width: 520px; }
+table.v2t th, table.v2t td { border: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 10px; vertical-align: top; }
+table.v2t th:last-child, table.v2t td:last-child { border-right: 0; }
+table.v2t tr:last-child td { border-bottom: 0; }
+table.v2t th { border-bottom: 2px solid var(--gold); vertical-align: middle; white-space: nowrap; }
+table.v2t tbody tr.grp-a td { background: var(--bg-card); }
+table.v2t tbody tr.grp-b td { background: var(--bg-sub); }
+.table-wrap { margin-top: 6px; }
+
+/* 文字色 */
+.c-r { color: var(--c-red) !important; }
+.c-p { color: var(--c-purple) !important; }
+.c-m { color: var(--c-magenta) !important; }
+.c-b { color: var(--c-blue) !important; }
+b.strong { font-weight: 700; }
+
+/* 食材チップ */
+.ings { display: flex; flex-wrap: wrap; gap: 5px 6px; align-items: center; }
+.ing {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(0,0,0,0.18); border: 1px solid var(--border); border-radius: 14px;
+  padding: 2px 8px 2px 3px; font-size: 12px; white-space: nowrap;
+}
+.ing.noicon { padding-left: 8px; }
+.ing img { width: 20px; height: 20px; object-fit: contain; border-radius: 50%; background: rgba(255,255,255,0.08); }
+.ing .pr { font-size: 11px; opacity: 0.85; }
+.ing.c-r { border-color: rgba(255,123,123,0.55); }
+.ing.c-p { border-color: rgba(199,146,255,0.6); }
+.ing.c-m { border-color: rgba(229,139,184,0.6); }
+.ing.plain { background: none; border-color: transparent; padding-left: 2px; }
+.mkw { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.mk { font-size: 12px; }
+.ing .qty { font-weight: 600; color: var(--gold-soft); }
+
+/* ① */
+#shopTable td.shopName { font-weight: 700; white-space: nowrap; }
+#shopTable td.noBuy { background: rgba(0,0,0,0.22) !important; }
+#shopTable th:nth-child(1) { width: 140px; }
+#shopTable th:nth-child(3), #shopTable td.noBuy { width: 34%; }
+#noticeTable td { font-size: 12px; line-height: 1.7; }
+#noticeTable td:first-child { white-space: nowrap; font-weight: 600; width: 80px; }
+#noticeTable td.noBuy { background: rgba(0,0,0,0.22) !important; }
+#summaryTable th { background: #3d6f9e; color: #fff; border-bottom: 2px solid var(--gold); }
+.noteBox { font-size: 12px; color: var(--text-dim); white-space: pre-wrap; line-height: 1.7; margin-top: 10px; }
+
+/* ② */
+#cookTable td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#cookTable td.rank { text-align: center; font-weight: 600; width: 44px; }
+#cookTable td.dish { font-weight: 600; width: 120px; min-width: 110px; }
+#cookTable td.mat { min-width: 230px; }
+#cookTable th, #cookTable td { padding: 8px 6px; }
+#cookTable { min-width: 0; }
+#cookTable td.note { font-size: 11px; min-width: 170px; line-height: 1.6; white-space: pre-wrap; }
+#cookTable td.profit { color: var(--gold-soft); font-weight: 700; }
+#cookTable tr.gray td { color: var(--c-gray); background: rgba(0,0,0,0.28) !important; }
+#cookTable tr.gray td.num { color: var(--c-gray); }
+#cookTable tr.gray .ing { opacity: 0.55; }
+#cookTable tr.gray td.note { color: var(--c-gray-note); }
+#cookTable tr.lgray td { background: rgba(255,255,255,0.05) !important; }
+#cookTable tr.gray td.profit { color: var(--c-gray); }
+
+/* ③ */
+#sellTable td.item { white-space: nowrap; font-weight: 600; width: 190px; }
+#sellTable td.item.wrapItem { white-space: normal; }
+#sellTable td.note { font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+#sellTable td.noteMerged { vertical-align: middle; background: rgba(0,0,0,0.22) !important; }
+#sellTable .ing { font-size: 13px; }
+
+@media (max-width: 780px) {
+  #shopTable th:nth-child(1) { width: 96px; }
+  #shopTable td.noBuy { width: auto; }
+  table.v2t { min-width: 560px; }
+}
