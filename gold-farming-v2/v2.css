@@ -63,7 +63,6 @@ b.strong { font-weight: 700; }
 #shopTable th:nth-child(1) { width: 140px; }
 #shopTable th:nth-child(3), #shopTable td.noBuy { width: 34%; }
 #noticeTable td { font-size: 12px; line-height: 1.7; }
-#noticeTable td:last-child { width: 34%; }
 #noticeTable td.noBuy { background: rgba(0,0,0,0.22) !important; }
 #summaryTable th { background: #3d6f9e; color: #fff; border-bottom: 2px solid var(--gold); }
 .noteBox { font-size: 12px; color: var(--text-dim); white-space: pre-wrap; line-height: 1.7; margin-top: 10px; }
@@ -129,8 +128,8 @@ table.v2t th { position: sticky; top: 0; z-index: 3; }
 
 /* 注意事項の表：列幅を固定して崩れを防ぐ */
 #noticeTable { table-layout: fixed; width: 100%; min-width: 0; }
-#noticeTable td:first-child { width: 66%; }
-#noticeTable td:last-child { width: 34%; }
+#noticeTable td:first-child { width: 50%; }
+#noticeTable td:last-child { width: 50%; }
 
 /* ② 順位列：中央揃え・幅を狭く */
 #cookTable th.rankTh, #cookTable td.rank { width: 38px; min-width: 0; padding-left: 2px; padding-right: 2px; text-align: center; }
@@ -143,3 +142,6 @@ table.v2t th { position: sticky; top: 0; z-index: 3; }
 #sellTable td.item { border-right: 0; }
 #sellTable td.remark { border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 #sellTable td.remark.noteMerged { background: rgba(0,0,0,0.12) !important; }
+
+/* 落ち着いたオレンジ（注意喚起） */
+.c-o { color: #e0a463 !important; }

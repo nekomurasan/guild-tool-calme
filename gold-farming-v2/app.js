@@ -79,7 +79,7 @@ const ICONS = new Set(["アーモンド","エビ","オリーブ油","かいわ�
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function segs(str) {
-  const out = []; let last = 0; const re = /<(r|p|m|b|g)>([\s\S]*?)<\/\1>/g; let m;
+  const out = []; let last = 0; const re = /<(r|p|m|b|g|o)>([\s\S]*?)<\/\1>/g; let m;
   while ((m = re.exec(str))) {
     if (m.index > last) out.push({ c: '', t: str.slice(last, m.index) });
     out.push({ c: m[1], t: m[2] }); last = re.lastIndex;
@@ -172,7 +172,7 @@ const SHOPS = [
 ];
 
 const NOTICE_B = '※<p>ツナ缶</p>は値下げ後買値も、120％売値も6Gなので、買っても買わなくても良いのだが、商店に関する業績の足しになることを考えると料理に使わずとも買った方が良い。金欠で商店金策がギリギリなのであれば買わない事。\n\n※<p>チョコレート</p>に関しても買値6Gのものに関しては120％売値が6Gなのでツナ缶と同じ扱い。\nチョコ6Gの店はファイヤーチップ、ビューティーインポッシブル、ナイトメアウィンター、ビーチサイドエンジェル、メモリーズエッジ、スプラッシュクイーンの6つ';
-const NOTICE_C = '買わない食材リストの中で<g>緑色</g>のものに関しては、買う食材リストに記載の量とフィールドで手に入る量で料理に使う分を十分賄えている予定なので買わない食材リストに移したもの。もしこれらの食材が足りず高利益料理が作れないのであれば買ってもいい。料理に使えば黒字。\nただし売価21Gのキノコだけは「シャイニーガンバス」「ルーゴ高麗人参の串焼き」「屋台の焼き鳥」に使う分のみが黒字になるので注意';
+const NOTICE_C = '買わない食材リストの中でグレーのものは買った時点で赤字です。\n買わない食材リストの中で<g>緑色</g>のものに関しては、\n買う食材リストに記載の量とフィールドで手に入る量で料理に使う分を十分賄えている予定なので買わない食材リストに移したものです。\nもしこれらの食材が足りずに高利益料理が作れないのであれば買ってもOK。料理に使えば黒字。\n<o>ただし売価21Gのキノコだけは「シャイニーガンバス」「ルーゴ高麗人参の串焼き」「屋台の焼き鳥」に使う分のみが黒字になるので注意してください</o>';
 
 const SUMMARY = [
   ['買う食材リストを全て購入', '合計　205　品　1,080,800Ｇ', '損しない範囲で最大限購入した場合'],
@@ -182,7 +182,7 @@ const SUMMARY = [
 const SUMMARY_NOTE = '※サキさんの金策リスト197個 1,073,600Gと、「白＋赤文字」で2品16,800Gの差があるのは、\n「21Gで買えるキノコを2枠分買う予定にしているかどうかの違い」です。\n私の方で買わない予定にしているのはキノコが余った際に「間違えて低利益のキノコ料理を作って損しないようにしている」ためなので、\nキノコが不足して高利益の料理が作れなくなったら購入してください。';
 
 function renderShop() {
-  let h = '<thead><tr><th>商店</th><th>買う食材（<span class="c-r">赤文字</span>は足りてたら買わなくていいもの※食材で売ると赤字）</th><th class="thNoBuy">買わない食材（買った時点で赤字の食材）</th></tr></thead><tbody>';
+  let h = '<thead><tr><th>商店</th><th>買う食材（<span class="c-r">赤文字</span>は足りてたら買わなくていいもの※食材で売ると赤字）</th><th class="thNoBuy">買わない食材</th></tr></thead><tbody>';
   SHOPS.forEach(([name, buy, nobuy], i) => {
     h += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}"><td class="shopName">${esc(name)}</td><td>${ingList(buy)}</td><td class="noBuy">${ingList(nobuy, { noBuy: true })}</td></tr>`;
   });
@@ -191,7 +191,7 @@ function renderShop() {
   document.getElementById('noticeTable').innerHTML =
     `<tbody><tr class="grp-a"><td>${rich(NOTICE_B).replace(/\n/g, '<br>')}</td><td class="noBuy">${rich(NOTICE_C).replace(/\n/g, '<br>')}</td></tr></tbody>`;
 
-  let s = '<thead><tr><th>まとめて購入した場合の目安</th><th>合計</th><th>想定</th></tr></thead><tbody>';
+  let s = '<thead><tr><th>購入品</th><th>合計</th><th>想定</th></tr></thead><tbody>';
   SUMMARY.forEach((r, i) => { s += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}">${r.map(x => `<td>${esc(x)}</td>`).join('')}</tr>`; });
   document.getElementById('summaryTable').innerHTML = s + '</tbody>';
   document.getElementById('summaryNote').textContent = SUMMARY_NOTE;
@@ -201,7 +201,7 @@ function renderShop() {
    ② 料理の利益ランキング（シート「ギルマス手動まとめ②」）
    cls: '' 通常 / 'gray' グレーアウト(作らない) / 'lgray' 薄いグレー
    ========================================================= */
-const COOK_LEAD = '買うものリストに従って購入後、上から作れるだけ作っていれば間違いありません！　<r>※取り消し線のかかってる料理は作らない</r>';
+const COOK_LEAD = '買うものリストに従って購入後、上から作れるだけ作っていれば間違いありません！　<r>※取り消し線のかかってる料理は作らないでください</r>';
 const KINOKO = '<m>※キノコ不足で作れない時は21Gで売ってるキノコ追加購入</m>';
 const OVERLAP = '<r>上位と貴重素材被り</r>';
 // [順位, 料理, 売値(120%), 材料費, 秘薬消費量, 秘薬費用, 総コスト, 利益(1品), 材料, 備考, cls, 料理名を紫に]
@@ -284,26 +284,27 @@ document.getElementById('toggleGray')?.addEventListener('click', () => { cookSta
    ========================================================= */
 const SELL_LEAD = '※原則120％で売れる日にだけ売りましょう！それ以外の日は売らずにとっておきます。';
 const SELL_TOP = '作成した料理全て';
+const SELL_TOP_NOTE = '上の料理するものリストは120％売却で利益計算をしていますので、120％の日以外に売ると大幅に赤字になる可能性があります';
 const SELL_ITEMS = ['アーモンド', 'かいわれ菜', 'カプサイシン', 'コーヒー豆', 'チーズ', 'チリソース', 'トウモロコシ', 'トマト', 'ニンジン', 'バター', 'ブドウ', 'みりん', 'メロン', 'リンゴ', '牛乳', '砂糖', '鮭', '小麦', '唐辛子', '豆', '米', '味付け海苔', '卵'];
 const SELL_MERGED_NOTE = 'これらの食材はそのまま売っても利益になるので、料理に使っても尚余った分のみを売ります。\n（ここに無い食材は料理に使わず売ると赤字になる or 貴重なものなので売りません）';
 const SELL_OTHERS = [
   ['各種スカウト契約書', 'スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK'],
-  ['スライム', '手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK'],
-  ['料理に使わない特殊食材\n・元気粉・鱗甲目のうろっこ\n・ビタＢ濃縮溶液・元気ポーション\n・黄金バジル・魅惑の粉\n・鷲の羽根・元気キノコ\n・魂生クリーム', '既存の食材を使用したレシピ追加が無いとは明言されていないので<b>自己責任</b>で売却可']
+  ['スライム', '手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK\n※ただし強制的に手に入る数が少ないので売る必要はかなり低い'],
+  ['料理に使わない特殊食材\n・元気粉\n・鱗甲目のうろっこ\n・ビタＢ濃縮溶液\n・元気ポーション\n・黄金バジル\n・魅惑の粉\n・鷲の羽根\n・元気キノコ\n・魂生クリーム', '既存の食材を使用したレシピ追加が無いとは明言されていないので<b>自己責任</b>で売却可']
 ];
 const SELL_FOOT = '<r>ここに載っていないものを売るのは非推奨ですが、自己責任で売却可</r>';
 
 function renderSell() {
   document.getElementById('sellLead').textContent = SELL_LEAD;
   let h = '<thead><tr><th>アイテム名</th><th>備考</th></tr></thead><tbody>';
-  h += `<tr class="grp-a"><td class="item">${esc(SELL_TOP)}</td><td class="remark"></td></tr>`;
+  h += `<tr class="grp-a"><td class="item">${esc(SELL_TOP)}</td><td class="remark">${esc(SELL_TOP_NOTE)}</td></tr>`;
   SELL_ITEMS.forEach((n, i) => {
     h += `<tr class="${(i + 1) % 2 ? 'grp-b' : 'grp-a'}"><td class="item">${chip(n)}</td>` +
       (i === 0 ? `<td class="remark noteMerged" rowspan="${SELL_ITEMS.length}">${esc(SELL_MERGED_NOTE).replace(/\n/g, '<br>')}</td>` : '') + '</tr>';
   });
   SELL_OTHERS.forEach(([n, note], i) => {
     const long = n.length > 20;
-    h += `<tr class="${(SELL_ITEMS.length + 1 + i) % 2 ? 'grp-b' : 'grp-a'}${n.startsWith('料理に使わない') ? ' dimRow' : ''}"><td class="item${long ? ' wrapItem' : ''}">${esc(n).replace(/\n/g, '<br>')}</td><td class="remark">${rich(note)}</td></tr>`;
+    h += `<tr class="${(SELL_ITEMS.length + 1 + i) % 2 ? 'grp-b' : 'grp-a'}${n.startsWith('料理に使わない') ? ' dimRow' : ''}"><td class="item${long ? ' wrapItem' : ''}">${esc(n).replace(/\n/g, '<br>')}</td><td class="remark">${rich(note).replace(/\n/g, '<br>')}</td></tr>`;
   });
   h += `<tr class="grp-b"><td></td><td class="remark">${rich(SELL_FOOT)}</td></tr>`;
   document.getElementById('sellTable').innerHTML = h + '</tbody>';
