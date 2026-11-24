@@ -3,27 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gold Farming Guide | BrownDust Ⅱ Calme Guild Tool</title>
+<title>BrownDust Ⅱ Calme Guild Tool</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=19">
-<link rel="stylesheet" href="v2.css?v=19">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
-  <div class="titleBlock" style="margin-bottom: 4px;">
-    <a href="../index.html" class="backLink">← BrownDust Ⅱ Calme Guild Tool</a>
-    <h1>Gold Farming Guide</h1>
+  <div class="titleBlock">
+    <h1>BrownDust Ⅱ Calme Guild Tool</h1>
   </div>
+  <div class="subtitle">Guild Utility Suite</div>
+  <div class="sub">ギルド運営に役立つツール集です。ログイン後、使いたいツールを選んでください。</div>
 
-  <!-- ログイン -->
+  <!-- ログイン(2経路) -->
   <div id="loginScreen" class="card">
     <h2>アクセス方法を選択してください</h2>
 
     <div class="accessOption">
       <h3>メインギルドの方</h3>
-      <div class="detail" style="margin-bottom:8px;">装備管理ツールと同じIDとパスワードでログインしてください。</div>
+      <div class="detail" style="margin-bottom:8px;">運営者から発行されたIDとパスワードでログインしてください。</div>
       <div class="formField">
         <label>ID</label>
         <input type="text" id="loginId" placeholder="例: taro">
@@ -43,72 +43,49 @@
         <label>共通パスワード</label>
         <input type="password" id="gatePassword" placeholder="パスワード">
       </div>
-      <button class="primary" id="gateBtn">閲覧する</button>
+      <button class="primary" id="gateBtn">利用する</button>
       <div id="gateStatus" class="status"></div>
     </div>
   </div>
 
-  <!-- メインコンテンツ -->
+  <!-- ログイン後: ツール一覧 -->
   <div id="mainContent" style="display:none;">
-
     <div class="topBar">
-      <span class="guideNote">上から順に「①購入 → ②料理 → ③売却」の流れでご利用ください✨</span>
+      <span class="routeNote" id="routeNote"></span>
       <button class="small" id="logoutBtn" style="margin-left:auto;">ログアウト</button>
     </div>
 
-    <nav class="jumpNav">
-      <a href="#sec1">🛒 ① 商店ごとに買うもの</a>
-      <a href="#sec2">🍳 ② 料理するもの</a>
-      <a href="#sec3">💰 ③ 商店で売っていいもの</a>
-    </nav>
+    <div class="tools">
+      <a class="tool-card" id="cardEquipment" href="equipment/index.html">
+        <div class="tool-name">Ace Characters Database</div>
+        <div class="tool-desc">オーバーキルスコアを目指せるキャラクターを、ギルドメンバーが自分で登録・共有できる管理ツールです。</div>
+      </a>
 
-    <!-- ① 商店ごとの購入食材 -->
-    <div class="card" id="sec1">
-      <h2>🛒 ① 商店ごとに買うもの（必ず価格交渉スキル使用60％オフで購入）</h2>
-      <div class="table-wrap"><table id="shopTable" class="v2t"></table></div>
-      <div class="legend legendRows legendBelow">
-        <div class="lgRow"><b class="lgLabel">買う食材リスト内→</b>
-          <span class="lg"><i class="sw sw-k"></i>白文字：必ず買う（食材のまま売っても黒字）</span>
-          <span class="lg"><i class="sw sw-r"></i>赤文字：食材のまま売ると赤字（料理用食材）</span>
-          <span class="lg"><i class="sw sw-p"></i>紫文字：買値と売値が同額（業績用）</span>
-        </div>
-        <div class="lgRow"><b class="lgLabel">買わない食材リスト内→</b>
-          <span class="lg"><i class="sw sw-gy"></i>グレー文字：買った時点で赤字</span>
-          <span class="lg"><i class="sw sw-g"></i>緑文字：本当に足りない時だけ購入可</span>
-        </div>
+      <a class="tool-card" href="gold-farming-v2/index.html">
+        <div class="tool-name">Gold Farming Guide</div>
+        <div class="tool-desc">商店と料理スキルを利用した金策についての解説を載せています。</div>
+      </a>
+
+      <div class="tool-card disabled">
+        <div class="tool-name">Skill Damage Calculator</div>
+        <div class="tool-desc">ギルドレイドボス等を対象に、キャラ・スキル単位でダメージを計算できるツールです。</div>
+        <span class="tool-status">現在作成作業中</span>
       </div>
 
-      <h3 class="subHead">注意事項</h3>
-      <div class="table-wrap"><table id="noticeTable" class="v2t"></table></div>
+      <a class="tool-card" href="raid-must-haves/index.html">
+        <div class="tool-name">Raid Must-Haves</div>
+        <div class="tool-desc">ギルドレイドに絶対に役立つ、必須級のキャラの必要育成水準や、用意しておきたい装備一覧を掲載しています。</div>
+      </a>
 
-      <h3 class="subHead">まとめて購入した場合の目安</h3>
-      <div class="table-wrap"><table id="summaryTable" class="v2t"></table></div>
-      <div id="summaryNote" class="noteBox"></div>
-    </div>
-
-    <!-- ② 料理の利益ランキング -->
-    <div class="card" id="sec2">
-      <h2>🍳 ② 料理するもの（利益ランキング）</h2>
-      <div id="cookLead" class="leadLine"></div>
-      <div class="cookTools">
-        <button class="small" id="toggleNums"></button>
-        <button class="small" id="toggleGray"></button>
+      <div class="tool-card disabled">
+        <div class="tool-name">(準備中)</div>
+        <div class="tool-desc">今後もツールを追加していく予定です。</div>
+        <span class="tool-status">Coming soon</span>
       </div>
-      <div id="grayDesc" class="leadLine"></div>
-      <div class="table-wrap"><table id="cookTable" class="v2t"></table></div>
-      <div id="cookFoot" class="noteBox"></div>
     </div>
-
-    <!-- ③ 商店で売っていいもの -->
-    <div class="card" id="sec3">
-      <h2>💰 ③ <span class="hl">売っていい</span>もの（120％で売れる日に売却）</h2>
-      <div id="sellLead" class="leadLine"></div>
-      <div class="table-wrap"><table id="sellTable" class="v2t"></table></div>
-    </div>
-
   </div>
 </div>
 
-<script type="module" src="app.js?v=19"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
