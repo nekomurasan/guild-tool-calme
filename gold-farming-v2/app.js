@@ -341,7 +341,7 @@ document.getElementById('toggleGray')?.addEventListener('click', () => { cookSta
    ========================================================= */
 const SELL_LEAD = '※原則120％で売れる日にだけ売りましょう！それ以外の日は売らずにとっておきます。日付は毎月固定です（1日〜28日）。';
 const SELL_NOTE = '※この表に記載されているパプリカ以外の食材はそのまま売っても利益になるので、料理に使っても尚余った分のみを売ります。\n（ここに無い食材は料理に使わず売ると赤字になる or 貴重なものなので売りません）\n\n※料理するものリストは120％売却で利益計算をしていますので、120％の日以外に売ると大幅に赤字になる可能性があります。\n\n※破線の枠は「料理に使わない特殊食材」で、入手手段が限られているレアものです。\n既存の特殊食材を使用したレシピ追加が無いとは明言されていないので、金欠の場合には自己責任で売却可能です。';
-const SELL_FOOT = '<r>ここに載っていないものを売るのは非推奨ですが、自己責任で売却可</r>';
+const SELL_FOOT = '<r>ここに載っていないものを売るのは非推奨ですが、自己責任で売却可能です。\nまた、料理は②で掲載した利益の出る料理のみに絞っていますので、\nもし業績目的などでこれ以外の料理を作っている場合には120％で売れる日に売ってください。</r>';
 /* 備考(各アイテムごと) */
 const N_CONTRACT = 'スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK';
 const N_SLIME = '手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK\n※ただし強制的に手に入る数が少ないので売る必要はかなり低い';
@@ -406,7 +406,7 @@ function renderSell() {
         `<td class="sellItem">${c}${SELL_SHOP[n] ? `<span class="shopTag">${esc(shopLabel(SELL_SHOP[n]))}</span>` : ''}</td><td class="remark">${ITEM_NOTES[n] ? rich(ITEM_NOTES[n]).replace(/\n/g, '<br>') : ''}</td></tr>`;
     });
   });
-  h += `<tr class="grp-b"><td></td><td colspan="2" class="remark">${rich(SELL_FOOT)}</td></tr>`;
+  h += `<tr class="grp-b"><td></td><td colspan="2" class="remark">${rich(SELL_FOOT).replace(/\n/g, '<br>')}</td></tr>`;
   document.getElementById('sellTable').innerHTML = h + '</tbody>';
 }
 
