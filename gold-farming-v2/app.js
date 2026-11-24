@@ -98,9 +98,9 @@ function rich(str) {
 function icon(name) {
   return ICONS.has(name) ? `<img src="icons/${encodeURIComponent(name)}.png" alt="">` : '';
 }
-function chip(name, { c = '', price = null, qty = null, mark = false, plain = false } = {}) {
+function chip(name, { c = '', price = null, qty = null, mark = false, plain = false, x = '' } = {}) {
   const has = ICONS.has(name);
-  const body = `<span class="ing${has ? '' : ' noicon'}${c ? ' c-' + c : ''}${plain ? ' plain' : ''}">${icon(name)}<span class="nm">${esc(name)}</span>` +
+  const body = `<span class="ing${has ? '' : ' noicon'}${c ? ' c-' + c : ''}${plain ? ' plain' : ''}${x ? ' ' + x : ''}">${icon(name)}<span class="nm">${esc(name)}</span>` +
     `${qty != null ? `<span class="qty">×${esc(qty)}</span>` : ''}</span>`;
   return mark ? `<span class="mkw"><span class="mk">‼️</span>${body}</span>` : body;
 }
@@ -174,7 +174,7 @@ const SHOPS = [
 ];
 
 const NOTICE_B = '※<r>赤文字</r>の食材はそのまま売ると赤字になってしまうため、料理に使いきれずに大量に余ってしまう場合には、余った分をそのまま売るのではなく買うのを中止してください。\n\n※<p>ツナ缶</p>は値下げ後買値も、120％売値も6Gなので、買っても買わなくても良いのですが、商店に関する業績の足しになることを考えると料理に使わずとも買った方が良いです。金欠で商店金策がギリギリなのであれば買わない事。\n\n※<p>チョコレート</p>に関しても買値6Gのものに関しては120％売値が6Gなのでツナ缶と同じ扱い。\nチョコ6Gの店はファイヤーチップ、ビューティー・インポッシブル、\nナイトメア・ウィンター、ビーチサイド・エンジェル、\nMemory\'s Edge、スプラッシュ・クイーンの6つ。\n\n※<b>才能の秘薬</b>はまずイベント商店で購入。\nそれでも足りない分に関しては、任意のカセットでウィークリークエストをクリアして街の評判を上げた後にその街の商店で秘薬を購入してください、1つあたり45Gで購入できます。（料理の利益はこの金額で計算しています）';
-const NOTICE_C = '買わない食材リストの中でグレーのものは買った時点で赤字です。\n買わない食材リストの中で<g>緑色</g>のものに関しては、\n料理に使えば黒字ですがそのまま売ると赤字になってしまうもので、\n買う食材リストに記載の量とフィールドなどで手に入る量で料理に使う分を十分賄えている予定なので買わない食材リストに移したものです。\nもしこれらの食材が足りずに高利益料理が作れないのであれば買ってもOKです。\n<o>ただし売価21Gのキノコだけは「シャイニーガンバス」「ルーゴ高麗人参の串焼き」「屋台の焼き鳥」に使う分のみが黒字になるので注意してください。</o>';
+const NOTICE_C = '買わない食材リストの中でグレーのものは買った時点で赤字です。\n\n買わない食材リストの中で<g>緑色</g>のものに関しては、\n料理に使えば黒字ですがそのまま売ると赤字になってしまうもので、\n買う食材リストに記載の量とフィールドなどで手に入る量で料理に使う分を十分賄えている予定なので買わない食材リストに移したものです。\nもしこれらの食材が足りずに高利益料理が作れないのであれば買ってもOKです。\n\n<o>ただし売価21Gのキノコだけは「シャイニーガンバス」「ルーゴ高麗人参の串焼き」「屋台の焼き鳥」に使う分のみが黒字になるので注意してください。</o>';
 
 const SUMMARY = [
   ['買う食材リストを全て購入', '合計　205　品　1,080,800Ｇ', '損しない範囲で最大限購入した場合'],
@@ -284,32 +284,62 @@ document.getElementById('toggleGray')?.addEventListener('click', () => { cookSta
 /* =========================================================
    ③ 商店で売っていいもの（シート「ギルマス手動まとめ③」）
    ========================================================= */
-const SELL_LEAD = '※原則120％で売れる日にだけ売りましょう！それ以外の日は売らずにとっておきます。';
-const SELL_TOP = '作成した料理全て';
-const SELL_TOP_NOTE = '上の料理するものリストは120％売却で利益計算をしていますので、120％の日以外に売ると大幅に赤字になる可能性があります';
-const SELL_ITEMS = ['アーモンド', 'かいわれ菜', 'カプサイシン', 'コーヒー豆', 'チーズ', 'チョコレート', 'チリソース', 'ツナ缶', 'トウモロコシ', 'トマト', 'ニンジン', 'バター', 'ブドウ', 'みりん', 'メロン', 'リンゴ', '獣の肉', '牛乳', '砂糖', '鮭', '小麦', '麦', '唐辛子', '豆', '米', '味付け海苔', '卵'];
-const SELL_MERGED_NOTE = 'これらの食材はそのまま売っても利益になるので、料理に使っても尚余った分のみを売ります。\n（ここに無い食材は料理に使わず売ると赤字になる or 貴重なものなので売りません）';
-const SELL_OTHERS = [
-  ['各種スカウト契約書', 'スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK'],
-  ['スライム', '手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK\n※ただし強制的に手に入る数が少ないので売る必要はかなり低い'],
-  ['パプリカ', '売る前に買わない食材リストの緑枠パプリカを購入していないかを必ず確認してください、緑枠パプリカを料理せず売ると赤字です'],
-  ['料理に使わない特殊食材\n・元気粉\n・鱗甲目のうろっこ\n・ビタＢ濃縮溶液\n・元気ポーション\n・黄金バジル\n・魅惑の粉\n・鷲の羽根\n・元気キノコ\n・魂生クリーム', '既存の食材を使用したレシピ追加が無いとは明言されていないので<b>自己責任</b>で売却可']
-];
+const SELL_LEAD = '※原則120％で売れる日にだけ売りましょう！それ以外の日は売らずにとっておきます。日付は毎月固定です（1日〜28日）。';
+const SELL_NOTE = 'これらの食材はそのまま売っても利益になるので、料理に使っても尚余った分のみを売ります。\n（ここに無い食材は料理に使わず売ると赤字になる or 貴重なものなので売りません）\n上の料理するものリストは120％売却で利益計算をしていますので、120％の日以外に売ると大幅に赤字になる可能性があります\n破線の枠は「料理に使わない特殊食材」などです。既存の食材を使用したレシピ追加が無いとは明言されていないので自己責任で売却可です';
 const SELL_FOOT = '<r>ここに載っていないものを売るのは非推奨ですが、自己責任で売却可</r>';
+/* 備考(各アイテムの注意) */
+const N_CONTRACT = '各種スカウト契約書：スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK';
+const N_SLIME = 'スライム：手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK\n※ただし強制的に手に入る数が少ないので売る必要はかなり低い';
+const N_PAPRIKA = 'パプリカ：売る前に買わない食材リストの緑枠パプリカを購入していないかを必ず確認してください、緑枠パプリカを料理せず売ると赤字です';
+const N_SPECIAL = '料理に使わない特殊食材：<b>自己責任</b>で売却可（理由は表の下に記載）';
+/* 日付 → [食材, 料理(②で作るもの), その他(契約書・スライム・特殊食材), 備考]
+   120％最高値の日付: https://browndust2-db.souseha.com/ja/market-data （毎月固定） */
+const SELL_DAYS = [
+  [1, [], [], ['各種スカウト契約書'], [N_CONTRACT]],
+  [2, [], ['サフラン花のポンチ'], [], []],
+  [3, [], ['ペペロンチーノ', '香ばしい棒天', '黒ビールシチュー'], ['元気キノコ'], [N_SPECIAL]],
+  [4, ['麦', 'トマト'], [], [], []],
+  [5, ['パプリカ'], ['キャビアオムレツ'], [], [N_PAPRIKA]],
+  [6, [], ['シャイニーガンバス'], ['元気ポーション'], [N_SPECIAL]],
+  [7, ['コーヒー豆'], ['屋台の焼き鳥'], [], []],
+  [8, ['獣の肉', '味付け海苔', 'カプサイシン'], [], [], []],
+  [9, [], [], ['元気粉'], [N_SPECIAL]],
+  [10, ['トウモロコシ'], ['アイスキャンディ'], ['スライム'], [N_SLIME]],
+  [11, ['牛乳'], ['ポテトポタージュ'], [], []],
+  [12, ['チョコレート'], ['ルーゴ高麗人参の串焼き'], [], []],
+  [13, ['鮭'], ['ショコラカクテル'], [], []],
+  [14, ['ニンジン'], [], [], []],
+  [15, ['ブドウ', 'チーズ'], [], [], []],
+  [16, ['砂糖'], ['黒焦げのクッキー'], ['ビタＢ濃縮溶液'], [N_SPECIAL]],
+  [17, [], ['テレーゼ・パイ', 'フルーツスラッシュ'], [], []],
+  [18, ['かいわれ菜', 'バター', 'チリソース'], [], ['魅惑の粉'], [N_SPECIAL]],
+  [19, ['メロン', 'アーモンド'], [], [], []],
+  [20, [], [], ['魂生クリーム'], [N_SPECIAL]],
+  [21, [], ['地獄炎キンパ', 'ハーブステーキ'], [], []],
+  [22, ['みりん'], ['サーモンワサビ寿司'], [], []],
+  [23, ['小麦', '米'], ['ハニーバターアーモンド'], [], []],
+  [24, ['豆', '唐辛子'], [], [], []],
+  [25, ['卵'], ['透明化サラダ', 'チョコパン'], [], []],
+  [26, ['ツナ缶'], ['サンドイッチ弁当'], ['黄金バジル'], [N_SPECIAL]],
+  [27, ['リンゴ'], [], ['鱗甲目のうろっこ'], [N_SPECIAL]],
+  [28, [], [], ['鷲の羽根'], [N_SPECIAL]],
+];
 
 function renderSell() {
-  document.getElementById('sellLead').textContent = SELL_LEAD;
-  let h = '<thead><tr><th>アイテム名</th><th>備考</th></tr></thead><tbody>';
-  h += `<tr class="grp-a"><td class="item">${esc(SELL_TOP)}</td><td class="remark">${esc(SELL_TOP_NOTE)}</td></tr>`;
-  SELL_ITEMS.forEach((n, i) => {
-    h += `<tr class="${(i + 1) % 2 ? 'grp-b' : 'grp-a'}"><td class="item">${chip(n)}</td>` +
-      (i === 0 ? `<td class="remark noteMerged" rowspan="${SELL_ITEMS.length}">${esc(SELL_MERGED_NOTE).replace(/\n/g, '<br>')}</td>` : '') + '</tr>';
+  const lead = document.getElementById('sellLead'); if (lead) lead.textContent = SELL_LEAD;
+  const note = document.getElementById('sellNote');
+  if (note) note.innerHTML = esc(SELL_NOTE).replace(/\n/g, '<br>');
+  let h = '<thead><tr><th class="dayCol">日付</th><th>120％で売れるアイテム</th><th>備考</th></tr></thead><tbody>';
+  SELL_DAYS.forEach(([d, ings, dishes, others, notes], i) => {
+    const chips = [
+      ...ings.map(n => chip(n)),
+      ...dishes.map(n => chip(n, { x: 'dish' })),
+      ...others.map(n => chip(n, { x: 'other' })),
+    ].join('');
+    h += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}"><td class="dayCol">${d}日</td><td class="sellItems"><div class="ings">${chips}</div></td>` +
+      `<td class="remark">${notes.map(t => rich(t).replace(/\n/g, '<br>')).join('<br>')}</td></tr>`;
   });
-  SELL_OTHERS.forEach(([n, note], i) => {
-    const long = n.length > 20;
-    h += `<tr class="${(SELL_ITEMS.length + 1 + i) % 2 ? 'grp-b' : 'grp-a'}${n.startsWith('料理に使わない') ? ' dimRow' : ''}"><td class="item${long ? ' wrapItem' : ''}">${n === 'パプリカ' ? chip(n) : esc(n).replace(/\n/g, '<br>')}</td><td class="remark">${rich(note).replace(/\n/g, '<br>')}</td></tr>`;
-  });
-  h += `<tr class="grp-b"><td></td><td class="remark">${rich(SELL_FOOT)}</td></tr>`;
+  h += `<tr class="grp-b"><td></td><td colspan="2" class="remark">${rich(SELL_FOOT)}</td></tr>`;
   document.getElementById('sellTable').innerHTML = h + '</tbody>';
 }
 

@@ -158,3 +158,13 @@ table.v2t th { position: sticky; top: 0; z-index: 3; }
 /* 表内は縦中央揃えで統一 */
 table.v2t th, table.v2t td { vertical-align: middle !important; }
 table.v2t td > .ings, table.v2t td > .mats { align-items: center; }
+
+#noticeTable b.strong { font-size: 1.2em; }
+
+/* ③ 日付別表 */
+#sellTable th.dayCol, #sellTable td.dayCol { width: 70px; text-align: center; font-weight: 700; white-space: nowrap; color: var(--gold-soft); }
+#sellTable td.sellItems { width: 52%; }
+#sellTable td.sellItems .ings { display: flex; flex-wrap: wrap; gap: 6px; }
+#sellTable td.remark { white-space: normal; }
+.ing.dish { border-color: rgba(232,196,106,0.55); background: rgba(232,196,106,0.08); }
+.ing.other { border-style: dashed; }
