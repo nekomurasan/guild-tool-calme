@@ -382,11 +382,17 @@ const SELL_DAYS = [
   [28, [], [], ['鷲の羽根'], [N_SPECIAL]],
 ];
 
+const SELL_SHOP = {'元気ポーション':'S18','魂生クリーム':'S19','みりん':'C5','各種スカウト契約書':'S1','ニンジン':'S7','獣の肉':'S3','ツナ缶':'S12','黄金バジル':'S6','鷲の羽根':'S9','魅惑の粉':'S6','元気粉':'S11','ポテトポタージュ':'S8','ハニーバターアーモンド':'S14','サンドイッチ弁当':'C7','テレーゼ・パイ':'C1','ショコラカクテル':'C5','黒ビールシチュー':'C6','香ばしい棒天':'S17','フルーツスラッシュ':'S5','卵':'C1','鱗甲目のうろっこ':'S16','小麦':'C2','鮭':'S7','チーズ':'S19','砂糖':'S2','味付け海苔':'S13','カプサイシン':'C3','アイスキャンディ':'S1','屋台の焼き鳥':'S5','ハーブステーキ':'C2','キャビアオムレツ':'C7','ペペロンチーノ':'S18','コーヒー豆':'S1','バター':'S2','牛乳':'S7','トマト':'S1','各種スライム':'S3','唐辛子':'C4','かいわれ菜':'C3','チョコレート':'S4','パプリカ':'S11','チョコパン':'E1','ブドウ':'S3','麦':'S18','ルーゴ高麗人参の串焼き':'S14','サフラン花のポンチ':'S19','トウモロコシ':'S12','リンゴ':'S6','米':'S5','豆':'S12','メロン':'C6','アーモンド':'C1','透明化サラダ':'E1','黒焦げのクッキー':'C7','ビタＢ濃縮溶液':'E1','チリソース':'S10','サーモンワサビ寿司':'S5','地獄炎キンパ':'C5','元気キノコ':'S1','シャイニーガンバス':'S5'};
+function shopLabel(code) {
+  const key = code[0] === 'S' ? code.slice(1) : (code[0] === 'C' ? 'CC' : 'EC') + code.slice(1);
+  const r = SHOPS.find(x => x[0].split('：')[0] === key);
+  return r ? r[0] : code;
+}
 function renderSell() {
   const lead = document.getElementById('sellLead'); if (lead) lead.textContent = SELL_LEAD;
   const note = document.getElementById('sellNote');
   if (note) note.innerHTML = esc(SELL_NOTE).replace(/\n/g, '<br>');
-  let h = '<thead><tr><th class="dayCol">日付</th><th>120％で売れるアイテム</th><th>備考</th></tr></thead><tbody>';
+  let h = '<thead><tr><th class="dayCol">日付</th><th>120％で売れるアイテム／商店</th><th>備考</th></tr></thead><tbody>';
   SELL_DAYS.forEach(([d, ings, dishes, others], i) => {
     const items = [
       ...ings.map(n => [n, chip(n)]),
@@ -397,7 +403,7 @@ function renderSell() {
     items.forEach(([n, c], k) => {
       h += `<tr class="${cls}${k === 0 ? ' dayFirst' : ''}">` +
         (k === 0 ? `<td class="dayCol" rowspan="${items.length}">${d}日</td>` : '') +
-        `<td class="sellItem">${c}</td><td class="remark">${ITEM_NOTES[n] ? rich(ITEM_NOTES[n]).replace(/\n/g, '<br>') : ''}</td></tr>`;
+        `<td class="sellItem">${c}${SELL_SHOP[n] ? `<span class="shopTag">${esc(shopLabel(SELL_SHOP[n]))}</span>` : ''}</td><td class="remark">${ITEM_NOTES[n] ? rich(ITEM_NOTES[n]).replace(/\n/g, '<br>') : ''}</td></tr>`;
     });
   });
   h += `<tr class="grp-b"><td></td><td colspan="2" class="remark">${rich(SELL_FOOT)}</td></tr>`;

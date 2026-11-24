@@ -180,3 +180,5 @@ table.v2t td > .ings, table.v2t td > .mats { align-items: center; }
 #cookTable .dishWrap{display:inline-flex;align-items:center;gap:6px}
 #cookTable .dishWrap img{width:28px;height:28px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,0.08);flex:none}
 #cookTable tr.gray td.dish .dishWrap > span { text-decoration: line-through; text-decoration-thickness: 1px; }
+
+td.sellItem .shopTag{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:10px;font-size:.82em;color:#e8c46a;background:rgba(232,196,106,.1);border:1px solid rgba(232,196,106,.35);white-space:nowrap;vertical-align:middle}
