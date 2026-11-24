@@ -168,3 +168,7 @@ table.v2t td > .ings, table.v2t td > .mats { align-items: center; }
 #sellTable td.remark { white-space: normal; }
 .ing.dish { border-color: rgba(232,196,106,0.55); background: rgba(232,196,106,0.08); }
 .ing.other { border-style: dashed; }
+
+#sellTable td.sellItem { width: 40%; }
+#sellTable td.remark { width: 46%; }
+#sellTable tr.dayFirst td { border-top: 2px solid #3a526f; }

@@ -287,11 +287,13 @@ document.getElementById('toggleGray')?.addEventListener('click', () => { cookSta
 const SELL_LEAD = '※原則120％で売れる日にだけ売りましょう！それ以外の日は売らずにとっておきます。日付は毎月固定です（1日〜28日）。';
 const SELL_NOTE = 'これらの食材はそのまま売っても利益になるので、料理に使っても尚余った分のみを売ります。\n（ここに無い食材は料理に使わず売ると赤字になる or 貴重なものなので売りません）\n上の料理するものリストは120％売却で利益計算をしていますので、120％の日以外に売ると大幅に赤字になる可能性があります\n破線の枠は「料理に使わない特殊食材」などです。既存の食材を使用したレシピ追加が無いとは明言されていないので自己責任で売却可です';
 const SELL_FOOT = '<r>ここに載っていないものを売るのは非推奨ですが、自己責任で売却可</r>';
-/* 備考(各アイテムの注意) */
-const N_CONTRACT = '各種スカウト契約書：スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK';
-const N_SLIME = 'スライム：手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK\n※ただし強制的に手に入る数が少ないので売る必要はかなり低い';
-const N_PAPRIKA = 'パプリカ：売る前に買わない食材リストの緑枠パプリカを購入していないかを必ず確認してください、緑枠パプリカを料理せず売ると赤字です';
-const N_SPECIAL = '料理に使わない特殊食材：<b>自己責任</b>で売却可（理由は表の下に記載）';
+/* 備考(各アイテムごと) */
+const N_CONTRACT = 'スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK';
+const N_SLIME = '手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK\n※ただし強制的に手に入る数が少ないので売る必要はかなり低い';
+const N_PAPRIKA = '売る前に買わない食材リストの緑枠パプリカを購入していないかを必ず確認してください、緑枠パプリカを料理せず売ると赤字です';
+const N_SPECIAL = '料理に使わない特殊食材のため<b>自己責任</b>で売却可（理由は表の下に記載）';
+const ITEM_NOTES = { '各種スカウト契約書': N_CONTRACT, 'スライム': N_SLIME, 'パプリカ': N_PAPRIKA };
+['元気キノコ','元気ポーション','元気粉','ビタＢ濃縮溶液','魅惑の粉','魂生クリーム','黄金バジル','鱗甲目のうろっこ','鷲の羽根'].forEach(n => { ITEM_NOTES[n] = N_SPECIAL; });
 /* 日付 → [食材, 料理(②で作るもの), その他(契約書・スライム・特殊食材), 備考]
    120％最高値の日付: https://browndust2-db.souseha.com/ja/market-data （毎月固定） */
 const SELL_DAYS = [
@@ -330,14 +332,18 @@ function renderSell() {
   const note = document.getElementById('sellNote');
   if (note) note.innerHTML = esc(SELL_NOTE).replace(/\n/g, '<br>');
   let h = '<thead><tr><th class="dayCol">日付</th><th>120％で売れるアイテム</th><th>備考</th></tr></thead><tbody>';
-  SELL_DAYS.forEach(([d, ings, dishes, others, notes], i) => {
-    const chips = [
-      ...ings.map(n => chip(n)),
-      ...dishes.map(n => chip(n, { x: 'dish' })),
-      ...others.map(n => chip(n, { x: 'other' })),
-    ].join('');
-    h += `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}"><td class="dayCol">${d}日</td><td class="sellItems"><div class="ings">${chips}</div></td>` +
-      `<td class="remark">${notes.map(t => rich(t).replace(/\n/g, '<br>')).join('<br>')}</td></tr>`;
+  SELL_DAYS.forEach(([d, ings, dishes, others], i) => {
+    const items = [
+      ...ings.map(n => [n, chip(n)]),
+      ...dishes.map(n => [n, chip(n, { x: 'dish' })]),
+      ...others.map(n => [n, chip(n, { x: 'other' })]),
+    ];
+    const cls = i % 2 ? 'grp-b' : 'grp-a';
+    items.forEach(([n, c], k) => {
+      h += `<tr class="${cls}${k === 0 ? ' dayFirst' : ''}">` +
+        (k === 0 ? `<td class="dayCol" rowspan="${items.length}">${d}日</td>` : '') +
+        `<td class="sellItem">${c}</td><td class="remark">${ITEM_NOTES[n] ? rich(ITEM_NOTES[n]).replace(/\n/g, '<br>') : ''}</td></tr>`;
+    });
   });
   h += `<tr class="grp-b"><td></td><td colspan="2" class="remark">${rich(SELL_FOOT)}</td></tr>`;
   document.getElementById('sellTable').innerHTML = h + '</tbody>';
