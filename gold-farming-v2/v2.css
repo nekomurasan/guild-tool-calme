@@ -172,3 +172,7 @@ table.v2t td > .ings, table.v2t td > .mats { align-items: center; }
 #sellTable td.sellItem { width: 40%; }
 #sellTable td.remark { width: 46%; }
 #sellTable tr.dayFirst td { border-top: 2px solid #3a526f; }
+
+/* スマホ幅でも表が潰れて文字が重ならないよう、最小幅を確保して横スクロールにする */
+#shopTable { table-layout: auto !important; min-width: 640px !important; }
+@media (max-width: 780px) { #noticeTable { min-width: 600px; } }
