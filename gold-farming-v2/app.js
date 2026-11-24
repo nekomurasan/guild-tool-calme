@@ -399,6 +399,8 @@ function renderSell() {
       ...dishes.map(n => [n, chip(n, { x: 'dish' })]),
       ...others.map(n => [n, chip(n, { x: (n === '各種スカウト契約書' || n === '各種スライム') ? '' : 'other' })]),
     ];
+    const shopIdx = n => { const c = SELL_SHOP[n]; if (!c) return 999; const key = c[0] === 'S' ? c.slice(1) : (c[0] === 'C' ? 'CC' : 'EC') + c.slice(1); const k = SHOPS.findIndex(x => x[0].split('：')[0] === key); return k < 0 ? 999 : k; };
+    items.sort((p, q) => shopIdx(p[0]) - shopIdx(q[0]));   // 同日内は「商店ごとに買うもの」の並び順（安定ソート）
     const cls = i % 2 ? 'grp-b' : 'grp-a';
     items.forEach(([n, c], k) => {
       h += `<tr class="${cls}${k === 0 ? ' dayFirst' : ''}">` +
