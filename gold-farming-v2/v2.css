@@ -25,7 +25,7 @@
 .sw-k { background: var(--text); } .sw-r { background: var(--c-red); } .sw-p { background: var(--c-purple); }
 
 table.v2t { border-collapse: separate; border-spacing: 0; margin-top: 0; min-width: 520px; }
-table.v2t th, table.v2t td { border: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 10px; vertical-align: top; }
+table.v2t th, table.v2t td { border: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 10px; vertical-align: middle; }
 table.v2t th:last-child, table.v2t td:last-child { border-right: 0; }
 table.v2t tr:last-child td { border-bottom: 0; }
 table.v2t th { border-bottom: 2px solid var(--gold); vertical-align: middle; white-space: nowrap; }
@@ -154,3 +154,7 @@ table.v2t th { position: sticky; top: 0; z-index: 3; }
 .sw-gy { background: #8a93a6; } .sw-g { background: #8fd3a5; }
 
 .legendBelow { margin: 8px 0 0; }
+
+/* 表内は縦中央揃えで統一 */
+table.v2t th, table.v2t td { vertical-align: middle !important; }
+table.v2t td > .ings, table.v2t td > .mats { align-items: center; }
