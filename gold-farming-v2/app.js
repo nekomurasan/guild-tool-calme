@@ -292,6 +292,7 @@ const SELL_MERGED_NOTE = 'これらの食材はそのまま売っても利益に
 const SELL_OTHERS = [
   ['各種スカウト契約書', 'スカウト完了したプレイヤーに関しては少しの備蓄を残して売ってもOK'],
   ['スライム', '手持ちキャラ全カンストしたプレイヤーに関しては備蓄を残して売ってもOK\n※ただし強制的に手に入る数が少ないので売る必要はかなり低い'],
+  ['パプリカ', '売る前に買わない食材リストの緑枠パプリカを購入していないかを必ず確認してください、緑枠パプリカを料理せず売ると赤字です'],
   ['料理に使わない特殊食材\n・元気粉\n・鱗甲目のうろっこ\n・ビタＢ濃縮溶液\n・元気ポーション\n・黄金バジル\n・魅惑の粉\n・鷲の羽根\n・元気キノコ\n・魂生クリーム', '既存の食材を使用したレシピ追加が無いとは明言されていないので<b>自己責任</b>で売却可']
 ];
 const SELL_FOOT = '<r>ここに載っていないものを売るのは非推奨ですが、自己責任で売却可</r>';
@@ -306,7 +307,7 @@ function renderSell() {
   });
   SELL_OTHERS.forEach(([n, note], i) => {
     const long = n.length > 20;
-    h += `<tr class="${(SELL_ITEMS.length + 1 + i) % 2 ? 'grp-b' : 'grp-a'}${n.startsWith('料理に使わない') ? ' dimRow' : ''}"><td class="item${long ? ' wrapItem' : ''}">${esc(n).replace(/\n/g, '<br>')}</td><td class="remark">${rich(note).replace(/\n/g, '<br>')}</td></tr>`;
+    h += `<tr class="${(SELL_ITEMS.length + 1 + i) % 2 ? 'grp-b' : 'grp-a'}${n.startsWith('料理に使わない') ? ' dimRow' : ''}"><td class="item${long ? ' wrapItem' : ''}">${n === 'パプリカ' ? chip(n) : esc(n).replace(/\n/g, '<br>')}</td><td class="remark">${rich(note).replace(/\n/g, '<br>')}</td></tr>`;
   });
   h += `<tr class="grp-b"><td></td><td class="remark">${rich(SELL_FOOT)}</td></tr>`;
   document.getElementById('sellTable').innerHTML = h + '</tbody>';
