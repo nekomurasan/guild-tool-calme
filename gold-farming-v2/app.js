@@ -391,7 +391,7 @@ function renderSell() {
     const items = [
       ...ings.map(n => [n, chip(n)]),
       ...dishes.map(n => [n, chip(n, { x: 'dish' })]),
-      ...others.map(n => [n, chip(n, { x: 'other' })]),
+      ...others.map(n => [n, chip(n, { x: (n === '各種スカウト契約書' || n === '各種スライム') ? '' : 'other' })]),
     ];
     const cls = i % 2 ? 'grp-b' : 'grp-a';
     items.forEach(([n, c], k) => {
