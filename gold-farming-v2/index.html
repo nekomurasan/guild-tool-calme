@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=24">
-<link rel="stylesheet" href="v2.css?v=24">
+<link rel="stylesheet" href="style.css?v=25">
+<link rel="stylesheet" href="v2.css?v=25">
 </head>
 <body>
 <div class="wrap">
@@ -107,9 +107,17 @@
       <div id="sellNote" class="noteBox"></div>
     </div>
 
+    <!-- アクセス状況（管理者のみ表示） -->
+    <div id="accessStatsBox" class="card" style="display:none;">
+      <h3>アクセス状況（管理者のみ表示）</h3>
+      <div class="noteBox" style="margin:0 0 8px;">サブギルドの共通パスワード経由のアクセスが急に増えた場合、パスワード流出の可能性があります。その際はパスワードの変更をご検討ください。</div>
+      <div id="accessStatsSummary" class="noteBox" style="margin:0 0 8px;"></div>
+      <div class="table-wrap"><table id="accessStatsTable" class="v2t"></table></div>
+    </div>
+
   </div>
 </div>
 
-<script type="module" src="app.js?v=24"></script>
+<script type="module" src="app.js?v=25"></script>
 </body>
 </html>

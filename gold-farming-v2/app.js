@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-import { getFirestore, doc, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
 /* =========================================================
@@ -17,6 +17,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const goldFarmingCol = collection(db, "goldFarming");
+const adminsCol = collection(db, "admins");
+const accessLogsCol = collection(db, "goldFarmingAccessLogs"); // 旧ページと同じ記録場所（page:"v2" の印で区別）
 
 const LOGIN_ID_SUFFIX = '@calmeguild.local';
 const idToEmail = (id) => id.trim().toLowerCase() + LOGIN_ID_SUFFIX;
@@ -26,6 +28,47 @@ async function sha256Hex(text) {
   const data = new TextEncoder().encode(text);
   const buf = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+/* ---------- アクセス記録（1セッション1回・日時と経路のみ。個人情報は記録しない） ---------- */
+function logAccessOnce(method) {
+  if (sessionStorage.getItem('gfg2_access_logged') === '1') return;
+  sessionStorage.setItem('gfg2_access_logged', '1');
+  addDoc(accessLogsCol, { ts: new Date().toISOString(), method, page: 'v2' }).catch(() => {});
+}
+const escHtml = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* ---------- アクセス状況（管理者のみ・ページ最下部） ---------- */
+function renderAccessStats(logs) {
+  const summaryEl = document.getElementById('accessStatsSummary');
+  const table = document.getElementById('accessStatsTable');
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  let todayMain = 0, todaySub = 0, weekMain = 0, weekSub = 0;
+  const byDate = {};
+  logs.forEach(l => {
+    if (!l.ts) return;
+    const key = l.ts.slice(0, 10);
+    const isMain = l.method === 'メインギルド';
+    byDate[key] = byDate[key] || { main: 0, sub: 0 };
+    byDate[key][isMain ? 'main' : 'sub']++;
+    if (key === todayKey) { if (isMain) todayMain++; else todaySub++; }
+    if (new Date(l.ts) >= weekAgo) { if (isMain) weekMain++; else weekSub++; }
+  });
+  summaryEl.textContent = `本日: メインギルド ${todayMain}件 / サブギルド ${todaySub}件　|　直近7日間: メインギルド ${weekMain}件 / サブギルド ${weekSub}件`;
+  const keys = Object.keys(byDate).sort().reverse().slice(0, 30);
+  if (!keys.length) { table.innerHTML = '<tbody><tr><td>まだアクセス記録がありません。</td></tr></tbody>'; return; }
+  table.innerHTML = '<thead><tr><th>日付</th><th>メインギルド</th><th>サブギルド</th></tr></thead><tbody>' +
+    keys.map((k, i) => `<tr class="${i % 2 ? 'grp-b' : 'grp-a'}"><td>${escHtml(k)}</td><td>${byDate[k].main}件</td><td>${byDate[k].sub}件</td></tr>`).join('') + '</tbody>';
+}
+async function loadAccessStats() {
+  const summaryEl = document.getElementById('accessStatsSummary');
+  summaryEl.textContent = '読み込み中...';
+  try {
+    const snap = await getDocs(accessLogsCol);
+    const logs = [];
+    snap.forEach(d => { const v = d.data(); if (v.page === 'v2') logs.push(v); });
+    renderAccessStats(logs);
+  } catch (e) { summaryEl.textContent = '読み込みエラー: ' + e.message; }
 }
 const showMain = () => {
   document.getElementById('loginScreen').style.display = 'none';
@@ -46,7 +89,7 @@ document.getElementById('gateBtn').addEventListener('click', async () => {
     const inputHash = await sha256Hex(input);
     const matched = (data.passwordHash && inputHash === data.passwordHash) ||
                     (!data.passwordHash && data.password && input === data.password);
-    if (matched) { sessionStorage.setItem(SESSION_KEY, '1'); showMain(); }
+    if (matched) { sessionStorage.setItem(SESSION_KEY, '1'); logAccessOnce('サブギルド'); showMain(); }
     else { statusEl.className = 'status err'; statusEl.textContent = 'パスワードが違います。'; }
   } catch (e) {
     statusEl.className = 'status err';
@@ -66,8 +109,19 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   if (auth.currentUser) await signOut(auth);
   showLogin();
 });
-onAuthStateChanged(auth, (user) => {
-  if (user || sessionStorage.getItem(SESSION_KEY) === '1') showMain(); else showLogin();
+onAuthStateChanged(auth, async (user) => {
+  const box = document.getElementById('accessStatsBox');
+  if (box) box.style.display = 'none';
+  if (user) {
+    logAccessOnce('メインギルド');
+    showMain();
+    let isAdmin = false;
+    try { isAdmin = (await getDoc(doc(adminsCol, (user.email || '').toLowerCase()))).exists(); } catch (e) { isAdmin = false; }
+    if (isAdmin && box) { box.style.display = 'block'; loadAccessStats(); }
+  } else if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    logAccessOnce('サブギルド');
+    showMain();
+  } else showLogin();
 });
 
 /* =========================================================
