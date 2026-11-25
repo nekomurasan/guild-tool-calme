@@ -184,3 +184,41 @@ table.v2t td > .ings, table.v2t td > .mats { align-items: center; }
 td.sellItem .shopTag{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:10px;font-size:.82em;color:#e8c46a;background:rgba(232,196,106,.1);border:1px solid rgba(232,196,106,.35);white-space:nowrap;vertical-align:middle}
 td.sellItem .ing{vertical-align:middle}
 td.sellItem .shopTag{vertical-align:middle;line-height:1.3}
+
+/* ===== スマホ（〜600px）：自動でコンパクト表示。横スクロールをやめて画面幅に収める ===== */
+@media (max-width: 600px) {
+  body { padding: 8px 6px; }
+  .card { padding: 10px 8px; margin-bottom: 10px; }
+  .card h2 { font-size: 15px; }
+  .table-wrap { overflow: clip; max-height: none; border-width: 1.5px; }
+  .table-wrap table, table.v2t, #shopTable, #noticeTable, #summaryTable, #cookTable, #sellTable {
+    min-width: 0 !important; width: 100%; table-layout: auto !important;
+  }
+  th, td { padding: 4px 4px; font-size: 11px; line-height: 1.45; }
+  .ings { gap: 3px; }
+  .ing { font-size: 11px; padding: 1px 6px 1px 2px; gap: 3px; margin: 0; }
+  .ing.noicon { padding-left: 6px; }
+  .ing img { width: 16px; height: 16px; }
+  #sellTable .ing { font-size: 11px; }
+  #shopTable th:nth-child(1), #shopTable td:nth-child(1) { width: 64px; }
+  #cookTable th.rankTh, #cookTable td.rank { width: 26px; }
+  #cookTable td.dish { width: 84px; }
+  #cookTable .dishWrap { gap: 3px; }
+  #cookTable .dishWrap img { width: 20px; height: 20px; }
+  #sellTable td.dayCol, #sellTable th.dayCol { width: 34px; padding-left: 1px; padding-right: 1px; text-align: center; }
+  #sellTable td.sellItem { width: auto; }
+  #sellTable td.remark { width: 34%; font-size: 10.5px; }
+  td.sellItem .shopTag { display: block; margin: 2px 0 0 0; padding: 0 6px; font-size: 10px; width: fit-content; }
+  td.sellItem .ing { margin-bottom: 0; }
+  #noticeTable td { font-size: 11px; }
+  #summaryTable th, #summaryTable td { font-size: 10.5px; padding: 3px 3px; }
+  #cookTable td.dish { min-width: 0; }
+  #cookTable td.mat { min-width: 0; }
+  #cookTable td.remark { min-width: 0; width: 17%; font-size: 10px; padding: 3px 3px; }
+  #cookTable th, #cookTable td { padding: 4px 3px; }
+  #shopTable td, #shopTable th { min-width: 0; }
+  #shopTable td.noBuy, #shopTable th.thNoBuy { width: 34%; }
+  #shopTable th:nth-child(1), #shopTable td:nth-child(1) { width: 58px; font-size: 10.5px; }
+  #shopTable td.shopName { white-space: normal; overflow-wrap: anywhere; }
+  table.v2t th { white-space: normal; }
+}
