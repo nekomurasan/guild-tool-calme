@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-import { getFirestore, doc, getDoc, getDocs, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
 /* =========================================================
@@ -111,13 +111,16 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 onAuthStateChanged(auth, async (user) => {
   const box = document.getElementById('accessStatsBox');
+  const pwBox = document.getElementById('passwordChangeBox');
   if (box) box.style.display = 'none';
+  if (pwBox) pwBox.style.display = 'none';
   if (user) {
     logAccessOnce('メインギルド');
     showMain();
     let isAdmin = false;
     try { isAdmin = (await getDoc(doc(adminsCol, (user.email || '').toLowerCase()))).exists(); } catch (e) { isAdmin = false; }
     if (isAdmin && box) { box.style.display = 'block'; loadAccessStats(); }
+    if (isAdmin && pwBox) pwBox.style.display = 'block';
   } else if (sessionStorage.getItem(SESSION_KEY) === '1') {
     logAccessOnce('サブギルド');
     showMain();
@@ -415,3 +418,21 @@ function renderSell() {
 renderShop();
 renderCook();
 renderSell();
+
+/* サブギルド共通パスワードの変更（管理者ログイン時のみ表示。既存ページと同じ goldFarming/config を更新） */
+document.getElementById('changePasswordBtn')?.addEventListener('click', async () => {
+  const statusEl = document.getElementById('passwordChangeStatus');
+  const input = document.getElementById('newGatePassword');
+  const newPass = input.value.trim();
+  if (!newPass) { statusEl.className = 'status err'; statusEl.textContent = '新しいパスワードを入力してください。'; return; }
+  try {
+    const passwordHash = await sha256Hex(newPass);
+    await setDoc(doc(goldFarmingCol, 'config'), { passwordHash });
+    statusEl.className = 'status ok';
+    statusEl.textContent = '変更しました。サブギルドメンバーに新しいパスワードを共有してください。';
+    input.value = '';
+  } catch (e) {
+    statusEl.className = 'status err';
+    statusEl.textContent = '変更に失敗しました（権限がない可能性があります）: ' + e.message;
+  }
+});

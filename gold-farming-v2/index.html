@@ -7,8 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=33">
-<link rel="stylesheet" href="v2.css?v=33">
+<link rel="stylesheet" href="style.css?v=34">
+<link rel="stylesheet" href="v2.css?v=34">
 </head>
 <body>
 <div class="wrap">
@@ -115,9 +115,21 @@
       <div class="table-wrap"><table id="accessStatsTable" class="v2t"></table></div>
     </div>
 
+    <!-- サブギルド共通パスワードの変更（管理者のみ表示） -->
+    <div id="passwordChangeBox" class="card" style="display:none;">
+      <h3>サブギルド用 共通パスワードの変更（管理者のみ表示）</h3>
+      <div class="noteBox" style="margin:0 0 8px;">パスワードはそのままではなく、安全な形式（ハッシュ化）で保存されます。変更後は、サブギルドメンバーに新しいパスワードを共有してください。</div>
+      <div class="formField">
+        <label for="newGatePassword">新しい共通パスワード</label>
+        <input type="text" id="newGatePassword" placeholder="新しいパスワード" autocomplete="off">
+      </div>
+      <button class="primary small" id="changePasswordBtn">変更する</button>
+      <div id="passwordChangeStatus" class="status"></div>
+    </div>
+
   </div>
 </div>
 
-<script type="module" src="app.js?v=33"></script>
+<script type="module" src="app.js?v=34"></script>
 </body>
 </html>
